@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '@/domains/auth/views/LoginView.vue'
-import AnalysisView from '@/domains/map/components/MapView.vue'
+import AnalysisView from '@/domains/map/views/AnalysisView.vue'
 import ReportsView from '@/domains/reports/views/ReportsView.vue'
 import MLPanelView from '@/domains/ml-panel/views/MLPanelView.vue'
 import { useAuthStore } from '@/domains/auth/stores/useAuthStore'

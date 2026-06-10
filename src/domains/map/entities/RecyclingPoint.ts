@@ -5,5 +5,6 @@ export interface RecyclingPoint {
   materials_accepted: string | null
   verified: boolean
   district_id: number
+  distance_m?: number
   geometry: GeoJSON.Point
 }
