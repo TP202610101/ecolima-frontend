@@ -7,6 +7,8 @@ export interface Recommendation {
   centroid_lon: number
   district_name: string
   income_stratum?: number
+  population_density?: number
+  road_density?: number
   ml_score?: number
   model_version?: string
   inference_date?: string
