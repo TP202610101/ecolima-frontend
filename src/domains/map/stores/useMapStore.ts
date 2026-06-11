@@ -11,6 +11,8 @@ export const useMapStore = defineStore('map', () => {
   const loadingPoints = ref(false)
   const loadingDistricts = ref(false)
   const error = ref<string | null>(null)
+  const showZones = ref(true)
+  const showPoints = ref(true)
 
   async function fetchPoints() {
     loadingPoints.value = true
@@ -39,5 +41,5 @@ export const useMapStore = defineStore('map', () => {
     }
   }
 
-  return { points, districts, loadingPoints, loadingDistricts, error, fetchPoints, fetchDistricts }
+  return { points, districts, loadingPoints, loadingDistricts, error, showZones, showPoints, fetchPoints, fetchDistricts }
 })

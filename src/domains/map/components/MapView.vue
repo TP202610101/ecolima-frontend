@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import * as L from 'leaflet'
-import { Layers, Plus, Minus, RotateCcw } from '@lucide/vue'
+import { Plus, Minus, RotateCcw } from '@lucide/vue'
 import type { Recommendation } from '@/domains/recommendations/entities/Recommendation'
 import type { RecyclingPoint } from '../entities/RecyclingPoint'
 import { useRecommendationsStore } from '@/domains/recommendations/stores/useRecommendationsStore'
@@ -14,11 +14,7 @@ const emit = defineEmits<{ 'zone-selected': [zone: Recommendation] }>()
 
 const mapContainer = ref<HTMLElement>()
 const LIMA_CENTER: [number, number] = [-12.0464, -77.0428]
-const showZones = ref(true)
-const showPoints = ref(true)
-const showLayerPanel = ref(false)
 
-// Raw Leaflet instances — never touched by Vue reactivity
 let map: L.Map | null = null
 let zonesLayer: L.LayerGroup | null = null
 let pointsLayer: L.LayerGroup | null = null
@@ -75,11 +71,11 @@ watch(() => recStore.filteredRecommendations, zones => renderZones(zones), { dee
 watch(() => mapStore.points, points => renderPoints(points), { deep: true })
 watch(() => recStore.selectedZone, zone => { if (zone) flyTo(zone.centroid_lat, zone.centroid_lon) })
 
-watch(showZones, show => {
+watch(() => mapStore.showZones, show => {
   if (!map || !zonesLayer) return
   show ? map.addLayer(zonesLayer) : map.removeLayer(zonesLayer)
 })
-watch(showPoints, show => {
+watch(() => mapStore.showPoints, show => {
   if (!map || !pointsLayer) return
   show ? map.addLayer(pointsLayer) : map.removeLayer(pointsLayer)
 })
@@ -119,33 +115,6 @@ defineExpose({ flyTo })
 <template>
   <div class="flex-1 relative overflow-hidden">
     <div ref="mapContainer" class="w-full h-full" />
-
-    <!-- Control capas -->
-    <div class="absolute top-3 left-3 z-[1000]">
-      <button
-        @click="showLayerPanel = !showLayerPanel"
-        class="flex items-center gap-1.5 bg-white border border-border rounded-lg px-3 py-1.5 text-xs font-medium text-foreground shadow hover:bg-secondary transition-colors"
-      >
-        <Layers class="w-3.5 h-3.5" />
-        Capas
-      </button>
-      <div
-        v-if="showLayerPanel"
-        class="mt-1 bg-white border border-border rounded-lg shadow p-3 w-48"
-      >
-        <h4 class="text-xs font-semibold text-foreground mb-2">Mostrar / ocultar</h4>
-        <label class="flex items-center gap-2 text-sm text-foreground cursor-pointer mb-1.5">
-          <input type="checkbox" v-model="showZones" class="accent-primary" />
-          <span class="w-3 h-3 rounded-full bg-green-600 inline-block flex-shrink-0" />
-          Zonas recomendadas
-        </label>
-        <label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
-          <input type="checkbox" v-model="showPoints" class="accent-primary" />
-          <span class="w-3 h-3 rounded-full bg-blue-500 inline-block flex-shrink-0" />
-          Puntos existentes
-        </label>
-      </div>
-    </div>
 
     <!-- Controles de zoom -->
     <div class="absolute right-3 top-3 z-[1000] flex flex-col gap-1">

@@ -34,7 +34,7 @@ function priorityDotClass(label: string): string {
   >
     <div class="flex items-center gap-2 mb-1">
       <MapPin class="w-3.5 h-3.5 text-primary flex-shrink-0" />
-      <span class="text-sm font-medium text-foreground truncate">Zona {{ zone.zone_id }}</span>
+      <span class="text-sm font-medium text-foreground truncate">{{ zone.zone_id }} · Zona</span>
     </div>
     <p class="text-xs text-muted-foreground mb-2 ml-5">{{ zone.district_name }}</p>
     <div class="flex items-center justify-between ml-5">
