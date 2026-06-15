@@ -17,7 +17,7 @@
           <input
             v-model="email"
             type="email"
-            placeholder="admin@ecolima.pe"
+            placeholder="correo@ejemplo.com"
             class="w-full rounded-xl border border-border bg-input-bg px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
           />
         </div>
@@ -43,7 +43,7 @@
       </form>
 
     </div>
-    <p class="mt-6 text-xs text-muted-foreground">© 2026 Municipalidad Metropolitana de Lima</p>
+    <p class="mt-6 text-xs text-muted-foreground">© 2026 EcoLima ML</p>
   </div>
 </template>
 

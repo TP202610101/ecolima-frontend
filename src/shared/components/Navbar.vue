@@ -1,5 +1,5 @@
 <template>
-  <nav class="h-14 bg-white border-b border-border px-4 flex items-center justify-between print:hidden">
+  <nav class="sticky top-0 z-50 h-14 bg-white border-b border-border px-4 flex items-center justify-between print:hidden">
     <div class="flex items-center gap-3">
       <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
         <Recycle class="w-5 h-5 text-white" />

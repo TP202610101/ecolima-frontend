@@ -17,6 +17,7 @@ const router = createRouter({ history: createWebHistory(), routes })
 
 router.beforeEach((to, from, next) => {
   const auth = useAuthStore()
+  if (to.path === '/' && auth.isAuthenticated) return next('/analisis')
   if ((to.meta as any).requiresAuth && !auth.isAuthenticated) return next('/')
   if ((to.meta as any).requiresAdmin && auth.user?.role !== 'admin') return next('/analisis')
   next()

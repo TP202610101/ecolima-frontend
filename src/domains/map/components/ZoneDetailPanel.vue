@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { MapPin, Info, CheckCircle2, X, Navigation } from '@lucide/vue'
+import { MapPin, Info, CheckCircle2, X, Navigation, AlertTriangle, Users } from '@lucide/vue'
 import { useRecommendationsStore } from '@/domains/recommendations/stores/useRecommendationsStore'
 import { useAuthStore } from '@/domains/auth/stores/useAuthStore'
 import Badge from '@/shared/components/Badge.vue'
@@ -38,11 +38,24 @@ function parseReasons(reason: string): string[] {
     .map(p => p.charAt(0).toUpperCase() + p.slice(1))
 }
 
-function formatCoverage(meters: number | null): string {
+function formatCoverageHab(meters: number | null): string {
   if (meters === null || meters === undefined) return '—'
-  return meters >= 1000
-    ? `${(meters / 1000).toFixed(1)} km`
-    : `${Math.round(meters)} m`
+  return Math.round(meters).toLocaleString('es-PE')
+}
+
+function formatDensity(v?: number | null): string {
+  if (v == null) return '—'
+  return `${Math.round(v).toLocaleString('es-PE')} hab/km²`
+}
+
+function formatRoadDensity(v?: number | null): string {
+  if (v == null) return '—'
+  return `${Math.round(v).toLocaleString('es-PE')} m/km²`
+}
+
+function roadAccessPct(road_density?: number | null): number {
+  if (road_density == null) return 0
+  return Math.min((road_density / 30000) * 100, 100)
 }
 
 function formatDistance(meters: number | undefined): string {
@@ -125,34 +138,54 @@ function close() {
           </ul>
         </div>
 
-        <!-- Métricas -->
+        <!-- Card: Habitantes sin cobertura en radio de 500m -->
+        <div class="bg-accent border border-green-200 rounded-lg p-4 flex items-start gap-3">
+          <AlertTriangle class="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+          <div class="min-w-0">
+            <p class="text-sm text-green-800 mb-1">Habitantes sin cobertura en radio de 500m</p>
+            <p class="text-3xl font-bold text-foreground">{{ formatCoverageHab(zone.coverage_gap_m) }}</p>
+          </div>
+        </div>
+
+        <!-- Métricas de la zona -->
         <div>
-          <h3 class="text-sm font-semibold text-foreground mb-2">Métricas</h3>
-          <div class="divide-y divide-border">
-            <div class="flex items-center justify-between py-2.5">
-              <span class="text-sm text-muted-foreground">Brecha de cobertura</span>
-              <span
-                class="text-sm font-medium"
-                :class="(zone.coverage_gap_m ?? 0) > 5000 ? 'text-orange-500' : 'text-foreground'"
-              >
-                {{ formatCoverage(zone.coverage_gap_m) }}
-              </span>
+          <h3 class="text-sm font-medium text-muted-foreground mb-2">Métricas de la zona</h3>
+          <div class="space-y-2">
+
+            <!-- Densidad poblacional -->
+            <div class="bg-white border border-border rounded-lg p-3 flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
+                <Users class="w-4 h-4 text-green-600" />
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="text-xs text-muted-foreground">Densidad poblacional</p>
+                <p class="text-sm font-semibold text-foreground">{{ formatDensity(zone.population_density) }}</p>
+              </div>
             </div>
-            <div class="flex items-center justify-between py-2.5">
-              <span class="text-sm text-muted-foreground">Coordenadas</span>
-              <span class="text-xs text-muted-foreground font-mono">
-                {{ zone.centroid_lat.toFixed(4) }}, {{ zone.centroid_lon.toFixed(4) }}
-              </span>
+
+            <!-- Índice accesibilidad vial -->
+            <div class="bg-white border border-border rounded-lg p-3 flex items-start gap-3">
+              <div class="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Navigation class="w-4 h-4 text-green-600" />
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="text-xs text-muted-foreground">Índice accesibilidad vial</p>
+                <p class="text-sm font-semibold text-foreground mb-1.5">{{ formatRoadDensity(zone.road_density) }}</p>
+                <div class="w-full bg-gray-200 rounded-full h-1.5">
+                  <div
+                    class="bg-green-500 h-1.5 rounded-full transition-all"
+                    :style="{ width: `${roadAccessPct(zone.road_density)}%` }"
+                  />
+                </div>
+              </div>
             </div>
+
           </div>
         </div>
 
         <!-- Puntos de reciclaje cercanos -->
         <div>
-          <div class="flex items-center gap-2 mb-2">
-            <Navigation class="w-4 h-4 text-muted-foreground" />
-            <h3 class="text-sm font-semibold text-foreground">Puntos cercanos (2 km)</h3>
-          </div>
+          <h3 class="text-sm font-medium text-muted-foreground mb-2">Puntos de reciclaje cercanos</h3>
 
           <!-- Loading -->
           <div v-if="loadingNearby" class="space-y-2">
@@ -172,19 +205,15 @@ function close() {
             <li
               v-for="point in nearbyPoints"
               :key="point.point_id"
-              class="py-2.5 flex items-center justify-between"
+              class="py-2.5 flex items-center justify-between gap-2"
             >
-              <div class="min-w-0">
-                <p class="text-sm text-foreground truncate">
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-semibold text-foreground truncate">
                   {{ point.address || 'Punto de reciclaje' }}
                 </p>
-                <p v-if="point.materials_accepted" class="text-xs text-muted-foreground truncate">
-                  {{ point.materials_accepted }}
-                </p>
+                <p class="text-sm text-muted-foreground">{{ formatDistance(point.distance_m) }}</p>
               </div>
-              <span class="text-xs text-muted-foreground flex-shrink-0 ml-2">
-                {{ formatDistance(point.distance_m) }}
-              </span>
+              <MapPin class="w-4 h-4 text-blue-500 flex-shrink-0" />
             </li>
           </ul>
         </div>
