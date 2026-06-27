@@ -1,6 +1,6 @@
 <template>
   <div class="h-screen flex flex-col">
-    <SharedNavbar v-if="auth.isAuthenticated && route.path !== '/'" />
+    <SharedNavbar v-if="auth.isAuthenticated && !route.meta.hideNavbar" />
     <main class="flex-1 overflow-auto">
       <router-view />
     </main>

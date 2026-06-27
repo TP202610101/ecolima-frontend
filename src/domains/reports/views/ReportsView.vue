@@ -7,6 +7,7 @@ import { ExportReportUseCase } from '../use-cases/ExportReportUseCase'
 import KpiCard from '@/shared/components/KpiCard.vue'
 import Badge from '@/shared/components/Badge.vue'
 import PriorityBar from '@/shared/components/PriorityBar.vue'
+import { formatMetric } from '@/shared/utils/formatters'
 
 const store = useReportsStore()
 const auth = useAuthStore()
@@ -31,15 +32,6 @@ function formatGap(m: number | null): { text: string; high: boolean } {
   }
 }
 
-function formatPopDensity(v?: number): string {
-  if (v == null) return 'N/D'
-  return `${new Intl.NumberFormat('es-PE').format(Math.round(v))} hab/km²`
-}
-
-function formatRoadDensity(v?: number): string {
-  if (v == null) return 'N/D'
-  return `${new Intl.NumberFormat('es-PE').format(Math.round(v))} m/km²`
-}
 
 onMounted(() => store.fetchAll())
 </script>
@@ -201,7 +193,7 @@ onMounted(() => store.fetchAll())
                 </td>
 
                 <!-- Densidad poblacional -->
-                <td class="px-4 py-4 text-foreground">{{ formatPopDensity(rec.population_density) }}</td>
+                <td class="px-4 py-4 text-foreground">{{ formatMetric(rec.population_density, 'hab/km²') }}</td>
 
                 <!-- Brecha cobertura -->
                 <td class="px-4 py-4">
@@ -211,7 +203,7 @@ onMounted(() => store.fetchAll())
                 </td>
 
                 <!-- Densidad vial -->
-                <td class="px-4 py-4 text-foreground">{{ formatRoadDensity(rec.road_density) }}</td>
+                <td class="px-4 py-4 text-foreground">{{ formatMetric(rec.road_density, 'm/km²') }}</td>
 
                 <!-- Estado -->
                 <td class="px-4 py-4">
