@@ -71,7 +71,7 @@ async function onSubmit() {
   try {
     const result = await LoginUseCase(email.value, password.value)
     auth.setSession(result.user, result.access_token)
-    router.push('/analisis')
+    router.push({ name: 'analisis' })
   } catch (error: any) {
     if (error.response?.status === 401) {
       errorMessage.value = 'Credenciales inválidas. Intenta de nuevo.'

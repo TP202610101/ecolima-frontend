@@ -6,6 +6,7 @@ import { useAuthStore } from '@/domains/auth/stores/useAuthStore'
 import Badge from '@/shared/components/Badge.vue'
 import { GetNearbyUseCase } from '@/domains/map/use-cases/GetNearbyUseCase'
 import type { RecyclingPoint } from '@/domains/map/entities/RecyclingPoint'
+import { formatMetric, formatDistance } from '@/shared/utils/formatters'
 
 const recStore = useRecommendationsStore()
 const auth = useAuthStore()
@@ -38,29 +39,12 @@ function parseReasons(reason: string): string[] {
     .map(p => p.charAt(0).toUpperCase() + p.slice(1))
 }
 
-function formatCoverageHab(meters: number | null): string {
-  if (meters === null || meters === undefined) return '—'
-  return Math.round(meters).toLocaleString('es-PE')
-}
-
-function formatDensity(v?: number | null): string {
-  if (v == null) return '—'
-  return `${Math.round(v).toLocaleString('es-PE')} hab/km²`
-}
-
-function formatRoadDensity(v?: number | null): string {
-  if (v == null) return '—'
-  return `${Math.round(v).toLocaleString('es-PE')} m/km²`
-}
+/** Maximum road density for Lima used to normalize the accessibility index (m of road per km²). */
+const MAX_ROAD_DENSITY_M_PER_KM2 = 30000
 
 function roadAccessPct(road_density?: number | null): number {
   if (road_density == null) return 0
-  return Math.min((road_density / 30000) * 100, 100)
-}
-
-function formatDistance(meters: number | undefined): string {
-  if (!meters) return '—'
-  return meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${Math.round(meters)} m`
+  return Math.min((road_density / MAX_ROAD_DENSITY_M_PER_KM2) * 100, 100)
 }
 
 function close() {
@@ -143,7 +127,7 @@ function close() {
           <AlertTriangle class="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
           <div class="min-w-0">
             <p class="text-sm text-green-800 mb-1">Habitantes sin cobertura en radio de 500m</p>
-            <p class="text-3xl font-bold text-foreground">{{ formatCoverageHab(zone.coverage_gap_m) }}</p>
+            <p class="text-3xl font-bold text-foreground">{{ formatMetric(zone.coverage_gap_m) }}</p>
           </div>
         </div>
 
@@ -159,7 +143,7 @@ function close() {
               </div>
               <div class="min-w-0 flex-1">
                 <p class="text-xs text-muted-foreground">Densidad poblacional</p>
-                <p class="text-sm font-semibold text-foreground">{{ formatDensity(zone.population_density) }}</p>
+                <p class="text-sm font-semibold text-foreground">{{ formatMetric(zone.population_density, 'hab/km²') }}</p>
               </div>
             </div>
 
@@ -170,7 +154,7 @@ function close() {
               </div>
               <div class="min-w-0 flex-1">
                 <p class="text-xs text-muted-foreground">Índice accesibilidad vial</p>
-                <p class="text-sm font-semibold text-foreground mb-1.5">{{ formatRoadDensity(zone.road_density) }}</p>
+                <p class="text-sm font-semibold text-foreground mb-1.5">{{ formatMetric(zone.road_density, 'm/km²') }}</p>
                 <div class="w-full bg-gray-200 rounded-full h-1.5">
                   <div
                     class="bg-green-500 h-1.5 rounded-full transition-all"
