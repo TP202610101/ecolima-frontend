@@ -261,6 +261,7 @@ onUnmounted(() => {
             :value="latestDataset ? latestDataset.row_count.toLocaleString('es-PE') : '—'"
             subtitle="Filas del dataset activo"
           />
+          <!-- TODO: conectar al dato real de la API cuando el endpoint lo exponga -->
           <KpiCard
             :icon="FileText"
             icon-bg="bg-green-100"
