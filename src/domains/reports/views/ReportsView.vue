@@ -226,6 +226,15 @@ onMounted(() => store.fetchAll())
     margin: 1.5cm 1.5cm;
   }
 
+  /* Los contenedores con scroll interno (App.vue y esta vista) tienen
+     altura fija (h-screen) y overflow-auto: al imprimir solo se ve la
+     porción visible en pantalla. Se libera la altura para que el
+     contenido fluya en varias páginas. */
+  html, body, #app, .h-screen, main.overflow-auto {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
   body {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
@@ -237,9 +246,19 @@ onMounted(() => store.fetchAll())
     background: white !important;
   }
 
+  /* Contenedor de la vista: también tiene overflow-auto */
+  .flex-1.overflow-auto {
+    overflow: visible !important;
+  }
+
   /* Padding reducido en impresión */
   .max-w-7xl {
     padding: 0 !important;
+  }
+
+  /* Repetir encabezado de tabla en cada página */
+  thead {
+    display: table-header-group;
   }
 
   /* KPI cards en una fila, sin sombra */
