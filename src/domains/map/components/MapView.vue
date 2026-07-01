@@ -31,7 +31,7 @@ function renderZones(zones: Recommendation[]) {
   zones.forEach(zone => {
     const color = getZoneColor(zone)
     L.circleMarker([zone.centroid_lat, zone.centroid_lon], {
-      radius: 16,
+      radius: 8,
       color,
       fillColor: color,
       fillOpacity: 0.75,
