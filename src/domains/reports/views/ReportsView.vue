@@ -13,7 +13,6 @@ const store = useReportsStore()
 const auth = useAuthStore()
 
 const totalZones = computed(() => store.recommendations.length)
-const districtsCount = computed(() => new Set(store.recommendations.map(r => r.district_name)).size)
 
 function incomeToNSE(stratum?: number): string {
   if (stratum == null) return 'N/D'
@@ -99,7 +98,7 @@ onMounted(() => store.fetchAll())
           :icon="Building2"
           icon-bg="bg-purple-100"
           label="Distritos cubiertos"
-          :value="store.loading ? '—' : districtsCount"
+          :value="store.loading ? '—' : (store.stats?.districts_covered ?? '—')"
           subtitle="Con al menos 1 zona recomendada"
         />
       </div>
