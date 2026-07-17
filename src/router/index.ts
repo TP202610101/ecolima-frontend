@@ -5,6 +5,15 @@ import ReportsView from '@/domains/reports/views/ReportsView.vue'
 import MLPanelView from '@/domains/ml-panel/views/MLPanelView.vue'
 import { useAuthStore } from '@/domains/auth/stores/useAuthStore'
 
+function isTokenExpired(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.exp * 1000 < Date.now()
+  } catch {
+    return true
+  }
+}
+
 const routes = [
   { path: '/',         name: 'login',    component: LoginView,    meta: { requiresAuth: false, hideNavbar: true } },
   { path: '/analisis', name: 'analisis', component: AnalysisView, meta: { requiresAuth: true } },
@@ -17,6 +26,13 @@ const router = createRouter({ history: createWebHistory(), routes })
 
 router.beforeEach((to, from, next) => {
   const auth = useAuthStore()
+
+  // Token en localStorage pero expirado → limpiar y mostrar banner
+  if (auth.token && isTokenExpired(auth.token)) {
+    auth.clearSession()
+    return next({ name: 'login', query: { expired: 'true' } })
+  }
+
   if (to.name === 'login' && auth.isAuthenticated) return next({ name: 'analisis' })
   if ((to.meta as any).requiresAuth && !auth.isAuthenticated) return next({ name: 'login' })
   if ((to.meta as any).requiresAdmin && auth.user?.role !== 'admin') return next({ name: 'analisis' })
