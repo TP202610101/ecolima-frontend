@@ -1,96 +1,13 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch, computed, nextTick } from 'vue'
+import { onMounted, onUnmounted, computed } from 'vue'
 import { RefreshCw, Clock, Calendar, TrendingUp, Upload, Database, FileText } from '@lucide/vue'
-import {
-  Chart,
-  BarController,
-  BarElement,
-  CategoryScale,
-  LinearScale,
-  Tooltip,
-} from 'chart.js'
 import { useMLStore } from '../stores/useMLStore'
 import { useDatasetsStore } from '@/domains/datasets/stores/useDatasetsStore'
 import KpiCard from '@/shared/components/KpiCard.vue'
-import DatasetUploader from '@/domains/datasets/components/DatasetUploader.vue'
-
-Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip)
+import ShapChart from '../components/ShapChart.vue'
 
 const mlStore = useMLStore()
 const datasetsStore = useDatasetsStore()
-const showUploader = ref(false)
-
-// ── SHAP chart ──────────────────────────────────────────────────────────────
-
-const chartCanvas = ref<HTMLCanvasElement>()
-let chartInstance: Chart | null = null
-
-const SHAP_LABELS = [
-  'Gasto combustible',
-  'Densidad poblacional',
-  'Potencial de reciclaje',
-  'GPC (kg/hab/día)',
-  'Dist. punto cercano',
-  'Puntos en 500m',
-  'Estrato de ingreso',
-  '% Plástico',
-]
-const SHAP_VALUES = [0.38, 0.32, 0.28, 0.22, 0.18, 0.14, 0.10, 0.08]
-
-function buildChart() {
-  if (!chartCanvas.value) return
-  if (chartInstance) { chartInstance.destroy(); chartInstance = null }
-  chartInstance = new Chart(chartCanvas.value, {
-    type: 'bar',
-    data: {
-      labels: SHAP_LABELS,
-      datasets: [{
-        data: SHAP_VALUES,
-        backgroundColor: '#16a34a',
-        borderRadius: 4,
-        barThickness: 18,
-      }],
-    },
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: ctx => ` ${(ctx.parsed.x as number).toFixed(3)}`,
-          },
-        },
-      },
-      scales: {
-        x: {
-          grid: { color: '#e5e5e5' },
-          ticks: { color: '#737373', font: { size: 11 } },
-          title: {
-            display: true,
-            text: 'Importancia SHAP',
-            color: '#737373',
-            font: { size: 11 },
-          },
-        },
-        y: {
-          grid: { display: false },
-          ticks: { color: '#1a1a1a', font: { size: 12 } },
-        },
-      },
-    },
-  })
-}
-
-watch(() => mlStore.activeModel, async model => {
-  if (model) {
-    await nextTick()
-    buildChart()
-  }
-})
-
-// ── Formatters ───────────────────────────────────────────────────────────────
 
 function fmtDate(iso?: string | null): string {
   if (!iso) return '—'
@@ -101,8 +18,6 @@ function fmtPct(v?: number | null): string {
   if (v == null) return '—'
   return `${(v * 100).toFixed(1)}%`
 }
-
-// ── Dataset helpers ──────────────────────────────────────────────────────────
 
 const latestDataset = computed(() => datasetsStore.datasets[0] ?? null)
 
@@ -126,20 +41,12 @@ function datasetStatusLabel(status?: string): string {
   return map[status ?? ''] ?? status ?? '—'
 }
 
-// ── Lifecycle ────────────────────────────────────────────────────────────────
-
-onMounted(async () => {
-  await Promise.all([mlStore.fetchModels(), datasetsStore.fetchDatasets()])
-  if (mlStore.activeModel) {
-    await nextTick()
-    buildChart()
-  }
+onMounted(() => {
+  Promise.all([mlStore.fetchModels(), datasetsStore.fetchDatasets()])
 })
 
 onUnmounted(() => {
   mlStore.stopPolling()
-  chartInstance?.destroy()
-  chartInstance = null
 })
 </script>
 
@@ -213,21 +120,7 @@ onUnmounted(() => {
           />
         </div>
 
-        <!-- Gráfico SHAP -->
-        <div class="bg-white rounded-lg border border-border p-6">
-          <h3 class="text-sm font-semibold text-foreground mb-4">Importancia de variables (SHAP)</h3>
-
-          <div
-            v-if="!mlStore.activeModel && !mlStore.loading"
-            class="flex items-center justify-center h-48 text-sm text-muted-foreground"
-          >
-            No hay modelo activo
-          </div>
-          <div v-else-if="mlStore.loading" class="h-64 bg-gray-100 rounded animate-pulse" />
-          <div v-else class="relative h-64">
-            <canvas ref="chartCanvas" />
-          </div>
-        </div>
+        <ShapChart />
 
       </section>
 
@@ -237,7 +130,7 @@ onUnmounted(() => {
         <div class="flex items-center justify-between">
           <h2 class="text-lg font-semibold text-foreground">Dataset</h2>
           <button
-            @click="showUploader = true"
+            @click="datasetsStore.openUploader()"
             class="flex items-center gap-2 px-4 py-2 border border-primary text-primary text-sm font-medium rounded-md hover:bg-accent transition-colors"
           >
             <Upload class="w-4 h-4" />
@@ -261,7 +154,6 @@ onUnmounted(() => {
             :value="latestDataset ? latestDataset.row_count.toLocaleString('es-PE') : '—'"
             subtitle="Filas del dataset activo"
           />
-          <!-- TODO: conectar al dato real de la API cuando el endpoint lo exponga -->
           <KpiCard
             :icon="FileText"
             icon-bg="bg-green-100"
@@ -333,10 +225,4 @@ onUnmounted(() => {
 
     </div>
   </div>
-
-  <!-- Modal subida dataset -->
-  <DatasetUploader
-    v-if="showUploader"
-    @close="showUploader = false; datasetsStore.fetchDatasets()"
-  />
 </template>
