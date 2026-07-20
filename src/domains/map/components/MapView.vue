@@ -65,7 +65,7 @@ function renderPoints(points: RecyclingPoint[]) {
 function zoomIn() { map?.zoomIn() }
 function zoomOut() { map?.zoomOut() }
 function resetView() { map?.setView(LIMA_CENTER, 12) }
-function flyTo(lat: number, lon: number) { map?.flyTo([lat, lon], 15) }
+function flyTo(lat: number, lon: number) { map?.setView([lat, lon], 15, { animate: true, duration: 0.4 }) }
 function invalidateSize() { map?.invalidateSize() }
 
 watch(() => recStore.filteredRecommendations, zones => renderZones(zones), { deep: true })
