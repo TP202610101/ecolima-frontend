@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import * as L from 'leaflet'
-import { Plus, Minus, RotateCcw } from '@lucide/vue'
+import { Plus, Minus, RotateCcw, AlertTriangle } from '@lucide/vue'
 import type { Recommendation } from '@/domains/recommendations/entities/Recommendation'
 import type { RecyclingPoint } from '../entities/RecyclingPoint'
 import { useRecommendationsStore } from '@/domains/recommendations/stores/useRecommendationsStore'
@@ -66,6 +66,7 @@ function zoomIn() { map?.zoomIn() }
 function zoomOut() { map?.zoomOut() }
 function resetView() { map?.setView(LIMA_CENTER, 12) }
 function flyTo(lat: number, lon: number) { map?.flyTo([lat, lon], 15) }
+function invalidateSize() { map?.invalidateSize() }
 
 watch(() => recStore.filteredRecommendations, zones => renderZones(zones), { deep: true })
 watch(() => mapStore.points, points => renderPoints(points), { deep: true })
@@ -109,7 +110,7 @@ onUnmounted(() => {
   pointsLayer = null
 })
 
-defineExpose({ flyTo })
+defineExpose({ flyTo, invalidateSize })
 </script>
 
 <template>
@@ -172,6 +173,25 @@ defineExpose({ flyTo })
       <div class="flex flex-col items-center gap-2">
         <div class="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         <p class="text-sm text-muted-foreground">Cargando datos…</p>
+      </div>
+    </div>
+
+    <!-- Error overlay -->
+    <div
+      v-else-if="recStore.error || mapStore.error"
+      class="absolute inset-0 z-[999] bg-white/90 flex items-center justify-center"
+    >
+      <div class="flex flex-col items-center gap-3 text-center p-6 max-w-xs">
+        <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+          <AlertTriangle class="w-5 h-5 text-red-600" />
+        </div>
+        <p class="text-sm font-medium text-foreground">{{ recStore.error || mapStore.error }}</p>
+        <button
+          @click="recStore.fetchRecommendations(); mapStore.fetchPoints()"
+          class="px-4 py-2 bg-primary text-white text-sm rounded-md hover:bg-primary-hover transition-colors"
+        >
+          Reintentar
+        </button>
       </div>
     </div>
   </div>
