@@ -18,7 +18,7 @@ export const MapRepository = {
   },
 
   async getNearby(lat: number, lon: number, radius_m = 2000): Promise<GeoJSON.FeatureCollection> {
-    const res = await api.get('/api/v1/map/points/nearby', {
+    const res = await api.get('/api/v1/map/points', {
       params: { lat, lon, radius_m }
     })
     return res.data
