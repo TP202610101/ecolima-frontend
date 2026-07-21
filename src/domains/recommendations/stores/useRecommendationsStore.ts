@@ -15,6 +15,12 @@ export const useRecommendationsStore = defineStore('recommendations', () => {
   const selectedDistrictName = ref<string | null>(null)
   const selectedNSE = ref<string[]>([...ALL_NSE])
 
+  // Filtro NSE client-side por decisión de diseño: con el volumen actual (~24 zonas,
+  // limit=500) es correcto y evita latencia, skeleton parpadeante en cada checkbox,
+  // debounce y AbortController. El backend ya soporta ?income_stratum=1&income_stratum=3
+  // (repeated param, enteros 1–5) si en el futuro se migra a server-side. Requisitos
+  // de esa migración: debounce 300ms (igual que distrito), AbortController para
+  // cancelar requests solapados, y estado de loading visible en el sidebar.
   const filteredRecommendations = computed(() =>
     recommendations.value.filter(r => {
       const matchesPriority = selectedPriorities.value.includes(r.priority_label)
