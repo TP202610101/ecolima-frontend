@@ -2,6 +2,7 @@ export interface ModelVersion {
   version_name: string
   training_date: string
   is_active: boolean
+  is_demo?: boolean
   artifact_url?: string
   created_at?: string
   metrics: {

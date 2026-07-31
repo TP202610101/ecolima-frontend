@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch, nextTick } from 'vue'
+import { onMounted, ref, watch, nextTick, computed } from 'vue'
 import { Filter, MapPin, Info } from '@lucide/vue'
 import MapSidebar from '../components/MapSidebar.vue'
 import MapView from '../components/MapView.vue'
@@ -32,6 +32,8 @@ watch(() => recStore.selectedZone, zone => {
   if (zone) activeTab.value = 'detalle'
 })
 
+const isDemoData = computed(() => recStore.recommendations.some(r => r.is_demo))
+
 onMounted(() => {
   recStore.fetchRecommendations()
   mapStore.fetchPoints()
@@ -41,6 +43,17 @@ onMounted(() => {
 
 <template>
   <div class="flex flex-col h-[calc(100vh-56px)]">
+
+    <!-- Banner datos de demostración -->
+    <div
+      v-if="isDemoData"
+      class="flex items-center gap-2 px-4 py-2 bg-amber-50 border-b border-amber-200 flex-shrink-0"
+    >
+      <Info class="w-4 h-4 text-amber-600 flex-shrink-0" />
+      <p class="text-xs text-amber-800">
+        Estás viendo datos de demostración. Las recomendaciones actuales son datos sembrados, no resultados de una inferencia ML con datos reales.
+      </p>
+    </div>
 
     <!-- Tab bar (solo móvil) -->
     <nav class="lg:hidden flex border-b border-border bg-white flex-shrink-0">

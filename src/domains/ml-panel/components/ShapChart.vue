@@ -96,7 +96,15 @@ onUnmounted(() => {
 
 <template>
   <div class="bg-white rounded-lg border border-border p-6">
-    <h3 class="text-sm font-semibold text-foreground mb-4">Importancia de variables (SHAP)</h3>
+    <div class="flex items-center gap-2 mb-4">
+      <h3 class="text-sm font-semibold text-foreground">Importancia de variables (SHAP)</h3>
+      <span
+        v-if="mlStore.activeModel"
+        class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800"
+      >
+        Datos de ejemplo
+      </span>
+    </div>
 
     <div
       v-if="!mlStore.activeModel && !mlStore.loading"

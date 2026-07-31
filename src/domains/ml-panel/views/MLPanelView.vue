@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, computed } from 'vue'
-import { RefreshCw, Clock, Calendar, TrendingUp, Upload, Database, FileText } from '@lucide/vue'
+import { RefreshCw, Clock, Calendar, TrendingUp, Upload, Database, FileText, Info } from '@lucide/vue'
 import { useMLStore } from '../stores/useMLStore'
 import { useDatasetsStore } from '@/domains/datasets/stores/useDatasetsStore'
 import KpiCard from '@/shared/components/KpiCard.vue'
@@ -79,6 +79,17 @@ onUnmounted(() => {
             <RefreshCw v-else class="w-4 h-4" />
             {{ mlStore.inferring ? 'Actualizando...' : 'Actualizar modelo desde storage' }}
           </button>
+        </div>
+
+        <!-- Aviso datos de demostración -->
+        <div
+          v-if="mlStore.activeModel?.is_demo"
+          class="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg"
+        >
+          <Info class="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+          <p class="text-sm text-amber-800">
+            Las métricas mostradas corresponden al modelo de demostración y no reflejan un entrenamiento con datos reales.
+          </p>
         </div>
 
         <!-- Error de inferencia -->
