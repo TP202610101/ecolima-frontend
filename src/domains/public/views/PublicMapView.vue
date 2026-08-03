@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import * as L from 'leaflet'
-import { MapPin, Navigation, Search, LogIn, Plus, Minus, RotateCcw, AlertCircle } from '@lucide/vue'
+import { MapPin, Recycle, Navigation, Search, LogIn, Plus, Minus, RotateCcw, AlertCircle } from '@lucide/vue'
 import { PublicRepository, type PublicPoint } from '../repositories/PublicRepository'
 
 const LIMA_CENTER: [number, number] = [-12.0464, -77.0428]
@@ -158,8 +158,8 @@ onUnmounted(() => {
     <!-- Cabecera pública -->
     <header class="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 flex-shrink-0">
       <div class="flex items-center gap-2.5">
-        <div class="w-7 h-7 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0">
-          <MapPin class="w-4 h-4 text-white" />
+        <div class="w-8 h-8 rounded-lg bg-green-600 flex items-center justify-center flex-shrink-0">
+          <Recycle class="w-5 h-5 text-white" />
         </div>
         <div>
           <span class="font-semibold text-gray-900 text-sm">EcoLima</span>
@@ -180,8 +180,24 @@ onUnmounted(() => {
     <div class="flex-1 relative overflow-hidden">
       <div ref="mapContainer" class="w-full h-full" />
 
+      <!-- Alerta geolocalización denegada — encima de los filtros -->
+      <div
+        v-if="geoError"
+        class="absolute top-3 left-3 right-14 z-[1000]"
+      >
+        <div class="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 shadow-sm">
+          <AlertCircle class="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <p class="text-xs text-amber-800">
+            Geolocalización no disponible. Mueve el mapa y pulsa <strong>Buscar en esta zona</strong>.
+          </p>
+        </div>
+      </div>
+
       <!-- Filtro por material -->
-      <div class="absolute top-3 left-3 z-[1000] flex flex-wrap gap-1.5 max-w-[calc(100%-5rem)]">
+      <div
+        class="absolute left-3 z-[1000] flex flex-wrap gap-1.5 max-w-[calc(100%-5rem)]"
+        :class="geoError ? 'top-14' : 'top-3'"
+      >
         <button
           v-for="m in MATERIALS"
           :key="m"
@@ -193,12 +209,12 @@ onUnmounted(() => {
               : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400',
           ]"
         >
-          {{ m }}
+          {{ m.charAt(0).toUpperCase() + m.slice(1) }}
         </button>
       </div>
 
       <!-- Controles de zoom -->
-      <div class="absolute right-3 top-3 z-[1000] flex flex-col gap-1">
+      <div class="absolute right-3 top-3 z-[1000] flex items-center gap-1">
         <button
           @click="zoomIn"
           class="w-8 h-8 bg-white border border-gray-200 rounded-md shadow text-gray-700 hover:bg-gray-50 flex items-center justify-center transition-colors"
@@ -222,24 +238,11 @@ onUnmounted(() => {
         </button>
       </div>
 
-      <!-- Alerta geolocalización denegada -->
-      <div
-        v-if="geoError"
-        class="absolute top-14 left-3 right-14 z-[1000]"
-      >
-        <div class="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 shadow-sm">
-          <AlertCircle class="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
-          <p class="text-xs text-amber-800">
-            Geolocalización no disponible. Mueve el mapa y pulsa <strong>Buscar en esta zona</strong>.
-          </p>
-        </div>
-      </div>
-
       <!-- Alerta error API -->
       <div
         v-if="error"
         class="absolute z-[1000] left-3 right-14"
-        :class="geoError ? 'top-[88px]' : 'top-14'"
+        :class="geoError ? 'top-[88px]' : 'top-3'"
       >
         <div class="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 shadow-sm">
           <AlertCircle class="w-3.5 h-3.5 text-red-500 flex-shrink-0 mt-0.5" />
@@ -258,7 +261,7 @@ onUnmounted(() => {
       <!-- Empty state -->
       <div
         v-else-if="hasSearched && !error && filteredPoints.length === 0"
-        class="absolute bottom-28 left-1/2 -translate-x-1/2 z-[1000] w-80 max-w-[90vw]"
+        class="absolute bottom-40 left-1/2 -translate-x-1/2 z-[1000] w-80 max-w-[90vw]"
       >
         <div class="bg-white border border-gray-200 rounded-xl shadow-lg px-5 py-5 text-center">
           <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
@@ -268,7 +271,7 @@ onUnmounted(() => {
             Aún no hay puntos de reciclaje registrados en esta zona
           </p>
           <p class="text-xs text-gray-500 mt-1.5">
-            Disponible en Miraflores y Magdalena del Mar por ahora
+            Intenta mover el mapa o buscar en otra zona de Lima
           </p>
         </div>
       </div>
