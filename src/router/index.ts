@@ -3,6 +3,7 @@ import LoginView from '@/domains/auth/views/LoginView.vue'
 import AnalysisView from '@/domains/map/views/AnalysisView.vue'
 import ReportsView from '@/domains/reports/views/ReportsView.vue'
 import MLPanelView from '@/domains/ml-panel/views/MLPanelView.vue'
+import PublicMapView from '@/domains/public/views/PublicMapView.vue'
 import { useAuthStore } from '@/domains/auth/stores/useAuthStore'
 
 function isTokenExpired(token: string): boolean {
@@ -16,6 +17,8 @@ function isTokenExpired(token: string): boolean {
 
 const routes = [
   { path: '/',         name: 'login',    component: LoginView,    meta: { requiresAuth: false, hideNavbar: true } },
+  // Ruta pública sin auth — no redirige al login, no muestra el navbar interno.
+  { path: '/puntos',   name: 'puntos',   component: PublicMapView, meta: { requiresAuth: false, hideNavbar: true } },
   { path: '/analisis', name: 'analisis', component: AnalysisView, meta: { requiresAuth: true } },
   { path: '/reportes', name: 'reportes', component: ReportsView,  meta: { requiresAuth: true } },
   { path: '/panel-ml', name: 'panel-ml', component: MLPanelView,  meta: { requiresAuth: true, requiresAdmin: true } },
@@ -26,6 +29,9 @@ const router = createRouter({ history: createWebHistory(), routes })
 
 router.beforeEach((to, from, next) => {
   const auth = useAuthStore()
+
+  // Rutas públicas explícitas — pasan sin ninguna comprobación de auth.
+  if (to.name === 'puntos') return next()
 
   // Token en localStorage pero expirado → limpiar y mostrar banner
   if (auth.token && isTokenExpired(auth.token)) {
