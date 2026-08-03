@@ -50,7 +50,10 @@ function renderPoints(points: RecyclingPoint[]) {
   if (!pointsLayer) return
   pointsLayer.clearLayers()
   points.forEach(point => {
-    L.circleMarker([point.geometry.coordinates[1], point.geometry.coordinates[0]], {
+    const lat = point.geometry.coordinates[1]
+    const lng = point.geometry.coordinates[0]
+    const mats = point.materials_accepted || 'No especificado'
+    L.circleMarker([lat, lng], {
       radius: 8,
       color: '#3b82f6',
       fillColor: '#3b82f6',
@@ -58,6 +61,17 @@ function renderPoints(points: RecyclingPoint[]) {
       weight: 1.5
     })
       .bindTooltip(`<span style="font-size:12px">${point.address || 'Punto de reciclaje'}</span>`, { sticky: true })
+      .bindPopup(
+        `<div style="font-size:13px;min-width:190px">
+          <strong style="font-size:14px;display:block;margin-bottom:4px">${point.address || 'Punto de reciclaje'}</strong>
+          ${point.point_type ? `<span style="color:#6b7280;font-size:12px;display:block;margin-bottom:4px">Tipo: ${point.point_type}</span>` : ''}
+          <hr style="margin:6px 0;border-color:#e5e7eb">
+          <span style="font-size:12px"><strong>Acepta:</strong> ${mats}</span>
+          ${point.verified ? '<br><span style="color:#16a34a;font-size:11px;margin-top:4px;display:inline-block">✓ Verificado</span>' : ''}
+        </div>`,
+        { minWidth: 200 }
+      )
+      .on('click', () => flyTo(lat, lng))
       .addTo(pointsLayer!)
   })
 }
