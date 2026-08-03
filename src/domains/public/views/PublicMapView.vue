@@ -30,7 +30,9 @@ const filteredPoints = computed(() => {
   const allSelected = selectedMaterials.value.length === MATERIALS.length
   if (allSelected) return allPoints.value
   return allPoints.value.filter(p =>
-    Array.isArray(p.materiales) && p.materiales.some(m => (selectedMaterials.value as string[]).includes(m))
+    Array.isArray(p.materiales) && p.materiales.some(m =>
+      (selectedMaterials.value as string[]).includes(m.toLowerCase())
+    )
   )
 })
 
