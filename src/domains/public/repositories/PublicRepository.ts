@@ -12,7 +12,7 @@ export interface PublicPoint {
   lat: number
   lng: number
   materiales: string[]
-  distancia: number
+  distancia: number | null
 }
 
 export const PublicRepository = {
@@ -21,7 +21,16 @@ export const PublicRepository = {
       const res = await publicApi.get('/api/v1/public/recycling-points', {
         params: { lat, lng, radius_m },
       })
-      return (res.data.points as PublicPoint[]) ?? []
+      // Backend envía 'materiales_aceptados' y 'distancia_m' — mapear aquí.
+      // Si estos nombres cambian en el backend, actualizar este mapeo.
+      return (res.data.points as any[]).map(p => ({
+        id:        p.id,
+        nombre:    p.nombre,
+        lat:       p.lat,
+        lng:       p.lng,
+        materiales: Array.isArray(p.materiales_aceptados) ? p.materiales_aceptados : [],
+        distancia:  typeof p.distancia_m === 'number' ? p.distancia_m : null,
+      })) as PublicPoint[]
     } catch (e) {
       if (axios.isAxiosError(e)) {
         if (e.response?.status === 422) throw new Error('OUT_OF_RANGE')

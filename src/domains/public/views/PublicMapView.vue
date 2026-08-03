@@ -43,9 +43,11 @@ function renderPoints() {
   if (!pointsLayer) return
   pointsLayer.clearLayers()
   filteredPoints.value.forEach(p => {
-    const dist = p.distancia < 1000
-      ? `${Math.round(p.distancia)} m`
-      : `${(p.distancia / 1000).toFixed(1)} km`
+    const dist = p.distancia === null
+      ? 'distancia no disponible'
+      : p.distancia < 1000
+        ? `${Math.round(p.distancia)} m`
+        : `${(p.distancia / 1000).toFixed(1)} km`
     const mats = Array.isArray(p.materiales) && p.materiales.length
       ? p.materiales.join(', ')
       : 'No especificado'
