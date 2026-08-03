@@ -30,7 +30,7 @@ const filteredPoints = computed(() => {
   const allSelected = selectedMaterials.value.length === MATERIALS.length
   if (allSelected) return allPoints.value
   return allPoints.value.filter(p =>
-    p.materiales.some(m => (selectedMaterials.value as string[]).includes(m))
+    Array.isArray(p.materiales) && p.materiales.some(m => (selectedMaterials.value as string[]).includes(m))
   )
 })
 
@@ -46,7 +46,9 @@ function renderPoints() {
     const dist = p.distancia < 1000
       ? `${Math.round(p.distancia)} m`
       : `${(p.distancia / 1000).toFixed(1)} km`
-    const mats = p.materiales.join(', ')
+    const mats = Array.isArray(p.materiales) && p.materiales.length
+      ? p.materiales.join(', ')
+      : 'No especificado'
     L.circleMarker([p.lat, p.lng], {
       radius: 9,
       color: '#16a34a',
