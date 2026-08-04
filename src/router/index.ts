@@ -22,7 +22,7 @@ const routes = [
   { path: '/analisis', name: 'analisis', component: AnalysisView, meta: { requiresAuth: true } },
   { path: '/reportes', name: 'reportes', component: ReportsView,  meta: { requiresAuth: true } },
   { path: '/panel-ml', name: 'panel-ml', component: MLPanelView,  meta: { requiresAuth: true, requiresAdmin: true } },
-  { path: '/:pathMatch(.*)*', redirect: { name: 'login' } },
+  { path: '/:pathMatch(.*)*', redirect: { name: 'puntos' } },
 ]
 
 const router = createRouter({ history: createWebHistory(), routes })
