@@ -285,10 +285,7 @@ onUnmounted(() => {
       </div>
 
       <!-- Botones de acción -->
-      <div
-        class="absolute left-1/2 -translate-x-1/2 z-[1000] flex flex-col items-center gap-2"
-        style="bottom: max(2rem, calc(1rem + env(safe-area-inset-bottom, 0px)))"
-      >
+      <div class="absolute bottom-20 sm:bottom-8 left-1/2 -translate-x-1/2 z-[1000] flex flex-col items-center gap-2">
         <button
           @click="searchHere"
           :disabled="loading"
