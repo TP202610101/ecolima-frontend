@@ -61,13 +61,13 @@ function renderPoints() {
       weight: 2,
     })
       .bindPopup(
-        `<div style="font-size:13px;min-width:180px">
+        `<div style="font-size:13px;min-width:160px">
           <strong style="font-size:14px;display:block;margin-bottom:2px">${p.nombre}</strong>
           <span style="color:#6b7280;font-size:12px">📍 ${dist} de distancia</span>
           <hr style="margin:6px 0;border-color:#e5e7eb">
           <span style="font-size:12px"><strong>Acepta:</strong> ${mats}</span>
         </div>`,
-        { minWidth: 190 }
+        { minWidth: 160, maxWidth: 260, autoPanPadding: [16, 60] }
       )
       .addTo(pointsLayer!)
   })
@@ -201,22 +201,24 @@ onUnmounted(() => {
 
       <!-- Filtro por material -->
       <div
-        class="absolute left-3 z-[1000] flex flex-wrap gap-1.5 max-w-[calc(100%-5rem)]"
+        class="absolute left-3 z-[1000] w-[calc(100%-8rem)]"
         :class="geoError ? 'top-14' : 'top-3'"
       >
-        <button
-          v-for="m in MATERIALS"
-          :key="m"
-          @click="toggleMaterial(m)"
-          :class="[
-            'px-3 py-1 rounded-full text-xs font-medium border shadow-sm transition-colors',
-            selectedMaterials.includes(m)
-              ? 'bg-green-600 text-white border-green-600'
-              : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400',
-          ]"
-        >
-          {{ m.charAt(0).toUpperCase() + m.slice(1) }}
-        </button>
+        <div class="chip-scroll flex gap-1.5 overflow-x-auto pb-0.5">
+          <button
+            v-for="m in MATERIALS"
+            :key="m"
+            @click="toggleMaterial(m)"
+            :class="[
+              'flex-shrink-0 whitespace-nowrap px-3 py-1 rounded-full text-xs font-medium border shadow-sm transition-colors',
+              selectedMaterials.includes(m)
+                ? 'bg-green-600 text-white border-green-600'
+                : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400',
+            ]"
+          >
+            {{ m.charAt(0).toUpperCase() + m.slice(1) }}
+          </button>
+        </div>
       </div>
 
       <!-- Controles de zoom -->
@@ -283,11 +285,14 @@ onUnmounted(() => {
       </div>
 
       <!-- Botones de acción -->
-      <div class="absolute bottom-8 left-1/2 -translate-x-1/2 z-[1000] flex flex-col items-center gap-2">
+      <div
+        class="absolute left-1/2 -translate-x-1/2 z-[1000] flex flex-col items-center gap-2"
+        style="bottom: max(2rem, calc(1rem + env(safe-area-inset-bottom, 0px)))"
+      >
         <button
           @click="searchHere"
           :disabled="loading"
-          class="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-300 rounded-full text-sm font-medium text-gray-700 shadow-md hover:shadow-lg hover:bg-gray-50 transition-all disabled:opacity-50"
+          class="flex items-center gap-2 px-5 py-3 bg-white border border-gray-300 rounded-full text-sm font-medium text-gray-700 shadow-md hover:shadow-lg hover:bg-gray-50 transition-all disabled:opacity-50"
         >
           <Search class="w-4 h-4" />
           Buscar en esta zona
@@ -295,7 +300,7 @@ onUnmounted(() => {
         <button
           @click="useMyLocation"
           :disabled="loading"
-          class="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-full text-sm font-medium shadow-md hover:bg-green-700 transition-all disabled:opacity-50"
+          class="flex items-center gap-2 px-5 py-3 bg-green-600 text-white rounded-full text-sm font-medium shadow-md hover:bg-green-700 transition-all disabled:opacity-50"
         >
           <Navigation class="w-4 h-4" />
           Usar mi ubicación
@@ -305,3 +310,13 @@ onUnmounted(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.chip-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.chip-scroll::-webkit-scrollbar {
+  display: none;
+}
+</style>
