@@ -52,7 +52,7 @@ onUnmounted(() => {
 
 <template>
   <div class="flex-1 overflow-auto bg-gray-50">
-    <div class="max-w-7xl mx-auto p-8 space-y-8">
+    <div class="max-w-7xl mx-auto p-4 sm:p-8 space-y-8">
 
       <!-- Header -->
       <div>
@@ -65,12 +65,12 @@ onUnmounted(() => {
       <!-- ── Estado del modelo ─────────────────────────────────────────────── -->
       <section class="space-y-4">
 
-        <div class="flex items-center justify-between">
-          <h2 class="text-lg font-semibold text-foreground">Estado del modelo</h2>
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+          <h2 class="text-lg font-semibold text-foreground flex-1">Estado del modelo</h2>
           <button
             @click="mlStore.runInference()"
             :disabled="mlStore.inferring"
-            class="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-primary-hover transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            class="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-primary-hover transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <span
               v-if="mlStore.inferring"
@@ -97,8 +97,8 @@ onUnmounted(() => {
           <p class="text-sm text-red-700">{{ mlStore.inferenceError }}</p>
         </div>
 
-        <!-- KPIs del modelo — 5 columnas -->
-        <div class="grid grid-cols-5 gap-4">
+        <!-- KPIs del modelo — 2 columnas en móvil, 5 en desktop -->
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
           <KpiCard
             :icon="Clock"
             icon-bg="bg-blue-100"
@@ -138,19 +138,19 @@ onUnmounted(() => {
       <!-- ── Dataset ───────────────────────────────────────────────────────── -->
       <section class="space-y-4">
 
-        <div class="flex items-center justify-between">
-          <h2 class="text-lg font-semibold text-foreground">Dataset</h2>
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+          <h2 class="text-lg font-semibold text-foreground flex-1">Dataset</h2>
           <button
             @click="datasetsStore.openUploader()"
-            class="flex items-center gap-2 px-4 py-2 border border-primary text-primary text-sm font-medium rounded-md hover:bg-accent transition-colors"
+            class="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 border border-primary text-primary text-sm font-medium rounded-md hover:bg-accent transition-colors"
           >
             <Upload class="w-4 h-4" />
             Subir nuevo dataset (CSV)
           </button>
         </div>
 
-        <!-- KPIs dataset — 3 columnas -->
-        <div class="grid grid-cols-3 gap-4">
+        <!-- KPIs dataset — 1 columna en móvil, 3 en desktop -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <KpiCard
             :icon="Calendar"
             icon-bg="bg-purple-100"
