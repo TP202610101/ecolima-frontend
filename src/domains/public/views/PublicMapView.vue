@@ -14,6 +14,14 @@ const LIMA_LNG_MAX = -76.55
 const MATERIALS = ['papel', 'plástico', 'vidrio', 'metal', 'cartón'] as const
 type Material = typeof MATERIALS[number]
 
+const MATERIAL_ACTIVE_CLASS: Record<string, string> = {
+  'papel':    'bg-blue-500    border-blue-500    text-white',
+  'plástico': 'bg-yellow-500  border-yellow-500  text-gray-900',
+  'vidrio':   'bg-emerald-500 border-emerald-500 text-white',
+  'metal':    'bg-zinc-500    border-zinc-500    text-white',
+  'cartón':   'bg-orange-500  border-orange-500  text-white',
+}
+
 const mapContainer = ref<HTMLElement>()
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -162,19 +170,21 @@ onUnmounted(() => {
   <div class="h-full flex flex-col">
 
     <!-- Cabecera pública -->
-    <header class="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 flex-shrink-0">
-      <div class="flex items-center gap-2.5">
-        <div class="w-8 h-8 rounded-lg bg-green-600 flex items-center justify-center flex-shrink-0">
+    <header class="flex items-center justify-between px-4 py-2.5 bg-white border-b border-gray-200 flex-shrink-0">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="w-9 h-9 rounded-lg bg-green-600 flex items-center justify-center flex-shrink-0">
           <Recycle class="w-5 h-5 text-white" />
         </div>
-        <div>
-          <span class="font-semibold text-gray-900 text-sm">EcoLima</span>
-          <span class="hidden sm:inline text-gray-400 text-sm"> — Encuentra dónde reciclar</span>
+        <div class="min-w-0">
+          <span class="text-base font-bold text-gray-900 tracking-tight">EcoLima</span>
+          <span class="hidden sm:inline text-base font-bold text-gray-900 tracking-tight"> — </span>
+          <span class="hidden sm:inline text-sm font-normal text-gray-500">Encuentra dónde reciclar</span>
+          <p class="sm:hidden text-xs text-gray-400 leading-tight mt-0.5">Encuentra dónde reciclar</p>
         </div>
       </div>
       <router-link
         :to="{ name: 'login' }"
-        class="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors"
+        class="flex-shrink-0 flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors"
       >
         <LogIn class="w-4 h-4" />
         <span class="hidden sm:inline">Acceso municipal</span>
@@ -212,7 +222,7 @@ onUnmounted(() => {
             :class="[
               'flex-shrink-0 whitespace-nowrap px-3 py-1 rounded-full text-xs font-medium border shadow-sm transition-colors',
               selectedMaterials.includes(m)
-                ? 'bg-green-600 text-white border-green-600'
+                ? MATERIAL_ACTIVE_CLASS[m]
                 : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400',
             ]"
           >
