@@ -1,96 +1,13 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch, computed, nextTick } from 'vue'
-import { RefreshCw, Clock, Calendar, TrendingUp, Upload, Database, FileText } from '@lucide/vue'
-import {
-  Chart,
-  BarController,
-  BarElement,
-  CategoryScale,
-  LinearScale,
-  Tooltip,
-} from 'chart.js'
+import { onMounted, onUnmounted, computed } from 'vue'
+import { RefreshCw, Clock, Calendar, TrendingUp, Upload, Database, FileText, Info } from '@lucide/vue'
 import { useMLStore } from '../stores/useMLStore'
 import { useDatasetsStore } from '@/domains/datasets/stores/useDatasetsStore'
 import KpiCard from '@/shared/components/KpiCard.vue'
-import DatasetUploader from '@/domains/datasets/components/DatasetUploader.vue'
-
-Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip)
+import ShapChart from '../components/ShapChart.vue'
 
 const mlStore = useMLStore()
 const datasetsStore = useDatasetsStore()
-const showUploader = ref(false)
-
-// ── SHAP chart ──────────────────────────────────────────────────────────────
-
-const chartCanvas = ref<HTMLCanvasElement>()
-let chartInstance: Chart | null = null
-
-const SHAP_LABELS = [
-  'Gasto combustible',
-  'Densidad poblacional',
-  'Potencial de reciclaje',
-  'GPC (kg/hab/día)',
-  'Dist. punto cercano',
-  'Puntos en 500m',
-  'Estrato de ingreso',
-  '% Plástico',
-]
-const SHAP_VALUES = [0.38, 0.32, 0.28, 0.22, 0.18, 0.14, 0.10, 0.08]
-
-function buildChart() {
-  if (!chartCanvas.value) return
-  if (chartInstance) { chartInstance.destroy(); chartInstance = null }
-  chartInstance = new Chart(chartCanvas.value, {
-    type: 'bar',
-    data: {
-      labels: SHAP_LABELS,
-      datasets: [{
-        data: SHAP_VALUES,
-        backgroundColor: '#16a34a',
-        borderRadius: 4,
-        barThickness: 18,
-      }],
-    },
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: ctx => ` ${(ctx.parsed.x as number).toFixed(3)}`,
-          },
-        },
-      },
-      scales: {
-        x: {
-          grid: { color: '#e5e5e5' },
-          ticks: { color: '#737373', font: { size: 11 } },
-          title: {
-            display: true,
-            text: 'Importancia SHAP',
-            color: '#737373',
-            font: { size: 11 },
-          },
-        },
-        y: {
-          grid: { display: false },
-          ticks: { color: '#1a1a1a', font: { size: 12 } },
-        },
-      },
-    },
-  })
-}
-
-watch(() => mlStore.activeModel, async model => {
-  if (model) {
-    await nextTick()
-    buildChart()
-  }
-})
-
-// ── Formatters ───────────────────────────────────────────────────────────────
 
 function fmtDate(iso?: string | null): string {
   if (!iso) return '—'
@@ -101,8 +18,6 @@ function fmtPct(v?: number | null): string {
   if (v == null) return '—'
   return `${(v * 100).toFixed(1)}%`
 }
-
-// ── Dataset helpers ──────────────────────────────────────────────────────────
 
 const latestDataset = computed(() => datasetsStore.datasets[0] ?? null)
 
@@ -126,26 +41,18 @@ function datasetStatusLabel(status?: string): string {
   return map[status ?? ''] ?? status ?? '—'
 }
 
-// ── Lifecycle ────────────────────────────────────────────────────────────────
-
-onMounted(async () => {
-  await Promise.all([mlStore.fetchModels(), datasetsStore.fetchDatasets()])
-  if (mlStore.activeModel) {
-    await nextTick()
-    buildChart()
-  }
+onMounted(() => {
+  Promise.all([mlStore.fetchModels(), datasetsStore.fetchDatasets()])
 })
 
 onUnmounted(() => {
   mlStore.stopPolling()
-  chartInstance?.destroy()
-  chartInstance = null
 })
 </script>
 
 <template>
   <div class="flex-1 overflow-auto bg-gray-50">
-    <div class="max-w-7xl mx-auto p-8 space-y-8">
+    <div class="max-w-7xl mx-auto p-4 sm:p-8 space-y-8">
 
       <!-- Header -->
       <div>
@@ -158,12 +65,12 @@ onUnmounted(() => {
       <!-- ── Estado del modelo ─────────────────────────────────────────────── -->
       <section class="space-y-4">
 
-        <div class="flex items-center justify-between">
-          <h2 class="text-lg font-semibold text-foreground">Estado del modelo</h2>
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+          <h2 class="text-lg font-semibold text-foreground flex-1">Estado del modelo</h2>
           <button
             @click="mlStore.runInference()"
             :disabled="mlStore.inferring"
-            class="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-primary-hover transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            class="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-primary-hover transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <span
               v-if="mlStore.inferring"
@@ -174,13 +81,24 @@ onUnmounted(() => {
           </button>
         </div>
 
+        <!-- Aviso datos de demostración -->
+        <div
+          v-if="mlStore.activeModel?.is_demo"
+          class="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg"
+        >
+          <Info class="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+          <p class="text-sm text-amber-800">
+            Las métricas mostradas corresponden al modelo de demostración y no reflejan un entrenamiento con datos reales.
+          </p>
+        </div>
+
         <!-- Error de inferencia -->
         <div v-if="mlStore.inferenceError" class="p-3 bg-red-50 border border-red-200 rounded-lg">
           <p class="text-sm text-red-700">{{ mlStore.inferenceError }}</p>
         </div>
 
-        <!-- KPIs del modelo — 5 columnas -->
-        <div class="grid grid-cols-5 gap-4">
+        <!-- KPIs del modelo — 2 columnas en móvil, 5 en desktop -->
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
           <KpiCard
             :icon="Clock"
             icon-bg="bg-blue-100"
@@ -213,40 +131,26 @@ onUnmounted(() => {
           />
         </div>
 
-        <!-- Gráfico SHAP -->
-        <div class="bg-white rounded-lg border border-border p-6">
-          <h3 class="text-sm font-semibold text-foreground mb-4">Importancia de variables (SHAP)</h3>
-
-          <div
-            v-if="!mlStore.activeModel && !mlStore.loading"
-            class="flex items-center justify-center h-48 text-sm text-muted-foreground"
-          >
-            No hay modelo activo
-          </div>
-          <div v-else-if="mlStore.loading" class="h-64 bg-gray-100 rounded animate-pulse" />
-          <div v-else class="relative h-64">
-            <canvas ref="chartCanvas" />
-          </div>
-        </div>
+        <ShapChart />
 
       </section>
 
       <!-- ── Dataset ───────────────────────────────────────────────────────── -->
       <section class="space-y-4">
 
-        <div class="flex items-center justify-between">
-          <h2 class="text-lg font-semibold text-foreground">Dataset</h2>
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+          <h2 class="text-lg font-semibold text-foreground flex-1">Dataset</h2>
           <button
-            @click="showUploader = true"
-            class="flex items-center gap-2 px-4 py-2 border border-primary text-primary text-sm font-medium rounded-md hover:bg-accent transition-colors"
+            @click="datasetsStore.openUploader()"
+            class="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 border border-primary text-primary text-sm font-medium rounded-md hover:bg-accent transition-colors"
           >
             <Upload class="w-4 h-4" />
             Subir nuevo dataset (CSV)
           </button>
         </div>
 
-        <!-- KPIs dataset — 3 columnas -->
-        <div class="grid grid-cols-3 gap-4">
+        <!-- KPIs dataset — 1 columna en móvil, 3 en desktop -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <KpiCard
             :icon="Calendar"
             icon-bg="bg-purple-100"
@@ -332,10 +236,4 @@ onUnmounted(() => {
 
     </div>
   </div>
-
-  <!-- Modal subida dataset -->
-  <DatasetUploader
-    v-if="showUploader"
-    @close="showUploader = false; datasetsStore.fetchDatasets()"
-  />
 </template>

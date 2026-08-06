@@ -53,7 +53,7 @@ function close() {
 </script>
 
 <template>
-  <aside class="w-96 border-l border-border overflow-y-auto bg-white flex flex-col">
+  <aside class="w-full h-full border-l border-border overflow-y-auto bg-white flex flex-col">
 
     <!-- Estado vacío -->
     <div

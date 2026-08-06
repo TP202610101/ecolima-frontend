@@ -64,7 +64,7 @@ function onZoneSelect(zone: Recommendation) {
 </script>
 
 <template>
-  <aside class="w-72 border-r border-border overflow-y-auto bg-white flex flex-col">
+  <aside class="w-full h-full border-r border-border overflow-y-auto bg-white flex flex-col">
 
     <!-- Header -->
     <div class="px-4 py-3 border-b border-border flex items-center gap-2 flex-shrink-0">

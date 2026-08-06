@@ -11,6 +11,10 @@
         </p>
       </div>
 
+      <div v-if="isExpired" class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700 text-center">
+        Tu sesión expiró, vuelve a iniciar sesión.
+      </div>
+
       <form @submit.prevent="onSubmit" class="space-y-5">
         <div>
           <label class="block text-sm font-medium text-muted-foreground mb-2">Correo electrónico</label>
@@ -48,8 +52,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { Recycle } from '@lucide/vue'
 import { LoginUseCase } from '../use-cases/LoginUseCase'
 import { useAuthStore } from '../stores/useAuthStore'
@@ -58,7 +62,10 @@ const email = ref('')
 const password = ref('')
 const errorMessage = ref('')
 const router = useRouter()
+const route = useRoute()
 const auth = useAuthStore()
+
+const isExpired = computed(() => route.query.expired === 'true')
 
 async function onSubmit() {
   errorMessage.value = ''

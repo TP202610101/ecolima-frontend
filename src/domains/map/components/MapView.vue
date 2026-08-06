@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import * as L from 'leaflet'
-import { Plus, Minus, RotateCcw } from '@lucide/vue'
+import { Plus, Minus, RotateCcw, AlertTriangle } from '@lucide/vue'
 import type { Recommendation } from '@/domains/recommendations/entities/Recommendation'
 import type { RecyclingPoint } from '../entities/RecyclingPoint'
 import { useRecommendationsStore } from '@/domains/recommendations/stores/useRecommendationsStore'
@@ -31,7 +31,7 @@ function renderZones(zones: Recommendation[]) {
   zones.forEach(zone => {
     const color = getZoneColor(zone)
     L.circleMarker([zone.centroid_lat, zone.centroid_lon], {
-      radius: 16,
+      radius: 8,
       color,
       fillColor: color,
       fillOpacity: 0.75,
@@ -50,7 +50,10 @@ function renderPoints(points: RecyclingPoint[]) {
   if (!pointsLayer) return
   pointsLayer.clearLayers()
   points.forEach(point => {
-    L.circleMarker([point.geometry.coordinates[1], point.geometry.coordinates[0]], {
+    const lat = point.geometry.coordinates[1]
+    const lng = point.geometry.coordinates[0]
+    const mats = point.materials_accepted || 'No especificado'
+    L.circleMarker([lat, lng], {
       radius: 8,
       color: '#3b82f6',
       fillColor: '#3b82f6',
@@ -58,6 +61,17 @@ function renderPoints(points: RecyclingPoint[]) {
       weight: 1.5
     })
       .bindTooltip(`<span style="font-size:12px">${point.address || 'Punto de reciclaje'}</span>`, { sticky: true })
+      .bindPopup(
+        `<div style="font-size:13px;min-width:190px">
+          <strong style="font-size:14px;display:block;margin-bottom:4px">${point.address || 'Punto de reciclaje'}</strong>
+          ${point.point_type ? `<span style="color:#6b7280;font-size:12px;display:block;margin-bottom:4px">Tipo: ${point.point_type}</span>` : ''}
+          <hr style="margin:6px 0;border-color:#e5e7eb">
+          <span style="font-size:12px"><strong>Acepta:</strong> ${mats}</span>
+          ${point.verified ? '<br><span style="color:#16a34a;font-size:11px;margin-top:4px;display:inline-block">✓ Verificado</span>' : ''}
+        </div>`,
+        { minWidth: 200 }
+      )
+      .on('click', () => flyTo(lat, lng))
       .addTo(pointsLayer!)
   })
 }
@@ -65,7 +79,12 @@ function renderPoints(points: RecyclingPoint[]) {
 function zoomIn() { map?.zoomIn() }
 function zoomOut() { map?.zoomOut() }
 function resetView() { map?.setView(LIMA_CENTER, 12) }
-function flyTo(lat: number, lon: number) { map?.flyTo([lat, lon], 15) }
+function flyTo(lat: number, lon: number) {
+  if (!map) return
+  if (map.getZoom() < 15) map.setZoom(15, { animate: false })
+  map.panTo([lat, lon], { animate: true, duration: 0.35 })
+}
+function invalidateSize() { map?.invalidateSize() }
 
 watch(() => recStore.filteredRecommendations, zones => renderZones(zones), { deep: true })
 watch(() => mapStore.points, points => renderPoints(points), { deep: true })
@@ -109,7 +128,7 @@ onUnmounted(() => {
   pointsLayer = null
 })
 
-defineExpose({ flyTo })
+defineExpose({ flyTo, invalidateSize })
 </script>
 
 <template>
@@ -172,6 +191,25 @@ defineExpose({ flyTo })
       <div class="flex flex-col items-center gap-2">
         <div class="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         <p class="text-sm text-muted-foreground">Cargando datos…</p>
+      </div>
+    </div>
+
+    <!-- Error overlay -->
+    <div
+      v-else-if="recStore.error || mapStore.error"
+      class="absolute inset-0 z-[999] bg-white/90 flex items-center justify-center"
+    >
+      <div class="flex flex-col items-center gap-3 text-center p-6 max-w-xs">
+        <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+          <AlertTriangle class="w-5 h-5 text-red-600" />
+        </div>
+        <p class="text-sm font-medium text-foreground">{{ recStore.error || mapStore.error }}</p>
+        <button
+          @click="recStore.fetchRecommendations(); mapStore.fetchPoints()"
+          class="px-4 py-2 bg-primary text-white text-sm rounded-md hover:bg-primary-hover transition-colors"
+        >
+          Reintentar
+        </button>
       </div>
     </div>
   </div>

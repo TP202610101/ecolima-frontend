@@ -13,7 +13,7 @@ export const MLRepository = {
   },
 
   async activateModel(version: string) {
-    const res = await api.post(`/api/v1/ml/models/${version}/activate`)
+    const res = await api.patch(`/api/v1/ml/models/${version}`, { is_active: true })
     return res.data
   },
 

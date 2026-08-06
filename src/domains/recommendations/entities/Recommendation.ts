@@ -12,5 +12,6 @@ export interface Recommendation {
   ml_score?: number
   model_version?: string
   inference_date?: string
+  is_demo?: boolean
   geometry: GeoJSON.Polygon
 }

@@ -13,7 +13,6 @@ const store = useReportsStore()
 const auth = useAuthStore()
 
 const totalZones = computed(() => store.recommendations.length)
-const districtsCount = computed(() => new Set(store.recommendations.map(r => r.district_name)).size)
 
 function incomeToNSE(stratum?: number): string {
   if (stratum == null) return 'N/D'
@@ -38,17 +37,17 @@ onMounted(() => store.fetchAll())
 
 <template>
   <div class="flex-1 overflow-auto bg-gray-50">
-    <div class="max-w-7xl mx-auto p-8 space-y-6">
+    <div class="max-w-7xl mx-auto p-4 sm:p-8 space-y-6">
 
       <!-- Header -->
-      <div class="flex items-start justify-between print:hidden">
-        <div>
+      <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 print:hidden">
+        <div class="flex-1">
           <h1 class="text-2xl font-bold text-foreground">Reporte de Análisis</h1>
           <p class="text-sm text-muted-foreground mt-1">
             Sistema de recomendación de ubicaciones para puntos de reciclaje
           </p>
         </div>
-        <div class="flex gap-2">
+        <div class="flex gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto">
           <button
             @click="ExportReportUseCase.exportCSV(store.recommendations)"
             :disabled="store.loading || !store.recommendations.length"
@@ -80,7 +79,7 @@ onMounted(() => store.fetchAll())
       </div>
 
       <!-- KPI Cards -->
-      <div class="grid grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <KpiCard
           :icon="MapPin"
           icon-bg="bg-green-100"
@@ -99,7 +98,7 @@ onMounted(() => store.fetchAll())
           :icon="Building2"
           icon-bg="bg-purple-100"
           label="Distritos cubiertos"
-          :value="store.loading ? '—' : districtsCount"
+          :value="store.loading ? '—' : (store.stats?.districts_covered ?? '—')"
           subtitle="Con al menos 1 zona recomendada"
         />
       </div>

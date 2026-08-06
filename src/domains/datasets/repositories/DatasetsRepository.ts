@@ -10,7 +10,7 @@ export const DatasetsRepository = {
   async uploadDataset(file: File): Promise<Dataset> {
     const form = new FormData()
     form.append('file', file)
-    const res = await api.post('/api/v1/datasets/upload', form)
+    const res = await api.post('/api/v1/datasets', form)
     return res.data
   },
 }
