@@ -2,7 +2,9 @@
 
 SPA Vue 3 para visualización de recomendaciones de puntos de reciclaje en Lima Metropolitana, generadas por un modelo de Machine Learning + GIS.
 
-**Proyecto académico · UPC 2026 · Alexander Cantoral**
+**Proyecto académico · UPC 2026 · Alexander Cantoral y Nikole García**
+
+🔗 **Demo:** https://mango-cliff-03aa6110f.7.azurestaticapps.net
 
 ---
 
@@ -43,60 +45,3 @@ cp .env.example .env.local
 # Iniciar servidor de desarrollo
 npm run dev
 # → http://localhost:5173
-```
-
-## Variables de entorno
-
-```env
-# .env.local
-VITE_API_URL=http://localhost:8000
-```
-
----
-
-## Scripts
-
-```bash
-npm run dev        # Servidor de desarrollo
-npm run build      # Build de producción → dist/
-npm run preview    # Preview del build
-npm run test       # Tests unitarios con Vitest
-```
-
----
-
-## Roles de usuario
-
-| Rol | Acceso |
-|---|---|
-| `admin` | Análisis + Reportes + Panel ML |
-| `analista` | Análisis + Reportes |
-
----
-
-## Estructura del proyecto
-
-```
-src/
-├── domains/
-│   ├── auth/           → Login, sesión, guards
-│   ├── map/            → Mapa Leaflet, puntos, distritos
-│   ├── recommendations/→ Zonas recomendadas por ML
-│   ├── reports/        → Reportes y exportación
-│   ├── ml-panel/       → Panel ML (solo admin)
-│   └── datasets/       → Gestión de datasets CSV
-├── shared/
-│   ├── api/            → Instancia Axios + interceptores
-│   ├── components/     → KpiCard, Badge, PriorityBar, Navbar
-│   ├── composables/    → useAuth
-│   └── utils/          → Formatters
-└── router/             → Rutas con guards de autenticación y rol
-```
-
----
-
-## Deploy
-
-El proyecto se despliega automáticamente en **Azure Static Web Apps** al hacer push a `develop`.
-
-La variable `VITE_API_URL` se inyecta en tiempo de build desde el workflow de CI (`.github/workflows/`).
