@@ -31,6 +31,17 @@ function buildApiError(error: unknown): Error {
       return new Error('No tienes permisos para esta acción.')
     case 404:
       return new Error('Recurso no encontrado.')
+    case 409: {
+      const code = data?.detail?.code
+      const CODE_MESSAGES: Record<string, string> = {
+        NOT_VALIDATED:      'Debes validar el dataset antes de confirmarlo.',
+        ALREADY_COMMITTED:  'Este dataset ya fue confirmado.',
+        DATASET_COMMITTED:  'Este dataset ya fue confirmado y no se puede modificar.',
+      }
+      if (code && CODE_MESSAGES[code]) return new Error(CODE_MESSAGES[code])
+      const raw = data?.detail || data?.message
+      return new Error(typeof raw === 'string' ? raw : (raw?.message ?? 'Conflicto al procesar la solicitud.'))
+    }
     case 422: {
       const detail = data?.detail
       const msg = Array.isArray(detail)

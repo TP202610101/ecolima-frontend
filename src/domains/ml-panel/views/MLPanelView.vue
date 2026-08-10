@@ -238,9 +238,9 @@ onUnmounted(() => {
                   </td>
                   <td class="px-4 py-4 text-muted-foreground">{{ fmtDate(ds.uploaded_at) }}</td>
                   <td class="px-4 py-4">
-                    <!-- Validar: pending o invalid -->
+                    <!-- Validar: pending, invalid o failed (backend exige status=valid antes de confirmar) -->
                     <button
-                      v-if="ds.status === 'pending' || ds.status === 'invalid'"
+                      v-if="ds.status === 'pending' || ds.status === 'invalid' || ds.status === 'failed'"
                       @click="datasetsStore.validateDataset(ds.dataset_id, ds.filename)"
                       :disabled="datasetsStore.validatingId !== null || datasetsStore.committingId !== null"
                       class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -257,16 +257,6 @@ onUnmounted(() => {
                     >
                       <span v-if="datasetsStore.committingId === ds.dataset_id" class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       {{ datasetsStore.committingId === ds.dataset_id ? 'Aplicando…' : 'Confirmar' }}
-                    </button>
-                    <!-- Reintentar: failed -->
-                    <button
-                      v-else-if="ds.status === 'failed'"
-                      @click="datasetsStore.commitDataset(ds.dataset_id, ds.filename)"
-                      :disabled="datasetsStore.validatingId !== null || datasetsStore.committingId !== null"
-                      class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-orange-300 text-orange-700 rounded-md hover:bg-orange-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <span v-if="datasetsStore.committingId === ds.dataset_id" class="w-3 h-3 border border-orange-600 border-t-transparent rounded-full animate-spin" />
-                      {{ datasetsStore.committingId === ds.dataset_id ? 'Aplicando…' : 'Reintentar' }}
                     </button>
                     <!-- committed: sin acción -->
                     <span v-else class="text-xs text-muted-foreground">—</span>
