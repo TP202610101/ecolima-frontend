@@ -51,6 +51,11 @@ const datasetResultClass = computed((): string => {
   return 'bg-red-50 border-red-200'
 })
 
+function handleActivate(version: string) {
+  if (!window.confirm(`¿Activar el modelo "${version}"?\nEl sistema usará este modelo para las próximas inferencias.`)) return
+  mlStore.activateModel(version)
+}
+
 onMounted(() => {
   Promise.all([mlStore.fetchModels(), datasetsStore.fetchDatasets()])
 })
@@ -165,6 +170,74 @@ onUnmounted(() => {
         </div>
 
         <ShapChart />
+
+        <!-- Versiones de modelo disponibles -->
+        <div class="bg-white rounded-lg border border-border overflow-hidden">
+          <div class="px-6 py-4 border-b border-border">
+            <h3 class="text-sm font-semibold text-foreground">Versiones de modelo</h3>
+          </div>
+
+          <div v-if="mlStore.error" class="px-6 py-3 bg-red-50 border-b border-red-100">
+            <p class="text-xs text-red-700">{{ mlStore.error }}</p>
+          </div>
+
+          <div v-if="mlStore.loading" class="p-4 space-y-3">
+            <div v-for="i in 3" :key="i" class="h-10 bg-gray-100 rounded animate-pulse" />
+          </div>
+
+          <div
+            v-else-if="!mlStore.models.length"
+            class="flex flex-col items-center justify-center py-10 text-center"
+          >
+            <p class="text-sm text-muted-foreground">No hay versiones de modelo disponibles</p>
+          </div>
+
+          <div v-else class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-border bg-gray-50">
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Versión</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Entrenado</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Accuracy</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">F1</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Estado</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="m in mlStore.models"
+                  :key="m.version_name"
+                  class="border-b border-border hover:bg-secondary transition-colors last:border-0"
+                >
+                  <td class="px-4 py-3 font-mono text-xs text-foreground">{{ m.version_name }}</td>
+                  <td class="px-4 py-3 text-muted-foreground">{{ fmtDate(m.training_date) }}</td>
+                  <td class="px-4 py-3 text-foreground">{{ fmtPct(m.metrics?.accuracy) }}</td>
+                  <td class="px-4 py-3 text-foreground">{{ fmtPct(m.metrics?.f1) }}</td>
+                  <td class="px-4 py-3">
+                    <span
+                      v-if="m.is_active"
+                      class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                    >Activo</span>
+                    <span v-else class="text-xs text-muted-foreground">—</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <button
+                      v-if="!m.is_active"
+                      @click="handleActivate(m.version_name)"
+                      :disabled="mlStore.activatingVersion !== null || mlStore.inferring"
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <span v-if="mlStore.activatingVersion === m.version_name" class="w-3 h-3 border border-gray-500 border-t-transparent rounded-full animate-spin" />
+                      {{ mlStore.activatingVersion === m.version_name ? 'Activando…' : 'Activar' }}
+                    </button>
+                    <span v-else class="text-xs text-muted-foreground">—</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
 
       </section>
 

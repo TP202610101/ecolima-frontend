@@ -13,6 +13,7 @@ export const useMLStore = defineStore('ml', () => {
   const inferenceError = ref<string | null>(null)
   const zonesProcessed = ref(0)
   const estimatedZones = ref(0)
+  const activatingVersion = ref<string | null>(null)
 
   const activeModel = computed(() => models.value.find(m => m.is_active) ?? null)
 
@@ -31,11 +32,15 @@ export const useMLStore = defineStore('ml', () => {
   }
 
   async function activateModel(version: string) {
+    activatingVersion.value = version
+    error.value = null
     try {
       await MLRepository.activateModel(version)
       await fetchModels()
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Error al activar modelo'
+    } finally {
+      activatingVersion.value = null
     }
   }
 
@@ -98,6 +103,7 @@ export const useMLStore = defineStore('ml', () => {
     inferenceError,
     zonesProcessed,
     estimatedZones,
+    activatingVersion,
     fetchModels,
     activateModel,
     runInference,
