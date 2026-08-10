@@ -87,8 +87,31 @@ onUnmounted(() => {
               class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
             />
             <RefreshCw v-else class="w-4 h-4" />
-            {{ mlStore.inferring ? 'Actualizando...' : 'Actualizar modelo desde storage' }}
+            {{ mlStore.inferring ? 'Ejecutando...' : 'Ejecutar inferencia' }}
           </button>
+        </div>
+
+        <!-- Progreso de inferencia en curso -->
+        <div
+          v-if="mlStore.inferring"
+          class="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg"
+        >
+          <span class="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-xs font-medium text-blue-800">Ejecutando inferencia...</span>
+              <span class="text-xs font-mono text-blue-700">{{ mlStore.inferenceProgress }}%</span>
+            </div>
+            <div class="w-full bg-blue-100 rounded-full h-1.5">
+              <div
+                class="bg-blue-500 h-1.5 rounded-full transition-all duration-500"
+                :style="{ width: `${mlStore.inferenceProgress}%` }"
+              />
+            </div>
+            <p class="text-xs text-blue-600 mt-1">
+              {{ mlStore.zonesProcessed }}{{ mlStore.estimatedZones > 0 ? `/${mlStore.estimatedZones}` : '' }} zonas procesadas
+            </p>
+          </div>
         </div>
 
         <!-- Aviso datos de demostración -->

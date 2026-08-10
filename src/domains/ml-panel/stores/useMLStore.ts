@@ -11,6 +11,8 @@ export const useMLStore = defineStore('ml', () => {
   const inferring = ref(false)
   const inferenceProgress = ref(0)
   const inferenceError = ref<string | null>(null)
+  const zonesProcessed = ref(0)
+  const estimatedZones = ref(0)
 
   const activeModel = computed(() => models.value.find(m => m.is_active) ?? null)
 
@@ -41,9 +43,12 @@ export const useMLStore = defineStore('ml', () => {
     inferring.value = true
     inferenceError.value = null
     inferenceProgress.value = 0
+    zonesProcessed.value = 0
+    estimatedZones.value = 0
     try {
       const result = await MLRepository.runInference({ model_version: 'latest', threshold: 0.5 })
       inferenceTaskId.value = result.task_id
+      estimatedZones.value = result.estimated_zones ?? 0
       startPolling()
     } catch (e) {
       inferring.value = false
@@ -58,6 +63,7 @@ export const useMLStore = defineStore('ml', () => {
       try {
         const status = await MLRepository.getInferenceStatus(inferenceTaskId.value)
         inferenceProgress.value = status.progress_pct ?? 0
+        zonesProcessed.value = status.zones_processed ?? 0
         if (status.status === 'done') {
           stopPolling()
           inferring.value = false
@@ -90,6 +96,8 @@ export const useMLStore = defineStore('ml', () => {
     inferring,
     inferenceProgress,
     inferenceError,
+    zonesProcessed,
+    estimatedZones,
     fetchModels,
     activateModel,
     runInference,
