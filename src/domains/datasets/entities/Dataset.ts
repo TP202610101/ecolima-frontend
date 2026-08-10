@@ -15,6 +15,7 @@ export interface ValidationResult {
   row_count: number
   valid_rows: number
   error_rows: number
+  duplicate_rows: Array<{ latitude: number; longitude: number; row_indices: number[] }>
 }
 
 export interface CommitResult {

@@ -313,6 +313,19 @@ onUnmounted(() => {
                     y {{ datasetsStore.lastValidation.result.type_errors.length - 5 }} errores más…
                   </p>
                 </div>
+                <!-- Coordenadas duplicadas dentro del archivo (advertencia, no bloquea validez) -->
+                <div v-if="datasetsStore.lastValidation.result.duplicate_rows?.length" class="space-y-0.5">
+                  <p class="text-xs font-medium text-amber-700">
+                    Coordenadas repetidas en el archivo — {{ datasetsStore.lastValidation.result.duplicate_rows.length }} grupo{{ datasetsStore.lastValidation.result.duplicate_rows.length !== 1 ? 's' : '' }}:
+                  </p>
+                  <p
+                    v-for="group in datasetsStore.lastValidation.result.duplicate_rows"
+                    :key="`${group.latitude}-${group.longitude}`"
+                    class="text-xs text-amber-700"
+                  >
+                    ({{ group.latitude }}, {{ group.longitude }}) — filas {{ group.row_indices.map(i => i + 1).join(', ') }}
+                  </p>
+                </div>
               </template>
 
               <!-- Resultado de confirmación -->
