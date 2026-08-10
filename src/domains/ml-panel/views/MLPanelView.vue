@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, computed } from 'vue'
-import { RefreshCw, Clock, Calendar, TrendingUp, Upload, Database, FileText, Info } from '@lucide/vue'
+import { RefreshCw, Clock, Calendar, TrendingUp, Upload, Database, FileText, Info, X } from '@lucide/vue'
 import { useMLStore } from '../stores/useMLStore'
 import { useDatasetsStore } from '@/domains/datasets/stores/useDatasetsStore'
 import KpiCard from '@/shared/components/KpiCard.vue'
@@ -27,6 +27,7 @@ function datasetStatusClass(status?: string): string {
     valid:     'bg-blue-100 text-blue-800',
     invalid:   'bg-red-100 text-red-800',
     pending:   'bg-gray-100 text-gray-800',
+    failed:    'bg-orange-100 text-orange-800',
   }
   return map[status ?? ''] ?? 'bg-gray-100 text-gray-800'
 }
@@ -37,9 +38,18 @@ function datasetStatusLabel(status?: string): string {
     valid:     'Válido',
     invalid:   'Inválido',
     pending:   'Pendiente',
+    failed:    'Fallido',
   }
   return map[status ?? ''] ?? status ?? '—'
 }
+
+const datasetResultClass = computed((): string => {
+  const lv = datasetsStore.lastValidation
+  const lc = datasetsStore.lastCommit
+  if (lv) return lv.result.valid ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+  if (lc) return lc.result.inserted > 0 ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'
+  return 'bg-red-50 border-red-200'
+})
 
 onMounted(() => {
   Promise.all([mlStore.fetchModels(), datasetsStore.fetchDatasets()])
@@ -202,6 +212,7 @@ onUnmounted(() => {
                   <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Filas</th>
                   <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Estado</th>
                   <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fecha</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -226,12 +237,124 @@ onUnmounted(() => {
                     </span>
                   </td>
                   <td class="px-4 py-4 text-muted-foreground">{{ fmtDate(ds.uploaded_at) }}</td>
+                  <td class="px-4 py-4">
+                    <!-- Validar: pending o invalid -->
+                    <button
+                      v-if="ds.status === 'pending' || ds.status === 'invalid'"
+                      @click="datasetsStore.validateDataset(ds.dataset_id, ds.filename)"
+                      :disabled="datasetsStore.validatingId !== null || datasetsStore.committingId !== null"
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <span v-if="datasetsStore.validatingId === ds.dataset_id" class="w-3 h-3 border border-gray-500 border-t-transparent rounded-full animate-spin" />
+                      {{ datasetsStore.validatingId === ds.dataset_id ? 'Validando…' : 'Validar' }}
+                    </button>
+                    <!-- Confirmar: valid -->
+                    <button
+                      v-else-if="ds.status === 'valid'"
+                      @click="datasetsStore.commitDataset(ds.dataset_id, ds.filename)"
+                      :disabled="datasetsStore.validatingId !== null || datasetsStore.committingId !== null"
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-primary text-white rounded-md hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <span v-if="datasetsStore.committingId === ds.dataset_id" class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      {{ datasetsStore.committingId === ds.dataset_id ? 'Aplicando…' : 'Confirmar' }}
+                    </button>
+                    <!-- Reintentar: failed -->
+                    <button
+                      v-else-if="ds.status === 'failed'"
+                      @click="datasetsStore.commitDataset(ds.dataset_id, ds.filename)"
+                      :disabled="datasetsStore.validatingId !== null || datasetsStore.committingId !== null"
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-orange-300 text-orange-700 rounded-md hover:bg-orange-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <span v-if="datasetsStore.committingId === ds.dataset_id" class="w-3 h-3 border border-orange-600 border-t-transparent rounded-full animate-spin" />
+                      {{ datasetsStore.committingId === ds.dataset_id ? 'Aplicando…' : 'Reintentar' }}
+                    </button>
+                    <!-- committed: sin acción -->
+                    <span v-else class="text-xs text-muted-foreground">—</span>
+                  </td>
                 </tr>
               </tbody>
             </table>
           </div>
 
         </div>
+
+        <!-- Panel resultado de validación / confirmación -->
+        <div
+          v-if="datasetsStore.lastValidation || datasetsStore.lastCommit || datasetsStore.actionError"
+          class="rounded-lg border p-4"
+          :class="datasetResultClass"
+        >
+          <div class="flex items-start gap-3">
+            <div class="flex-1 min-w-0 space-y-2">
+
+              <!-- Resultado de validación -->
+              <template v-if="datasetsStore.lastValidation">
+                <p class="text-sm font-semibold" :class="datasetsStore.lastValidation.result.valid ? 'text-green-800' : 'text-red-800'">
+                  {{ datasetsStore.lastValidation.result.valid ? '✓ Dataset válido' : '✗ Dataset inválido' }}
+                  <span class="font-normal ml-1.5 opacity-70 truncate">{{ datasetsStore.lastValidation.filename }}</span>
+                </p>
+                <p class="text-xs" :class="datasetsStore.lastValidation.result.valid ? 'text-green-700' : 'text-red-700'">
+                  {{ datasetsStore.lastValidation.result.valid_rows.toLocaleString('es-PE') }} filas válidas de {{ datasetsStore.lastValidation.result.row_count.toLocaleString('es-PE') }} totales
+                </p>
+                <!-- Columnas faltantes -->
+                <div v-if="datasetsStore.lastValidation.result.missing_columns.length">
+                  <p class="text-xs font-medium text-red-800 mb-1">Columnas faltantes:</p>
+                  <div class="flex flex-wrap gap-1">
+                    <span
+                      v-for="col in datasetsStore.lastValidation.result.missing_columns"
+                      :key="col"
+                      class="px-1.5 py-0.5 bg-red-100 text-red-800 text-xs rounded font-mono"
+                    >{{ col }}</span>
+                  </div>
+                </div>
+                <!-- Errores de tipo -->
+                <div v-if="datasetsStore.lastValidation.result.type_errors.length" class="space-y-0.5">
+                  <p class="text-xs font-medium text-red-800">
+                    Errores de tipo — {{ datasetsStore.lastValidation.result.error_rows }} fila{{ datasetsStore.lastValidation.result.error_rows !== 1 ? 's' : '' }} afectada{{ datasetsStore.lastValidation.result.error_rows !== 1 ? 's' : '' }}:
+                  </p>
+                  <p
+                    v-for="err in datasetsStore.lastValidation.result.type_errors.slice(0, 5)"
+                    :key="`${err.row_index}-${err.column}`"
+                    class="text-xs text-red-700"
+                  >
+                    Fila {{ err.row_index + 1 }} — <span class="font-mono">{{ err.column }}</span>: {{ err.error }}
+                  </p>
+                  <p v-if="datasetsStore.lastValidation.result.type_errors.length > 5" class="text-xs text-red-600 italic">
+                    y {{ datasetsStore.lastValidation.result.type_errors.length - 5 }} errores más…
+                  </p>
+                </div>
+              </template>
+
+              <!-- Resultado de confirmación -->
+              <template v-else-if="datasetsStore.lastCommit">
+                <p class="text-sm font-semibold" :class="datasetsStore.lastCommit.result.inserted > 0 ? 'text-green-800' : 'text-orange-800'">
+                  {{ datasetsStore.lastCommit.result.inserted > 0 ? '✓ Dataset confirmado' : '⚠ Sin filas insertadas' }}
+                  <span class="font-normal ml-1.5 opacity-70">{{ datasetsStore.lastCommit.filename }}</span>
+                </p>
+                <div class="space-y-0.5 text-xs" :class="datasetsStore.lastCommit.result.inserted > 0 ? 'text-green-700' : 'text-orange-700'">
+                  <p><strong>{{ datasetsStore.lastCommit.result.inserted.toLocaleString('es-PE') }}</strong> punto{{ datasetsStore.lastCommit.result.inserted !== 1 ? 's' : '' }} de reciclaje insertado{{ datasetsStore.lastCommit.result.inserted !== 1 ? 's' : '' }}</p>
+                  <p v-if="datasetsStore.lastCommit.result.skipped_duplicates > 0">{{ datasetsStore.lastCommit.result.skipped_duplicates }} duplicado{{ datasetsStore.lastCommit.result.skipped_duplicates !== 1 ? 's' : '' }} omitido{{ datasetsStore.lastCommit.result.skipped_duplicates !== 1 ? 's' : '' }}</p>
+                  <p v-if="datasetsStore.lastCommit.result.errors.length > 0">{{ datasetsStore.lastCommit.result.errors.length }} fila{{ datasetsStore.lastCommit.result.errors.length !== 1 ? 's' : '' }} con error</p>
+                </div>
+              </template>
+
+              <!-- Error de API -->
+              <template v-else-if="datasetsStore.actionError">
+                <p class="text-sm font-semibold text-red-800">Error al procesar el dataset</p>
+                <p class="text-xs text-red-700">{{ datasetsStore.actionError }}</p>
+              </template>
+
+            </div>
+            <button
+              @click="datasetsStore.clearLastResult()"
+              class="flex-shrink-0 p-1 rounded hover:bg-black/10 transition-colors"
+              aria-label="Cerrar"
+            >
+              <X class="w-3.5 h-3.5 opacity-50" />
+            </button>
+          </div>
+        </div>
+
       </section>
 
     </div>
