@@ -15,6 +15,33 @@ api.interceptors.request.use(config => {
   return config
 })
 
+function readableDetail(detail: unknown): string {
+  if (typeof detail === 'string') return detail
+
+  if (Array.isArray(detail)) {
+    const first = (detail as Record<string, unknown>[])[0]
+    return typeof first?.msg === 'string' ? first.msg : 'Los datos enviados no son válidos.'
+  }
+
+  if (detail !== null && typeof detail === 'object') {
+    const d = detail as Record<string, unknown>
+    if (typeof d.message === 'string') return d.message
+    if (typeof d.error === 'string') {
+      const parts: string[] = []
+      if (d.row_index != null) parts.push(`Fila ${d.row_index}`)
+      if (typeof d.column === 'string') parts.push(`columna ${d.column}`)
+      return parts.length > 0 ? `${parts.join(', ')}: ${d.error}` : d.error
+    }
+    if (Array.isArray(d.invalid_row_indices))
+      return `Filas inválidas: ${(d.invalid_row_indices as unknown[]).join(', ')}`
+    if (Array.isArray(d.missing_columns))
+      return `Faltan columnas: ${(d.missing_columns as unknown[]).join(', ')}`
+    return 'Ocurrió un error procesando la solicitud.'
+  }
+
+  return 'Error inesperado.'
+}
+
 function buildApiError(error: unknown): Error {
   if (!axios.isAxiosError(error)) return new Error('Error inesperado.')
 
@@ -39,8 +66,7 @@ function buildApiError(error: unknown): Error {
         DATASET_COMMITTED:  'Este dataset ya fue confirmado y no se puede modificar.',
       }
       if (code && CODE_MESSAGES[code]) return new Error(CODE_MESSAGES[code])
-      const raw = data?.detail || data?.message
-      return new Error(typeof raw === 'string' ? raw : (raw?.message ?? 'Conflicto al procesar la solicitud.'))
+      return new Error(data?.detail != null ? readableDetail(data.detail) : 'Conflicto al procesar la solicitud.')
     }
     case 422: {
       const detail = data?.detail
@@ -52,8 +78,8 @@ function buildApiError(error: unknown): Error {
     case 500:
       return new Error('Error del servidor, intenta más tarde.')
     default: {
-      const msg = data?.detail || data?.message
-      return new Error(typeof msg === 'string' ? msg : 'Error inesperado.')
+      const detail = data?.detail ?? data?.message
+      return new Error(detail != null ? readableDetail(detail) : 'Error inesperado.')
     }
   }
 }
