@@ -17,6 +17,7 @@
       <router-link :class="linkClass('/analisis')" to="/analisis">Análisis</router-link>
       <router-link :class="linkClass('/reportes')" to="/reportes">Reportes</router-link>
       <router-link v-if="auth.isAdmin" :class="linkClass('/panel-ml')" to="/panel-ml">Panel ML</router-link>
+      <router-link v-if="auth.isAdmin" :class="linkClass('/admin/usuarios')" to="/admin/usuarios">Usuarios</router-link>
     </div>
 
     <!-- Zona derecha -->
@@ -83,6 +84,13 @@
           :class="route.path === '/panel-ml' ? 'text-primary font-medium bg-accent' : 'text-foreground'"
           @click="closeMenu"
         >Panel ML</router-link>
+        <router-link
+          v-if="auth.isAdmin"
+          to="/admin/usuarios"
+          class="flex items-center px-4 py-3 text-sm hover:bg-secondary transition-colors"
+          :class="route.path === '/admin/usuarios' ? 'text-primary font-medium bg-accent' : 'text-foreground'"
+          @click="closeMenu"
+        >Usuarios</router-link>
       </div>
       <!-- Cerrar sesión -->
       <div class="border-t border-border py-1">

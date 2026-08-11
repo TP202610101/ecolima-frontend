@@ -3,6 +3,7 @@ import LoginView from '@/domains/auth/views/LoginView.vue'
 import AnalysisView from '@/domains/map/views/AnalysisView.vue'
 import ReportsView from '@/domains/reports/views/ReportsView.vue'
 import MLPanelView from '@/domains/ml-panel/views/MLPanelView.vue'
+import AdminUsersView from '@/domains/admin/views/AdminUsersView.vue'
 import PublicMapView from '@/domains/public/views/PublicMapView.vue'
 import { useAuthStore } from '@/domains/auth/stores/useAuthStore'
 
@@ -21,7 +22,8 @@ const routes = [
   { path: '/puntos',   name: 'puntos',   component: PublicMapView, meta: { requiresAuth: false, hideNavbar: true } },
   { path: '/analisis', name: 'analisis', component: AnalysisView, meta: { requiresAuth: true } },
   { path: '/reportes', name: 'reportes', component: ReportsView,  meta: { requiresAuth: true } },
-  { path: '/panel-ml', name: 'panel-ml', component: MLPanelView,  meta: { requiresAuth: true, requiresAdmin: true } },
+  { path: '/panel-ml',        name: 'panel-ml',        component: MLPanelView,    meta: { requiresAuth: true, requiresAdmin: true } },
+  { path: '/admin/usuarios',  name: 'admin-usuarios',  component: AdminUsersView, meta: { requiresAuth: true, requiresAdmin: true } },
   { path: '/:pathMatch(.*)*', redirect: { name: 'puntos' } },
 ]
 
