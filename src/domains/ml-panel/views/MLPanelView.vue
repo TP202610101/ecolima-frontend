@@ -1,15 +1,24 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, computed } from 'vue'
+import { onMounted, onUnmounted, computed, ref } from 'vue'
 import { RefreshCw, Clock, Calendar, TrendingUp, Upload, Database, FileText, Info, X } from '@lucide/vue'
 import { useMLStore } from '../stores/useMLStore'
 import { useDatasetsStore } from '@/domains/datasets/stores/useDatasetsStore'
 import { useAuth } from '@/shared/composables/useAuth'
+import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import KpiCard from '@/shared/components/KpiCard.vue'
 import ShapChart from '../components/ShapChart.vue'
 
 const mlStore = useMLStore()
 const datasetsStore = useDatasetsStore()
 const { isAdmin } = useAuth()
+
+const confirm = ref<{
+  visible: boolean
+  title: string
+  message: string
+  confirmLabel: string
+  action: () => void
+}>({ visible: false, title: '', message: '', confirmLabel: '', action: () => {} })
 
 function fmtDate(iso?: string | null): string {
   if (!iso) return '—'
@@ -54,13 +63,23 @@ const datasetResultClass = computed((): string => {
 })
 
 function handleActivate(version: string) {
-  if (!window.confirm(`¿Activar el modelo "${version}"?\nEl sistema usará este modelo para las próximas inferencias.`)) return
-  mlStore.activateModel(version)
+  confirm.value = {
+    visible: true,
+    title: 'Activar modelo',
+    message: `¿Activar el modelo "${version}"? El sistema usará este modelo para las próximas inferencias.`,
+    confirmLabel: 'Activar',
+    action: () => mlStore.activateModel(version),
+  }
 }
 
 function handleRecalculate() {
-  if (!window.confirm('¿Recalcular cobertura?\nEsto actualiza las zonas recomendadas según los puntos de reciclaje actuales. Puede tardar unos segundos.')) return
-  mlStore.recalculateCoverage()
+  confirm.value = {
+    visible: true,
+    title: 'Recalcular cobertura',
+    message: '¿Recalcular cobertura? Esto actualiza las zonas recomendadas según los puntos de reciclaje actuales. Puede tardar unos segundos.',
+    confirmLabel: 'Recalcular',
+    action: () => mlStore.recalculateCoverage(),
+  }
 }
 
 onMounted(() => {
@@ -505,4 +524,13 @@ onUnmounted(() => {
 
     </div>
   </div>
+
+  <ConfirmDialog
+    v-if="confirm.visible"
+    :title="confirm.title"
+    :message="confirm.message"
+    :confirm-label="confirm.confirmLabel"
+    @confirm="() => { confirm.action(); confirm.visible = false }"
+    @cancel="confirm.visible = false"
+  />
 </template>
