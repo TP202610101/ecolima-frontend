@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { UserPlus, Users } from '@lucide/vue'
 import { useAdminUsersStore } from '../stores/useAdminUsersStore'
 import { useAuthStore } from '@/domains/auth/stores/useAuthStore'
@@ -10,11 +10,18 @@ const auth = useAuthStore()
 
 // ── Create modal ────────────────────────────────────────────────────────────
 const showCreate = ref(false)
-const form = reactive({ email: '', fullName: '', password: '', role: 'analista' as 'admin' | 'analista' })
+const form = reactive({ email: '', fullName: '', password: '', confirmPassword: '', role: 'analista' as 'admin' | 'analista' })
 const formError = ref('')
 
+const pwChecks = computed(() => ({
+  length: form.password.length >= 8,
+  upper:  /[A-Z]/.test(form.password),
+  lower:  /[a-z]/.test(form.password),
+  number: /[0-9]/.test(form.password),
+}))
+
 function openCreate() {
-  form.email = ''; form.fullName = ''; form.password = ''; form.role = 'analista'
+  form.email = ''; form.fullName = ''; form.password = ''; form.confirmPassword = ''; form.role = 'analista'
   formError.value = ''
   store.createError = null
   showCreate.value = true
@@ -22,7 +29,9 @@ function openCreate() {
 
 function validateForm(): string | null {
   if (!form.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) return 'Ingresa un email válido.'
-  if (form.password.length < 8) return 'La contraseña debe tener al menos 8 caracteres.'
+  const { length, upper, lower, number } = pwChecks.value
+  if (!length || !upper || !lower || !number) return 'La contraseña no cumple los requisitos de seguridad.'
+  if (form.password !== form.confirmPassword) return 'Las contraseñas no coinciden.'
   return null
 }
 
@@ -90,6 +99,11 @@ function fmtDate(iso: string): string {
 
 function isSelf(userId: number): boolean {
   return userId === auth.user?.user_id
+}
+
+function isLastActiveAdmin(userId: number): boolean {
+  const activeAdmins = store.users.filter(u => u.role === 'admin' && u.is_active)
+  return activeAdmins.length === 1 && activeAdmins[0].user_id === userId
 }
 
 function onEscape(e: KeyboardEvent) {
@@ -197,7 +211,8 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
                     <!-- Cambiar rol -->
                     <button
                       @click="handleRoleChange(user.user_id, user.email, user.role === 'admin' ? 'analista' : 'admin')"
-                      :disabled="store.actionUserId !== null"
+                      :disabled="store.actionUserId !== null || isLastActiveAdmin(user.user_id)"
+                      :title="isLastActiveAdmin(user.user_id) ? 'No se puede degradar al único admin activo' : undefined"
                       class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <span v-if="store.actionUserId === user.user_id" class="w-2.5 h-2.5 border border-gray-500 border-t-transparent rounded-full animate-spin" />
@@ -207,7 +222,8 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
                     <button
                       v-if="user.is_active"
                       @click="handleDeactivate(user.user_id, user.email)"
-                      :disabled="store.actionUserId !== null"
+                      :disabled="store.actionUserId !== null || isLastActiveAdmin(user.user_id)"
+                      :title="isLastActiveAdmin(user.user_id) ? 'No se puede desactivar al único admin activo' : undefined"
                       class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium border border-red-200 text-red-700 rounded-md hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >Desactivar</button>
                     <button
@@ -272,6 +288,36 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
             autocomplete="new-password"
             class="w-full px-3 py-2 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
           />
+          <!-- Requisitos de contraseña (solo cuando el usuario empieza a escribir) -->
+          <div v-if="form.password.length > 0" class="mt-2 grid grid-cols-2 gap-x-4 gap-y-0.5">
+            <p :class="['text-xs', pwChecks.length ? 'text-green-600' : 'text-muted-foreground']">
+              {{ pwChecks.length ? '✓' : '○' }} 8 caracteres mínimo
+            </p>
+            <p :class="['text-xs', pwChecks.upper ? 'text-green-600' : 'text-muted-foreground']">
+              {{ pwChecks.upper ? '✓' : '○' }} Una mayúscula
+            </p>
+            <p :class="['text-xs', pwChecks.lower ? 'text-green-600' : 'text-muted-foreground']">
+              {{ pwChecks.lower ? '✓' : '○' }} Una minúscula
+            </p>
+            <p :class="['text-xs', pwChecks.number ? 'text-green-600' : 'text-muted-foreground']">
+              {{ pwChecks.number ? '✓' : '○' }} Un número
+            </p>
+          </div>
+        </div>
+        <!-- Confirmar contraseña -->
+        <div>
+          <label class="block text-xs font-medium text-foreground mb-1">Confirmar contraseña <span class="text-red-500">*</span></label>
+          <input
+            v-model="form.confirmPassword"
+            type="password"
+            placeholder="Repite la contraseña"
+            autocomplete="new-password"
+            class="w-full px-3 py-2 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            :class="form.confirmPassword && form.confirmPassword !== form.password ? 'border-red-300' : ''"
+          />
+          <p v-if="form.confirmPassword && form.confirmPassword !== form.password" class="mt-1 text-xs text-red-600">
+            Las contraseñas no coinciden
+          </p>
         </div>
         <!-- Rol -->
         <div>
