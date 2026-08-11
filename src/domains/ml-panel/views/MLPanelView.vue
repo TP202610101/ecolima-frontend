@@ -3,11 +3,13 @@ import { onMounted, onUnmounted, computed } from 'vue'
 import { RefreshCw, Clock, Calendar, TrendingUp, Upload, Database, FileText, Info, X } from '@lucide/vue'
 import { useMLStore } from '../stores/useMLStore'
 import { useDatasetsStore } from '@/domains/datasets/stores/useDatasetsStore'
+import { useAuth } from '@/shared/composables/useAuth'
 import KpiCard from '@/shared/components/KpiCard.vue'
 import ShapChart from '../components/ShapChart.vue'
 
 const mlStore = useMLStore()
 const datasetsStore = useDatasetsStore()
+const { isAdmin } = useAuth()
 
 function fmtDate(iso?: string | null): string {
   if (!iso) return '—'
@@ -56,6 +58,11 @@ function handleActivate(version: string) {
   mlStore.activateModel(version)
 }
 
+function handleRecalculate() {
+  if (!window.confirm('¿Recalcular cobertura?\nEsto actualiza las zonas recomendadas según los puntos de reciclaje actuales. Puede tardar unos segundos.')) return
+  mlStore.recalculateCoverage()
+}
+
 onMounted(() => {
   Promise.all([mlStore.fetchModels(), datasetsStore.fetchDatasets()])
 })
@@ -83,8 +90,19 @@ onUnmounted(() => {
         <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2">
           <h2 class="text-lg font-semibold text-foreground flex-1">Estado del modelo</h2>
           <button
+            v-if="isAdmin"
+            @click="handleRecalculate"
+            :disabled="mlStore.recalculating || mlStore.inferring"
+            :title="'Actualiza las zonas recomendadas y la cobertura según los puntos actuales'"
+            class="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 border border-primary text-primary text-sm font-medium rounded-md hover:bg-accent transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            <span v-if="mlStore.recalculating" class="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <RefreshCw v-else class="w-4 h-4" />
+            {{ mlStore.recalculating ? 'Recalculando...' : 'Recalcular cobertura' }}
+          </button>
+          <button
             @click="mlStore.runInference()"
-            :disabled="mlStore.inferring"
+            :disabled="mlStore.inferring || mlStore.recalculating"
             class="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-primary-hover transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <span
@@ -133,6 +151,35 @@ onUnmounted(() => {
         <!-- Error de inferencia -->
         <div v-if="mlStore.inferenceError" class="p-3 bg-red-50 border border-red-200 rounded-lg">
           <p class="text-sm text-red-700">{{ mlStore.inferenceError }}</p>
+        </div>
+
+        <!-- Resultado de recalcular cobertura -->
+        <div
+          v-if="mlStore.recalculateResult || mlStore.recalculateError"
+          class="flex items-start gap-3 p-3 rounded-lg border"
+          :class="mlStore.recalculateResult ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'"
+        >
+          <div class="flex-1 min-w-0">
+            <template v-if="mlStore.recalculateResult">
+              <p class="text-sm font-semibold text-green-800">✓ Cobertura recalculada</p>
+              <p class="text-xs text-green-700 mt-0.5">
+                {{ mlStore.recalculateResult.is_suitable.updated_zones }} zonas evaluadas —
+                {{ mlStore.recalculateResult.is_suitable.positive_labels }} aptas,
+                {{ mlStore.recalculateResult.is_suitable.negative_labels }} no aptas
+              </p>
+            </template>
+            <template v-else>
+              <p class="text-sm font-semibold text-red-800">Error al recalcular cobertura</p>
+              <p class="text-xs text-red-700 mt-0.5">{{ mlStore.recalculateError }}</p>
+            </template>
+          </div>
+          <button
+            @click="mlStore.recalculateResult = null; mlStore.recalculateError = null"
+            class="flex-shrink-0 p-1 rounded hover:bg-black/10 transition-colors"
+            aria-label="Cerrar"
+          >
+            <X class="w-3.5 h-3.5 opacity-50" />
+          </button>
         </div>
 
         <!-- KPIs del modelo — 2 columnas en móvil, 5 en desktop -->

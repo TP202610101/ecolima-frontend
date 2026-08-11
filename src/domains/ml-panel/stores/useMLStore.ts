@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { ModelVersion } from '../entities/ModelVersion'
 import { MLRepository } from '../repositories/MLRepository'
+import type { RecalculateResult } from '../repositories/MLRepository'
 
 export const useMLStore = defineStore('ml', () => {
   const models = ref<ModelVersion[]>([])
@@ -14,6 +15,9 @@ export const useMLStore = defineStore('ml', () => {
   const zonesProcessed = ref(0)
   const estimatedZones = ref(0)
   const activatingVersion = ref<string | null>(null)
+  const recalculating = ref(false)
+  const recalculateResult = ref<RecalculateResult | null>(null)
+  const recalculateError = ref<string | null>(null)
 
   const activeModel = computed(() => models.value.find(m => m.is_active) ?? null)
 
@@ -85,6 +89,19 @@ export const useMLStore = defineStore('ml', () => {
     }, 2000)
   }
 
+  async function recalculateCoverage() {
+    recalculating.value = true
+    recalculateResult.value = null
+    recalculateError.value = null
+    try {
+      recalculateResult.value = await MLRepository.recalculateCoverage()
+    } catch (e) {
+      recalculateError.value = e instanceof Error ? e.message : 'Error al recalcular cobertura'
+    } finally {
+      recalculating.value = false
+    }
+  }
+
   function stopPolling() {
     if (pollTimer) {
       clearInterval(pollTimer)
@@ -104,6 +121,10 @@ export const useMLStore = defineStore('ml', () => {
     zonesProcessed,
     estimatedZones,
     activatingVersion,
+    recalculating,
+    recalculateResult,
+    recalculateError,
+    recalculateCoverage,
     fetchModels,
     activateModel,
     runInference,
