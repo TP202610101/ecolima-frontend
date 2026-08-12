@@ -67,7 +67,8 @@ function buildApiError(error: unknown): Error {
         NOT_VALIDATED:      'Debes validar el dataset antes de confirmarlo.',
         ALREADY_COMMITTED:  'Este dataset ya fue confirmado.',
         DATASET_COMMITTED:  'Este dataset ya fue confirmado y no se puede modificar.',
-        LAST_ADMIN:         'No se puede dejar el sistema sin administradores activos.',
+        LAST_ADMIN:              'No se puede dejar el sistema sin administradores activos.',
+        INACTIVE_CANNOT_PROMOTE: 'Activa la cuenta antes de promoverla a administrador.',
       }
       if (code && CODE_MESSAGES[code]) return new Error(CODE_MESSAGES[code])
       return new Error(data?.detail != null ? readableDetail(data.detail) : 'Conflicto al procesar la solicitud.')

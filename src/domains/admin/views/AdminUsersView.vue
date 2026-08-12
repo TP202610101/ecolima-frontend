@@ -212,8 +212,8 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
                     <!-- Cambiar rol -->
                     <button
                       @click="handleRoleChange(user.user_id, user.email, user.role === 'admin' ? 'analista' : 'admin')"
-                      :disabled="store.actionUserId !== null || isLastActiveAdmin(user.user_id)"
-                      :title="isLastActiveAdmin(user.user_id) ? 'No se puede degradar al único admin activo' : undefined"
+                      :disabled="store.actionUserId !== null || isLastActiveAdmin(user.user_id) || (!user.is_active && user.role === 'analista')"
+                      :title="isLastActiveAdmin(user.user_id) ? 'No se puede degradar al único admin activo' : (!user.is_active && user.role === 'analista') ? 'Activa la cuenta antes de promoverla a administrador.' : undefined"
                       class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <span v-if="store.actionUserId === user.user_id" class="w-2.5 h-2.5 border border-gray-500 border-t-transparent rounded-full animate-spin" />
