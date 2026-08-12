@@ -207,6 +207,7 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
                 <td class="px-4 py-3 text-muted-foreground text-xs">{{ fmtDate(user.created_at) }}</td>
                 <td class="px-4 py-3">
                   <div v-if="isSelf(user.user_id)" class="text-xs text-muted-foreground italic">Tu cuenta</div>
+                  <div v-else-if="user.role === 'admin'" class="text-xs text-muted-foreground">—</div>
                   <div v-else class="flex items-center gap-2 flex-wrap">
                     <!-- Cambiar rol -->
                     <button

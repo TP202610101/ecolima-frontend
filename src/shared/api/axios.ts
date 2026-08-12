@@ -54,8 +54,11 @@ function buildApiError(error: unknown): Error {
 
   const { status, data } = error.response
   switch (status) {
-    case 403:
+    case 403: {
+      if (data?.detail?.code === 'ADMIN_IMMUTABLE')
+        return new Error('No puedes modificar a otro administrador.')
       return new Error('No tienes permisos para esta acción.')
+    }
     case 404:
       return new Error('Recurso no encontrado.')
     case 409: {
