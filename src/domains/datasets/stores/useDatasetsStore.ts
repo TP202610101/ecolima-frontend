@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { Dataset } from '../entities/Dataset'
+import type { Dataset, ValidationResult, CommitResult } from '../entities/Dataset'
 import { FetchDatasetsUseCase } from '../use-cases/FetchDatasetsUseCase'
 import { UploadDatasetUseCase } from '../use-cases/UploadDatasetUseCase'
+import { DatasetsRepository } from '../repositories/DatasetsRepository'
 
 export const useDatasetsStore = defineStore('datasets', () => {
   const datasets = ref<Dataset[]>([])
@@ -11,6 +12,12 @@ export const useDatasetsStore = defineStore('datasets', () => {
   const uploadResult = ref<Dataset | null>(null)
   const uploadError = ref<string | null>(null)
   const isUploaderOpen = ref(false)
+
+  const validatingId = ref<number | null>(null)
+  const committingId = ref<number | null>(null)
+  const lastValidation = ref<{ datasetId: number; filename: string; result: ValidationResult } | null>(null)
+  const lastCommit = ref<{ datasetId: number; filename: string; result: CommitResult } | null>(null)
+  const actionError = ref<string | null>(null)
 
   async function fetchDatasets() {
     loading.value = true
@@ -37,6 +44,44 @@ export const useDatasetsStore = defineStore('datasets', () => {
     }
   }
 
+  async function validateDataset(id: number, filename: string) {
+    validatingId.value = id
+    lastValidation.value = null
+    lastCommit.value = null
+    actionError.value = null
+    try {
+      const result = await DatasetsRepository.validateDataset(id)
+      lastValidation.value = { datasetId: id, filename, result }
+      await fetchDatasets()
+    } catch (e) {
+      actionError.value = e instanceof Error ? e.message : 'Error al validar el dataset'
+    } finally {
+      validatingId.value = null
+    }
+  }
+
+  async function commitDataset(id: number, filename: string) {
+    committingId.value = id
+    lastValidation.value = null
+    lastCommit.value = null
+    actionError.value = null
+    try {
+      const result = await DatasetsRepository.commitDataset(id)
+      lastCommit.value = { datasetId: id, filename, result }
+      await fetchDatasets()
+    } catch (e) {
+      actionError.value = e instanceof Error ? e.message : 'Error al confirmar el dataset'
+    } finally {
+      committingId.value = null
+    }
+  }
+
+  function clearLastResult() {
+    lastValidation.value = null
+    lastCommit.value = null
+    actionError.value = null
+  }
+
   function clearUploadState() {
     uploadResult.value = null
     uploadError.value = null
@@ -60,8 +105,16 @@ export const useDatasetsStore = defineStore('datasets', () => {
     uploadResult,
     uploadError,
     isUploaderOpen,
+    validatingId,
+    committingId,
+    lastValidation,
+    lastCommit,
+    actionError,
     fetchDatasets,
     uploadDataset,
+    validateDataset,
+    commitDataset,
+    clearLastResult,
     clearUploadState,
     openUploader,
     closeUploader,

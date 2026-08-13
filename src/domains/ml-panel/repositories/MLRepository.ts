@@ -6,6 +6,12 @@ export interface InferenceStatus {
   zones_processed: number
 }
 
+export interface RecalculateResult {
+  is_suitable: { updated_zones: number; positive_labels: number; negative_labels: number; null_zones: number }
+  coverage_gaps: { updated_zones: number }
+  existing_points_500m: { updated_zones: number }
+}
+
 export const MLRepository = {
   async getModels() {
     const res = await api.get('/api/v1/ml/models')
@@ -24,6 +30,11 @@ export const MLRepository = {
 
   async getInferenceStatus(taskId: string): Promise<InferenceStatus> {
     const res = await api.get(`/api/v1/ml/inference-status/${taskId}`)
+    return res.data
+  },
+
+  async recalculateCoverage(): Promise<RecalculateResult> {
+    const res = await api.post('/api/v1/geo/recalculate')
     return res.data
   },
 }
