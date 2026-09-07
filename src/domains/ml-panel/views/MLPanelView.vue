@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, computed, ref } from 'vue'
-import { RefreshCw, Clock, Calendar, TrendingUp, Upload, Database, FileText, Info, X } from '@lucide/vue'
+import { RefreshCw, Clock, Calendar, TrendingUp, Upload, Database, FileText, Info, X, Layers } from '@lucide/vue'
 import { useMLStore } from '../stores/useMLStore'
 import { useDatasetsStore } from '@/domains/datasets/stores/useDatasetsStore'
 import { useAuth } from '@/shared/composables/useAuth'
@@ -19,6 +19,10 @@ const confirm = ref<{
   confirmLabel: string
   action: () => void
 }>({ visible: false, title: '', message: '', confirmLabel: '', action: () => {} })
+
+const showUpdateDetail = ref(false)
+
+const isBusy = computed(() => mlStore.inferring || mlStore.recalculating || mlStore.updating)
 
 function fmtDate(iso?: string | null): string {
   if (!iso) return '—'
@@ -82,6 +86,22 @@ function handleRecalculate() {
   }
 }
 
+function handleUpdate() {
+  confirm.value = {
+    visible: true,
+    title: 'Actualizar recomendaciones',
+    message: 'Esto recalculará la cobertura y volverá a ejecutar el modelo sobre todo Lima Metropolitana. Puede tardar varios minutos.',
+    confirmLabel: 'Actualizar',
+    action: () => { showUpdateDetail.value = false; mlStore.updateRecommendations() },
+  }
+}
+
+function priorityDot(label: string): string {
+  if (label === 'Alta') return 'bg-green-600'
+  if (label === 'Media') return 'bg-yellow-500'
+  return 'bg-gray-400'
+}
+
 onMounted(() => {
   Promise.all([mlStore.fetchModels(), datasetsStore.fetchDatasets()])
 })
@@ -110,9 +130,20 @@ onUnmounted(() => {
           <h2 class="text-lg font-semibold text-foreground flex-1">Estado del modelo</h2>
           <button
             v-if="isAdmin"
+            @click="handleUpdate"
+            :disabled="isBusy"
+            title="Recalcula cobertura y re-ejecuta el modelo; muestra qué zonas cambiaron"
+            class="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 border border-primary text-primary text-sm font-medium rounded-md hover:bg-accent transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            <span v-if="mlStore.updating" class="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <Layers v-else class="w-4 h-4" />
+            {{ mlStore.updating ? 'Actualizando...' : 'Actualizar recomendaciones' }}
+          </button>
+          <button
+            v-if="isAdmin"
             @click="handleRecalculate"
-            :disabled="mlStore.recalculating || mlStore.inferring"
-            :title="'Actualiza las zonas recomendadas y la cobertura según los puntos actuales'"
+            :disabled="isBusy"
+            title="Actualiza las zonas recomendadas y la cobertura según los puntos actuales"
             class="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 border border-primary text-primary text-sm font-medium rounded-md hover:bg-accent transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <span v-if="mlStore.recalculating" class="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -121,7 +152,7 @@ onUnmounted(() => {
           </button>
           <button
             @click="mlStore.runInference()"
-            :disabled="mlStore.inferring || mlStore.recalculating"
+            :disabled="isBusy"
             class="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-primary-hover transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <span
@@ -170,6 +201,88 @@ onUnmounted(() => {
         <!-- Error de inferencia -->
         <div v-if="mlStore.inferenceError" class="p-3 bg-red-50 border border-red-200 rounded-lg">
           <p class="text-sm text-red-700">{{ mlStore.inferenceError }}</p>
+        </div>
+
+        <!-- Resultado de actualizar recomendaciones -->
+        <div
+          v-if="mlStore.updateResult || mlStore.updateError"
+          class="flex flex-col gap-2 p-4 rounded-lg border"
+          :class="mlStore.updateResult ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200'"
+        >
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex-1 min-w-0">
+              <template v-if="mlStore.updateResult">
+                <p class="text-sm font-semibold text-blue-800">✓ Recomendaciones actualizadas</p>
+                <p class="text-xs text-blue-700 mt-0.5">
+                  <span class="font-medium">{{ mlStore.updateResult.newZones.length }}</span> zonas nuevas ·
+                  <span class="font-medium">{{ mlStore.updateResult.retiredZones.length }}</span> retiradas ·
+                  <span class="font-medium">{{ mlStore.updateResult.unchangedCount }}</span> sin cambios
+                </p>
+              </template>
+              <template v-else>
+                <p class="text-sm font-semibold text-red-800">Error al actualizar recomendaciones</p>
+                <p class="text-xs text-red-700 mt-0.5">{{ mlStore.updateError }}</p>
+              </template>
+            </div>
+            <div class="flex items-center gap-2 flex-shrink-0">
+              <button
+                v-if="mlStore.updateResult && (mlStore.updateResult.newZones.length || mlStore.updateResult.retiredZones.length)"
+                @click="showUpdateDetail = !showUpdateDetail"
+                class="text-xs text-blue-600 hover:underline whitespace-nowrap"
+              >
+                {{ showUpdateDetail ? 'Ocultar' : 'Ver detalle' }}
+              </button>
+              <button
+                @click="mlStore.updateResult = null; mlStore.updateError = null; showUpdateDetail = false"
+                class="p-1 rounded hover:bg-black/10 transition-colors"
+                aria-label="Cerrar"
+              >
+                <X class="w-3.5 h-3.5 opacity-50" />
+              </button>
+            </div>
+          </div>
+
+          <!-- Detalle expandible: nuevas y retiradas -->
+          <div v-if="showUpdateDetail && mlStore.updateResult" class="space-y-3 pt-1 border-t border-blue-200">
+            <div v-if="mlStore.updateResult.newZones.length">
+              <p class="text-xs font-semibold text-blue-800 mb-1">
+                Nuevas recomendadas ({{ mlStore.updateResult.newZones.length }}):
+              </p>
+              <ul class="space-y-1">
+                <li
+                  v-for="z in mlStore.updateResult.newZones"
+                  :key="z.zoneId"
+                  class="flex items-center gap-2 text-xs text-blue-700"
+                >
+                  <span class="w-2 h-2 rounded-full flex-shrink-0" :class="priorityDot(z.priorityLabel)" />
+                  {{ z.districtName }} — Zona {{ z.zoneId }}
+                  <span class="text-blue-500">({{ z.priorityLabel }})</span>
+                </li>
+              </ul>
+            </div>
+            <div v-if="mlStore.updateResult.retiredZones.length">
+              <p class="text-xs font-semibold text-blue-800 mb-1">
+                Ya no se recomiendan ({{ mlStore.updateResult.retiredZones.length }}):
+              </p>
+              <ul class="space-y-1">
+                <li
+                  v-for="z in mlStore.updateResult.retiredZones"
+                  :key="z.zoneId"
+                  class="flex items-center gap-2 text-xs text-blue-500 line-through"
+                >
+                  <span class="w-2 h-2 rounded-full flex-shrink-0 opacity-50" :class="priorityDot(z.priorityLabel)" />
+                  {{ z.districtName }} — Zona {{ z.zoneId }}
+                  <span>({{ z.priorityLabel }})</span>
+                </li>
+              </ul>
+            </div>
+            <p
+              v-if="!mlStore.updateResult.newZones.length && !mlStore.updateResult.retiredZones.length"
+              class="text-xs text-blue-600 italic"
+            >
+              Las zonas recomendadas no cambiaron con esta inferencia.
+            </p>
+          </div>
         </div>
 
         <!-- Resultado de recalcular cobertura -->
