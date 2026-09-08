@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
-import { RefreshCw, Clock, Calendar, TrendingUp, Upload, Database, FileText, Info, X, Layers, Download, Trash2, Pencil, Save } from '@lucide/vue'
+import { RefreshCw, Clock, Calendar, TrendingUp, Upload, Database, FileText, Info, X, Layers, Download, Trash2, Pencil, Save, ArrowLeftRight, ArrowUp } from '@lucide/vue'
 import { useMLStore } from '../stores/useMLStore'
 import { useDatasetsStore } from '@/domains/datasets/stores/useDatasetsStore'
 import { DatasetsRepository } from '@/domains/datasets/repositories/DatasetsRepository'
@@ -24,6 +24,38 @@ const confirm = ref<{
 }>({ visible: false, title: '', message: '', confirmLabel: '', action: () => {} })
 
 const showUpdateDetail = ref(false)
+
+const selectedForCompare = ref<string[]>([])
+const showCompareModal = ref(false)
+
+const COMPARE_METRICS: Array<{ key: keyof { accuracy: number; f1: number; auc_pr: number; precision: number; recall: number }; label: string }> = [
+  { key: 'accuracy', label: 'Accuracy' },
+  { key: 'f1', label: 'F1' },
+  { key: 'auc_pr', label: 'AUC-PR' },
+  { key: 'precision', label: 'Precision' },
+  { key: 'recall', label: 'Recall' },
+]
+
+function toggleCompareSelect(version: string) {
+  const idx = selectedForCompare.value.indexOf(version)
+  if (idx !== -1) {
+    selectedForCompare.value.splice(idx, 1)
+  } else if (selectedForCompare.value.length < 2) {
+    selectedForCompare.value.push(version)
+  }
+}
+
+async function handleCompare() {
+  const [vA, vB] = selectedForCompare.value
+  await mlStore.fetchCompare(vA, vB)
+  if (!mlStore.compareError) showCompareModal.value = true
+}
+
+function closeCompareModal() {
+  showCompareModal.value = false
+  mlStore.clearCompare()
+  selectedForCompare.value = []
+}
 const exportingId = ref<string | null>(null)
 const exportError = ref<string | null>(null)
 
@@ -499,8 +531,31 @@ onUnmounted(() => {
 
         <!-- Versiones de modelo disponibles -->
         <div class="bg-white rounded-lg border border-border overflow-hidden">
-          <div class="px-6 py-4 border-b border-border">
+          <div class="px-6 py-4 border-b border-border flex items-center justify-between gap-3 flex-wrap">
             <h3 class="text-sm font-semibold text-foreground">Versiones de modelo</h3>
+            <div v-if="isAdmin" class="flex items-center gap-2">
+              <span v-if="mlStore.models.length < 2" class="text-xs text-muted-foreground italic">
+                Se necesitan al menos 2 versiones para comparar
+              </span>
+              <template v-else>
+                <span v-if="selectedForCompare.length > 0" class="text-xs text-muted-foreground">
+                  {{ selectedForCompare.length }}/2 seleccionadas
+                </span>
+                <button
+                  @click="handleCompare"
+                  :disabled="selectedForCompare.length !== 2 || mlStore.compareFetching"
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span v-if="mlStore.compareFetching" class="w-3 h-3 border border-gray-500 border-t-transparent rounded-full animate-spin" />
+                  <ArrowLeftRight v-else class="w-3.5 h-3.5" />
+                  Comparar seleccionadas
+                </button>
+              </template>
+            </div>
+          </div>
+
+          <div v-if="mlStore.compareError" class="px-6 py-3 bg-red-50 border-b border-red-100">
+            <p class="text-xs text-red-700">{{ mlStore.compareError }}</p>
           </div>
 
           <div v-if="mlStore.error" class="px-6 py-3 bg-red-50 border-b border-red-100">
@@ -522,6 +577,7 @@ onUnmounted(() => {
             <table class="w-full text-sm">
               <thead>
                 <tr class="border-b border-border bg-gray-50">
+                  <th v-if="isAdmin && mlStore.models.length >= 2" class="px-3 py-3 w-8" />
                   <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Versión</th>
                   <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Entrenado</th>
                   <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Accuracy</th>
@@ -536,6 +592,15 @@ onUnmounted(() => {
                   :key="m.version_name"
                   class="border-b border-border hover:bg-secondary transition-colors last:border-0"
                 >
+                  <td v-if="isAdmin && mlStore.models.length >= 2" class="px-3 py-3">
+                    <input
+                      type="checkbox"
+                      :checked="selectedForCompare.includes(m.version_name)"
+                      :disabled="selectedForCompare.length >= 2 && !selectedForCompare.includes(m.version_name)"
+                      @change="toggleCompareSelect(m.version_name)"
+                      class="accent-primary cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+                    />
+                  </td>
                   <td class="px-4 py-3 font-mono text-xs text-foreground">{{ m.version_name }}</td>
                   <td class="px-4 py-3 text-muted-foreground">{{ fmtDate(m.training_date) }}</td>
                   <td class="px-4 py-3 text-foreground">{{ fmtPct(m.metrics?.accuracy) }}</td>
@@ -564,6 +629,86 @@ onUnmounted(() => {
             </table>
           </div>
         </div>
+
+        <!-- Modal de comparación -->
+        <Teleport to="body">
+          <div
+            v-if="showCompareModal && mlStore.compareResult"
+            class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+          >
+            <div class="absolute inset-0 bg-black/50" @click="closeCompareModal" />
+            <div class="relative bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div class="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-white">
+                <div class="flex items-center gap-2">
+                  <ArrowLeftRight class="w-4 h-4 text-muted-foreground" />
+                  <h2 class="text-sm font-semibold text-foreground">Comparación de versiones</h2>
+                </div>
+                <button @click="closeCompareModal" class="text-muted-foreground hover:text-foreground transition-colors">
+                  <X class="w-4 h-4" />
+                </button>
+              </div>
+
+              <div class="p-6">
+                <table class="w-full text-sm border border-border rounded-md overflow-hidden">
+                  <thead>
+                    <tr class="bg-gray-50 border-b border-border">
+                      <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider w-32">Métrica</th>
+                      <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        <span class="font-mono">{{ mlStore.compareResult.a.version_name }}</span>
+                        <span v-if="mlStore.compareResult.a.is_active" class="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Activo</span>
+                      </th>
+                      <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        <span class="font-mono">{{ mlStore.compareResult.b.version_name }}</span>
+                        <span v-if="mlStore.compareResult.b.is_active" class="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Activo</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="m in COMPARE_METRICS"
+                      :key="m.key"
+                      class="border-b border-border last:border-0"
+                    >
+                      <td class="px-4 py-3 text-xs font-medium text-muted-foreground">{{ m.label }}</td>
+                      <td
+                        class="px-4 py-3 text-center font-mono text-sm"
+                        :class="{
+                          'bg-green-50 text-green-800': mlStore.compareResult.a.metrics?.[m.key] != null && mlStore.compareResult.b.metrics?.[m.key] != null && mlStore.compareResult.a.metrics[m.key] > mlStore.compareResult.b.metrics[m.key],
+                          'text-foreground': !(mlStore.compareResult.a.metrics?.[m.key] != null && mlStore.compareResult.b.metrics?.[m.key] != null && mlStore.compareResult.a.metrics[m.key] > mlStore.compareResult.b.metrics[m.key]),
+                        }"
+                      >
+                        {{ fmtPct(mlStore.compareResult.a.metrics?.[m.key]) }}
+                        <ArrowUp
+                          v-if="mlStore.compareResult.a.metrics?.[m.key] != null && mlStore.compareResult.b.metrics?.[m.key] != null && mlStore.compareResult.a.metrics[m.key] > mlStore.compareResult.b.metrics[m.key]"
+                          class="inline w-3 h-3 text-green-600"
+                        />
+                      </td>
+                      <td
+                        class="px-4 py-3 text-center font-mono text-sm"
+                        :class="{
+                          'bg-green-50 text-green-800': mlStore.compareResult.a.metrics?.[m.key] != null && mlStore.compareResult.b.metrics?.[m.key] != null && mlStore.compareResult.b.metrics[m.key] > mlStore.compareResult.a.metrics[m.key],
+                          'text-foreground': !(mlStore.compareResult.a.metrics?.[m.key] != null && mlStore.compareResult.b.metrics?.[m.key] != null && mlStore.compareResult.b.metrics[m.key] > mlStore.compareResult.a.metrics[m.key]),
+                        }"
+                      >
+                        {{ fmtPct(mlStore.compareResult.b.metrics?.[m.key]) }}
+                        <ArrowUp
+                          v-if="mlStore.compareResult.a.metrics?.[m.key] != null && mlStore.compareResult.b.metrics?.[m.key] != null && mlStore.compareResult.b.metrics[m.key] > mlStore.compareResult.a.metrics[m.key]"
+                          class="inline w-3 h-3 text-green-600"
+                        />
+                      </td>
+                    </tr>
+                    <!-- Training date — informational only -->
+                    <tr class="bg-gray-50/50">
+                      <td class="px-4 py-3 text-xs font-medium text-muted-foreground">Entrenado</td>
+                      <td class="px-4 py-3 text-center text-xs text-muted-foreground">{{ fmtDate(mlStore.compareResult.a.training_date) }}</td>
+                      <td class="px-4 py-3 text-center text-xs text-muted-foreground">{{ fmtDate(mlStore.compareResult.b.training_date) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </Teleport>
 
       </section>
 

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { ModelVersion } from '../entities/ModelVersion'
+import type { ModelVersion, ModelVersionMetrics } from '../entities/ModelVersion'
 import { MLRepository } from '../repositories/MLRepository'
 import type { RecalculateResult } from '../repositories/MLRepository'
 import { GetRecommendationsUseCase } from '@/domains/recommendations/use-cases/GetRecommendationsUseCase'
@@ -34,6 +34,10 @@ export const useMLStore = defineStore('ml', () => {
   const updating = ref(false)
   const updateResult = ref<UpdateRecommendationsResult | null>(null)
   const updateError = ref<string | null>(null)
+
+  const compareFetching = ref(false)
+  const compareResult = ref<{ a: ModelVersionMetrics; b: ModelVersionMetrics } | null>(null)
+  const compareError = ref<string | null>(null)
 
   const activeModel = computed(() => models.value.find(m => m.is_active) ?? null)
 
@@ -181,6 +185,28 @@ export const useMLStore = defineStore('ml', () => {
     }
   }
 
+  async function fetchCompare(vA: string, vB: string) {
+    compareFetching.value = true
+    compareError.value = null
+    compareResult.value = null
+    try {
+      const [a, b] = await Promise.all([
+        MLRepository.getModelMetrics(vA),
+        MLRepository.getModelMetrics(vB),
+      ])
+      compareResult.value = { a, b }
+    } catch (e) {
+      compareError.value = e instanceof Error ? e.message : 'Error al obtener métricas para comparar'
+    } finally {
+      compareFetching.value = false
+    }
+  }
+
+  function clearCompare() {
+    compareResult.value = null
+    compareError.value = null
+  }
+
   function stopPolling() {
     if (pollTimer) {
       clearInterval(pollTimer)
@@ -212,5 +238,10 @@ export const useMLStore = defineStore('ml', () => {
     runInference,
     updateRecommendations,
     stopPolling,
+    compareFetching,
+    compareResult,
+    compareError,
+    fetchCompare,
+    clearCompare,
   }
 })

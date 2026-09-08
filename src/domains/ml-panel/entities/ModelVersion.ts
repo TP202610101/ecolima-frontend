@@ -13,3 +13,12 @@ export interface ModelVersion {
     recall: number
   }
 }
+
+export interface ModelVersionMetrics extends ModelVersion {
+  features_used: string[]
+  comparison_with_previous: {
+    version_name: string
+    metrics: Record<string, number>
+    delta: Record<string, number>
+  } | null
+}
