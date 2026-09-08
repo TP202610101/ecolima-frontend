@@ -23,5 +23,12 @@ export const MapRepository = {
       params: { lat, lon, radius_m }
     })
     return res.data
-  }
+  },
+
+  async getHeatmap(metric: string, district_id?: number): Promise<GeoJSON.FeatureCollection> {
+    const params: Record<string, unknown> = { metric }
+    if (district_id !== undefined) params.district_id = district_id
+    const res = await api.get('/api/v1/map/heatmap', { params })
+    return res.data
+  },
 }

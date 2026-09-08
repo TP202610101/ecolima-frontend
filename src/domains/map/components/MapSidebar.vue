@@ -47,6 +47,9 @@ watch(localDistrict, val => {
   if (districtTimer) clearTimeout(districtTimer)
   districtTimer = setTimeout(() => {
     recStore.setFilters(localPriorities.value, val || null, localNSE.value)
+    const d = mapStore.districts.find(d => d.district_name === val)
+    mapStore.selectedDistrictId = d?.district_id
+    if (mapStore.showHeatmap) mapStore.fetchHeatmap()
   }, 300)
 })
 
@@ -56,8 +59,18 @@ function clearFilters() {
   localNSE.value = [...NSE_OPTIONS]
   mapStore.showZones = true
   mapStore.showPoints = true
+  mapStore.showHeatmap = false
+  mapStore.selectedDistrictId = undefined
   recStore.setFilters([...ALL_PRIORITIES], null, [...NSE_OPTIONS])
   if (mapStore.selectedMaterial) mapStore.setMaterial('')
+}
+
+function onToggleHeatmap() {
+  if (mapStore.showHeatmap) mapStore.fetchHeatmap()
+}
+
+function onHeatmapMetricChange() {
+  if (mapStore.showHeatmap) mapStore.fetchHeatmap()
 }
 
 function onZoneSelect(zone: Recommendation) {
@@ -189,6 +202,33 @@ function onZoneSelect(zone: Recommendation) {
                 <span class="w-2 h-2 rounded-full flex-shrink-0 bg-blue-500" />
                 <span class="text-sm text-foreground">Puntos existentes</span>
               </label>
+              <!-- Heatmap -->
+              <div class="pt-1.5 border-t border-border/60">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    v-model="mapStore.showHeatmap"
+                    @change="onToggleHeatmap"
+                    class="accent-primary"
+                  />
+                  <span class="w-2 h-2 rounded-sm flex-shrink-0"
+                    style="background: linear-gradient(to right, #16a34a, #eab308, #dc2626)" />
+                  <span class="text-sm text-foreground">Mapa de calor</span>
+                </label>
+                <div v-if="mapStore.showHeatmap" class="mt-1.5 ml-5 space-y-1">
+                  <select
+                    v-model="mapStore.heatmapMetric"
+                    @change="onHeatmapMetricChange"
+                    class="w-full border border-border rounded-md px-2 py-1 text-xs text-foreground bg-white focus:outline-none focus:border-primary"
+                  >
+                    <option value="density">Densidad poblacional</option>
+                    <option value="priority">Prioridad ML</option>
+                    <option value="gap">Brecha de cobertura</option>
+                  </select>
+                  <p v-if="mapStore.loadingHeatmap" class="text-xs text-muted-foreground">Cargando…</p>
+                  <p v-if="mapStore.heatmapError" class="text-xs text-red-500">{{ mapStore.heatmapError }}</p>
+                </div>
+              </div>
             </div>
           </div>
 

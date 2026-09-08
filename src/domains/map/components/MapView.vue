@@ -18,6 +18,7 @@ const LIMA_CENTER: [number, number] = [-12.0464, -77.0428]
 let map: L.Map | null = null
 let zonesLayer: L.LayerGroup | null = null
 let pointsLayer: L.LayerGroup | null = null
+let heatmapLayer: L.LayerGroup | null = null
 let measureLayer: L.LayerGroup | null = null
 let measurePoints: L.LatLng[] = []
 
@@ -78,6 +79,29 @@ function renderPoints(points: RecyclingPoint[]) {
         L.popup({ minWidth: 200 }).setLatLng([lat, lng]).setContent(popupHtml).openOn(map)
       })
       .addTo(pointsLayer!)
+  })
+}
+
+function renderHeatmap(pts: Array<[number, number, number]>) {
+  if (!heatmapLayer) return
+  heatmapLayer.clearLayers()
+  if (!pts.length) return
+  const values = pts.map(p => p[2])
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const range = max - min || 1
+  pts.forEach(([lat, lon, val]) => {
+    const t = (val - min) / range
+    const hue = Math.round((1 - t) * 120)
+    L.circleMarker([lat, lon], {
+      radius: 14,
+      color: 'transparent',
+      fillColor: `hsl(${hue}, 80%, 45%)`,
+      fillOpacity: 0.6,
+      weight: 0,
+      interactive: false,
+      pane: 'heatmapPane',
+    } as L.CircleMarkerOptions).addTo(heatmapLayer!)
   })
 }
 
@@ -154,6 +178,18 @@ watch(() => mapStore.showPoints, show => {
   if (!map || !pointsLayer) return
   show ? map.addLayer(pointsLayer) : map.removeLayer(pointsLayer)
 })
+watch(() => mapStore.showHeatmap, show => {
+  if (!map || !heatmapLayer) return
+  if (show) {
+    map.addLayer(heatmapLayer)
+  } else {
+    map.removeLayer(heatmapLayer)
+    heatmapLayer.clearLayers()
+  }
+})
+watch(() => mapStore.heatmapPoints, pts => {
+  if (mapStore.showHeatmap) renderHeatmap(pts)
+}, { deep: true })
 
 onMounted(() => {
   if (!mapContainer.value) return
@@ -170,8 +206,10 @@ onMounted(() => {
     maxZoom: 19
   }).addTo(map)
 
+  map.createPane('heatmapPane').style.zIndex = '350'
   map.createPane('measurePane').style.zIndex = '450'
 
+  heatmapLayer = L.layerGroup()
   zonesLayer = L.layerGroup().addTo(map)
   pointsLayer = L.layerGroup().addTo(map)
   measureLayer = L.layerGroup().addTo(map)
@@ -187,6 +225,7 @@ onUnmounted(() => {
   map = null
   zonesLayer = null
   pointsLayer = null
+  heatmapLayer = null
   measureLayer = null
   measurePoints = []
 })
@@ -258,12 +297,25 @@ defineExpose({ flyTo, invalidateSize })
           <span class="w-3 h-3 rounded-full bg-blue-500 flex-shrink-0" />
           Punto existente
         </div>
+        <template v-if="mapStore.showHeatmap">
+          <div class="pt-1.5 border-t border-border">
+            <p class="text-xs font-semibold text-foreground mb-1">
+              Calor —
+              {{ mapStore.heatmapMetric === 'density' ? 'Densidad' : mapStore.heatmapMetric === 'priority' ? 'Prioridad ML' : 'Brecha' }}
+            </p>
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs text-muted-foreground">Bajo</span>
+              <div class="flex-1 h-2 rounded-sm" style="background: linear-gradient(to right, #16a34a, #eab308, #dc2626)" />
+              <span class="text-xs text-muted-foreground">Alto</span>
+            </div>
+          </div>
+        </template>
       </div>
     </div>
 
     <!-- Loading overlay -->
     <div
-      v-if="recStore.loading || mapStore.loadingPoints"
+      v-if="recStore.loading || mapStore.loadingPoints || mapStore.loadingHeatmap"
       class="absolute inset-0 z-[999] bg-white/70 flex items-center justify-center"
     >
       <div class="flex flex-col items-center gap-2">
