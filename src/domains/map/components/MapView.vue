@@ -45,7 +45,7 @@ function renderZones(zones: Recommendation[]) {
         `<div style="font-size:12px"><strong>Zona ${zone.zone_id} — ${zone.district_name}</strong><br>Prioridad ${zone.priority_label}</div>`,
         { sticky: true }
       )
-      .on('click', () => emit('zone-selected', zone))
+      .on('click', () => { if (measuring.value) return; emit('zone-selected', zone) })
       .addTo(zonesLayer!)
   })
 }
@@ -57,6 +57,13 @@ function renderPoints(points: RecyclingPoint[]) {
     const lat = point.geometry.coordinates[1]
     const lng = point.geometry.coordinates[0]
     const mats = point.materials_accepted || 'No especificado'
+    const popupHtml = `<div style="font-size:13px;min-width:190px">
+          <strong style="font-size:14px;display:block;margin-bottom:4px">${point.address || 'Punto de reciclaje'}</strong>
+          ${point.point_type ? `<span style="color:#6b7280;font-size:12px;display:block;margin-bottom:4px">Tipo: ${point.point_type}</span>` : ''}
+          <hr style="margin:6px 0;border-color:#e5e7eb">
+          <span style="font-size:12px"><strong>Acepta:</strong> ${mats}</span>
+          ${point.verified ? '<br><span style="color:#16a34a;font-size:11px;margin-top:4px;display:inline-block">✓ Verificado</span>' : ''}
+        </div>`
     L.circleMarker([lat, lng], {
       radius: 8,
       color: '#3b82f6',
@@ -65,17 +72,11 @@ function renderPoints(points: RecyclingPoint[]) {
       weight: 1.5
     })
       .bindTooltip(`<span style="font-size:12px">${point.address || 'Punto de reciclaje'}</span>`, { sticky: true })
-      .bindPopup(
-        `<div style="font-size:13px;min-width:190px">
-          <strong style="font-size:14px;display:block;margin-bottom:4px">${point.address || 'Punto de reciclaje'}</strong>
-          ${point.point_type ? `<span style="color:#6b7280;font-size:12px;display:block;margin-bottom:4px">Tipo: ${point.point_type}</span>` : ''}
-          <hr style="margin:6px 0;border-color:#e5e7eb">
-          <span style="font-size:12px"><strong>Acepta:</strong> ${mats}</span>
-          ${point.verified ? '<br><span style="color:#16a34a;font-size:11px;margin-top:4px;display:inline-block">✓ Verificado</span>' : ''}
-        </div>`,
-        { minWidth: 200 }
-      )
-      .on('click', () => flyTo(lat, lng))
+      .on('click', () => {
+        if (measuring.value || !map) return
+        flyTo(lat, lng)
+        L.popup({ minWidth: 200 }).setLatLng([lat, lng]).setContent(popupHtml).openOn(map)
+      })
       .addTo(pointsLayer!)
   })
 }
@@ -113,7 +114,8 @@ function onMapClick(e: L.LeafletMouseEvent) {
 
   if (measurePoints.length === 1) {
     L.circleMarker(e.latlng, {
-      radius: 5, color: '#7c3aed', fillColor: '#7c3aed', fillOpacity: 1, weight: 2,
+      radius: 7, color: '#7c3aed', fillColor: '#7c3aed', fillOpacity: 1, weight: 3,
+      pane: 'measurePane',
     }).addTo(measureLayer)
   } else {
     const [a, b] = measurePoints
@@ -122,9 +124,10 @@ function onMapClick(e: L.LeafletMouseEvent) {
       ? `${(distMeters / 1000).toFixed(2)} km`
       : `${Math.round(distMeters)} m`
 
-    L.polyline([a, b], { color: '#7c3aed', weight: 2.5, dashArray: '6 4' }).addTo(measureLayer)
+    L.polyline([a, b], { color: '#7c3aed', weight: 3, dashArray: '6 4', pane: 'measurePane' }).addTo(measureLayer)
     L.circleMarker(b, {
-      radius: 5, color: '#7c3aed', fillColor: '#7c3aed', fillOpacity: 1, weight: 2,
+      radius: 7, color: '#7c3aed', fillColor: '#7c3aed', fillOpacity: 1, weight: 3,
+      pane: 'measurePane',
     }).addTo(measureLayer)
     L.marker(L.latLng((a.lat + b.lat) / 2, (a.lng + b.lng) / 2), {
       icon: L.divIcon({
@@ -166,6 +169,8 @@ onMounted(() => {
     attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxZoom: 19
   }).addTo(map)
+
+  map.createPane('measurePane').style.zIndex = '450'
 
   zonesLayer = L.layerGroup().addTo(map)
   pointsLayer = L.layerGroup().addTo(map)
