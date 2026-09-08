@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import * as L from 'leaflet'
-import { Plus, Minus, RotateCcw, AlertTriangle } from '@lucide/vue'
+import { Plus, Minus, RotateCcw, AlertTriangle, Ruler } from '@lucide/vue'
 import type { Recommendation } from '@/domains/recommendations/entities/Recommendation'
 import type { RecyclingPoint } from '../entities/RecyclingPoint'
 import { useRecommendationsStore } from '@/domains/recommendations/stores/useRecommendationsStore'
@@ -18,6 +18,10 @@ const LIMA_CENTER: [number, number] = [-12.0464, -77.0428]
 let map: L.Map | null = null
 let zonesLayer: L.LayerGroup | null = null
 let pointsLayer: L.LayerGroup | null = null
+let measureLayer: L.LayerGroup | null = null
+let measurePoints: L.LatLng[] = []
+
+const measuring = ref(false)
 
 function getZoneColor(zone: Recommendation): string {
   if (zone.priority_label === 'Alta') return '#16a34a'
@@ -86,6 +90,54 @@ function flyTo(lat: number, lon: number) {
 }
 function invalidateSize() { map?.invalidateSize() }
 
+function clearMeasure() {
+  measureLayer?.clearLayers()
+  measurePoints = []
+}
+
+function toggleMeasure() {
+  measuring.value = !measuring.value
+  clearMeasure()
+  if (map) map.getContainer().style.cursor = measuring.value ? 'crosshair' : ''
+}
+
+function onMapClick(e: L.LeafletMouseEvent) {
+  if (!measuring.value || !measureLayer) return
+
+  if (measurePoints.length === 0) {
+    // Nuevo tramo — borrar la medición anterior
+    measureLayer.clearLayers()
+  }
+
+  measurePoints.push(e.latlng)
+
+  if (measurePoints.length === 1) {
+    L.circleMarker(e.latlng, {
+      radius: 5, color: '#7c3aed', fillColor: '#7c3aed', fillOpacity: 1, weight: 2,
+    }).addTo(measureLayer)
+  } else {
+    const [a, b] = measurePoints
+    const distMeters = a.distanceTo(b)
+    const distLabel = distMeters >= 1000
+      ? `${(distMeters / 1000).toFixed(2)} km`
+      : `${Math.round(distMeters)} m`
+
+    L.polyline([a, b], { color: '#7c3aed', weight: 2.5, dashArray: '6 4' }).addTo(measureLayer)
+    L.circleMarker(b, {
+      radius: 5, color: '#7c3aed', fillColor: '#7c3aed', fillOpacity: 1, weight: 2,
+    }).addTo(measureLayer)
+    L.marker(L.latLng((a.lat + b.lat) / 2, (a.lng + b.lng) / 2), {
+      icon: L.divIcon({
+        className: '',
+        html: `<div style="background:white;border:1.5px solid #7c3aed;border-radius:4px;padding:2px 7px;font-size:12px;font-weight:600;color:#7c3aed;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.18)">${distLabel}</div>`,
+        iconAnchor: [0, 0],
+      }),
+    }).addTo(measureLayer)
+
+    measurePoints = []  // listo para la siguiente medición
+  }
+}
+
 watch(() => recStore.filteredRecommendations, zones => renderZones(zones), { deep: true })
 watch(() => mapStore.points, points => renderPoints(points), { deep: true })
 watch(() => recStore.selectedZone, zone => { if (zone) flyTo(zone.centroid_lat, zone.centroid_lon) })
@@ -116,6 +168,9 @@ onMounted(() => {
 
   zonesLayer = L.layerGroup().addTo(map)
   pointsLayer = L.layerGroup().addTo(map)
+  measureLayer = L.layerGroup().addTo(map)
+
+  map.on('click', onMapClick)
 
   renderZones(recStore.filteredRecommendations)
   renderPoints(mapStore.points)
@@ -126,6 +181,8 @@ onUnmounted(() => {
   map = null
   zonesLayer = null
   pointsLayer = null
+  measureLayer = null
+  measurePoints = []
 })
 
 defineExpose({ flyTo, invalidateSize })
@@ -135,7 +192,7 @@ defineExpose({ flyTo, invalidateSize })
   <div class="flex-1 relative overflow-hidden">
     <div ref="mapContainer" class="w-full h-full" />
 
-    <!-- Controles de zoom -->
+    <!-- Controles de zoom + medición -->
     <div class="absolute right-3 top-3 z-[1000] flex flex-col gap-1">
       <button
         @click="zoomIn"
@@ -157,6 +214,21 @@ defineExpose({ flyTo, invalidateSize })
         aria-label="Restablecer vista"
       >
         <RotateCcw class="w-3.5 h-3.5" />
+      </button>
+      <!-- Separador -->
+      <div class="h-px bg-border mx-1 my-0.5" />
+      <button
+        @click="toggleMeasure"
+        :class="[
+          'w-8 h-8 border rounded-md shadow flex items-center justify-center transition-colors',
+          measuring
+            ? 'bg-violet-600 border-violet-600 text-white hover:bg-violet-700'
+            : 'bg-white border-border text-foreground hover:bg-secondary',
+        ]"
+        :title="measuring ? 'Desactivar medición (activo: haz clic en dos puntos)' : 'Medir distancia entre dos puntos'"
+        aria-label="Medir distancia"
+      >
+        <Ruler class="w-3.5 h-3.5" />
       </button>
     </div>
 
