@@ -23,4 +23,15 @@ export const DatasetsRepository = {
     const res = await api.patch(`/api/v1/datasets/${datasetId}`, { status: 'committed' })
     return res.data
   },
+
+  async exportDataset(datasetId: number, format: 'csv' | 'xlsx'): Promise<{ blob: Blob; filename: string }> {
+    const res = await api.get(`/api/v1/datasets/${datasetId}/export`, {
+      params: { format },
+      responseType: 'blob',
+    })
+    const disposition: string = res.headers['content-disposition'] ?? ''
+    const match = disposition.match(/filename=([^;"\r\n]+)/)
+    const filename = match ? match[1].trim() : `dataset_${datasetId}_limpio.${format}`
+    return { blob: res.data as Blob, filename }
+  },
 }

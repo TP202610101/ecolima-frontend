@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, computed, ref } from 'vue'
-import { RefreshCw, Clock, Calendar, TrendingUp, Upload, Database, FileText, Info, X, Layers } from '@lucide/vue'
+import { RefreshCw, Clock, Calendar, TrendingUp, Upload, Database, FileText, Info, X, Layers, Download } from '@lucide/vue'
 import { useMLStore } from '../stores/useMLStore'
 import { useDatasetsStore } from '@/domains/datasets/stores/useDatasetsStore'
+import { DatasetsRepository } from '@/domains/datasets/repositories/DatasetsRepository'
 import { useAuth } from '@/shared/composables/useAuth'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import KpiCard from '@/shared/components/KpiCard.vue'
@@ -21,6 +22,8 @@ const confirm = ref<{
 }>({ visible: false, title: '', message: '', confirmLabel: '', action: () => {} })
 
 const showUpdateDetail = ref(false)
+const exportingId = ref<string | null>(null)
+const exportError = ref<string | null>(null)
 
 const isBusy = computed(() => mlStore.inferring || mlStore.recalculating || mlStore.updating)
 
@@ -93,6 +96,27 @@ function handleUpdate() {
     message: 'Esto recalculará la cobertura y volverá a ejecutar el modelo sobre todo Lima Metropolitana. Puede tardar varios minutos.',
     confirmLabel: 'Actualizar',
     action: () => { showUpdateDetail.value = false; mlStore.updateRecommendations() },
+  }
+}
+
+async function handleExport(datasetId: number, format: 'csv' | 'xlsx') {
+  const key = `${datasetId}-${format}`
+  exportingId.value = key
+  exportError.value = null
+  try {
+    const { blob, filename } = await DatasetsRepository.exportDataset(datasetId, format)
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  } catch (e) {
+    exportError.value = e instanceof Error ? e.message : 'Error al exportar el dataset'
+  } finally {
+    exportingId.value = null
   }
 }
 
@@ -533,14 +557,34 @@ onUnmounted(() => {
                       <span v-if="datasetsStore.committingId === ds.dataset_id" class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       {{ datasetsStore.committingId === ds.dataset_id ? 'Aplicando…' : 'Confirmar' }}
                     </button>
-                    <!-- committed: sin acción -->
-                    <span v-else class="text-xs text-muted-foreground">—</span>
+                    <!-- committed: exportar CSV / XLSX -->
+                    <div v-else class="flex gap-1">
+                      <button
+                        v-for="fmt in (['csv', 'xlsx'] as const)"
+                        :key="fmt"
+                        @click="handleExport(ds.dataset_id, fmt)"
+                        :disabled="exportingId !== null"
+                        class="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed uppercase"
+                      >
+                        <span v-if="exportingId === `${ds.dataset_id}-${fmt}`" class="w-3 h-3 border border-gray-500 border-t-transparent rounded-full animate-spin" />
+                        <Download v-else class="w-3 h-3" />
+                        {{ fmt }}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
 
+        </div>
+
+        <!-- Error de exportación -->
+        <div v-if="exportError" class="flex items-center justify-between gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p class="text-sm text-red-700">{{ exportError }}</p>
+          <button @click="exportError = null" class="p-1 rounded hover:bg-black/10 transition-colors" aria-label="Cerrar">
+            <X class="w-3.5 h-3.5 opacity-50" />
+          </button>
         </div>
 
         <!-- Panel resultado de validación / confirmación -->
