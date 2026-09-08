@@ -129,8 +129,9 @@ function onMapClick(e: L.LeafletMouseEvent) {
     L.marker(L.latLng((a.lat + b.lat) / 2, (a.lng + b.lng) / 2), {
       icon: L.divIcon({
         className: '',
-        html: `<div style="background:white;border:1.5px solid #7c3aed;border-radius:4px;padding:2px 7px;font-size:12px;font-weight:600;color:#7c3aed;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.18)">${distLabel}</div>`,
+        iconSize: [0, 0],
         iconAnchor: [0, 0],
+        html: `<div style="display:inline-block;background:white;border:1.5px solid #7c3aed;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600;color:#7c3aed;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.15);transform:translate(-50%,-50%)">${distLabel}</div>`,
       }),
     }).addTo(measureLayer)
 
