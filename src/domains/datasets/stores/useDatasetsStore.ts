@@ -23,6 +23,10 @@ export const useDatasetsStore = defineStore('datasets', () => {
   const deleteRowsResult = ref<{ deleted_count: number; remaining_rows: number; filename: string } | null>(null)
   const deleteRowsError = ref<string | null>(null)
 
+  const editingCells = ref<number | null>(null)
+  const editCellsResult = ref<{ edited_count: number; filename: string } | null>(null)
+  const editCellsError = ref<string | null>(null)
+
   async function fetchDatasets() {
     loading.value = true
     try {
@@ -117,6 +121,31 @@ export const useDatasetsStore = defineStore('datasets', () => {
     deleteRowsError.value = null
   }
 
+  async function editCells(
+    id: number,
+    filename: string,
+    edits: Array<{ row_index: number; column: string; new_value: unknown }>,
+  ) {
+    editingCells.value = id
+    editCellsResult.value = null
+    editCellsError.value = null
+    try {
+      const result = await DatasetsRepository.editDatasetCells(id, edits)
+      editCellsResult.value = { edited_count: result.edited_count, filename }
+      lastValidation.value = null
+      await fetchDatasets()
+    } catch (e) {
+      editCellsError.value = e instanceof Error ? e.message : 'Error al editar celdas'
+    } finally {
+      editingCells.value = null
+    }
+  }
+
+  function clearEditCellsResult() {
+    editCellsResult.value = null
+    editCellsError.value = null
+  }
+
   function clearLastResult() {
     lastValidation.value = null
     lastCommit.value = null
@@ -154,6 +183,9 @@ export const useDatasetsStore = defineStore('datasets', () => {
     deletingRows,
     deleteRowsResult,
     deleteRowsError,
+    editingCells,
+    editCellsResult,
+    editCellsError,
     fetchDatasets,
     uploadDataset,
     validateDataset,
@@ -161,6 +193,8 @@ export const useDatasetsStore = defineStore('datasets', () => {
     deleteIncompleteRows,
     deleteSelectedRows,
     clearDeleteResult,
+    editCells,
+    clearEditCellsResult,
     clearLastResult,
     clearUploadState,
     openUploader,

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
-import { RefreshCw, Clock, Calendar, TrendingUp, Upload, Database, FileText, Info, X, Layers, Download, Trash2 } from '@lucide/vue'
+import { RefreshCw, Clock, Calendar, TrendingUp, Upload, Database, FileText, Info, X, Layers, Download, Trash2, Pencil, Save } from '@lucide/vue'
 import { useMLStore } from '../stores/useMLStore'
 import { useDatasetsStore } from '@/domains/datasets/stores/useDatasetsStore'
 import { DatasetsRepository } from '@/domains/datasets/repositories/DatasetsRepository'
@@ -31,6 +31,8 @@ const selectedTypeErrors = ref<number[]>([])
 const deleteReason = ref('')
 const previewingDelete = ref(false)
 const previewError = ref<string | null>(null)
+
+const editingInputs = ref<Record<string, string>>({})
 
 const isBusy = computed(() => mlStore.inferring || mlStore.recalculating || mlStore.updating)
 
@@ -86,6 +88,7 @@ watch(() => datasetsStore.lastValidation, () => {
   selectedTypeErrors.value = []
   deleteReason.value = ''
   previewError.value = null
+  editingInputs.value = {}
 })
 
 function toggleErrorRow(rowIndex: number) {
@@ -97,6 +100,47 @@ function toggleErrorRow(rowIndex: number) {
 function clearSelection() {
   selectedTypeErrors.value = []
   deleteReason.value = ''
+}
+
+function toggleCellEdit(err: { row_index: number; column: string; value: unknown }) {
+  const key = `${err.row_index}|${err.column}`
+  if (key in editingInputs.value) {
+    const next = { ...editingInputs.value }
+    delete next[key]
+    editingInputs.value = next
+  } else {
+    editingInputs.value = { ...editingInputs.value, [key]: String(err.value ?? '') }
+  }
+}
+
+function clearCellEdits() {
+  editingInputs.value = {}
+}
+
+function handleSaveCellEdits() {
+  const validation = datasetsStore.lastValidation
+  if (!validation) return
+  const inputs = editingInputs.value
+  const keys = Object.keys(inputs)
+  if (keys.length === 0) return
+
+  const edits = keys.map(key => {
+    const pipeIdx = key.indexOf('|')
+    const rowIndex = parseInt(key.slice(0, pipeIdx))
+    const column = key.slice(pipeIdx + 1)
+    return { row_index: rowIndex, column, new_value: inputs[key] }
+  })
+
+  confirm.value = {
+    visible: true,
+    title: 'Guardar ediciones de celdas',
+    message: `Se modificarán ${keys.length} celda${keys.length !== 1 ? 's' : ''} en "${validation.filename}". Estas ediciones quedan registradas en el log de auditoría y el dataset deberá re-validarse.`,
+    confirmLabel: 'Guardar',
+    action: () => {
+      datasetsStore.editCells(validation.datasetId, validation.filename, edits)
+      editingInputs.value = {}
+    },
+  }
 }
 
 function handleDeleteIncomplete(ds: Dataset) {
@@ -702,6 +746,35 @@ onUnmounted(() => {
           </button>
         </div>
 
+        <!-- Resultado de edición de celdas -->
+        <div
+          v-if="datasetsStore.editCellsResult || datasetsStore.editCellsError"
+          class="flex items-start gap-3 p-3 rounded-lg border"
+          :class="datasetsStore.editCellsResult ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200'"
+        >
+          <div class="flex-1 min-w-0">
+            <template v-if="datasetsStore.editCellsResult">
+              <p class="text-sm font-semibold text-amber-800">✓ Celdas editadas correctamente</p>
+              <p class="text-xs text-amber-700 mt-0.5">
+                {{ datasetsStore.editCellsResult.edited_count }} celda{{ datasetsStore.editCellsResult.edited_count !== 1 ? 's' : '' }}
+                modificada{{ datasetsStore.editCellsResult.edited_count !== 1 ? 's' : '' }} en "{{ datasetsStore.editCellsResult.filename }}".
+                <span class="font-medium">Valida de nuevo antes de confirmar.</span>
+              </p>
+            </template>
+            <template v-else>
+              <p class="text-sm font-semibold text-red-800">Error al editar celdas</p>
+              <p class="text-xs text-red-700">{{ datasetsStore.editCellsError }}</p>
+            </template>
+          </div>
+          <button
+            @click="datasetsStore.clearEditCellsResult()"
+            class="flex-shrink-0 p-1 rounded hover:bg-black/10 transition-colors"
+            aria-label="Cerrar"
+          >
+            <X class="w-3.5 h-3.5 opacity-50" />
+          </button>
+        </div>
+
         <!-- Error de exportación -->
         <div v-if="exportError" class="flex items-center justify-between gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
           <p class="text-sm text-red-700">{{ exportError }}</p>
@@ -744,21 +817,47 @@ onUnmounted(() => {
                   <p class="text-xs font-medium text-red-800">
                     Errores de tipo — {{ datasetsStore.lastValidation.result.error_rows }} fila{{ datasetsStore.lastValidation.result.error_rows !== 1 ? 's' : '' }} afectada{{ datasetsStore.lastValidation.result.error_rows !== 1 ? 's' : '' }}:
                   </p>
-                  <!-- Admin + dataset no confirmado: checkboxes para selección manual -->
+                  <!-- Admin + dataset no confirmado: checkboxes + edición inline -->
                   <template v-if="isAdmin && validationDataset && validationDataset.status !== 'committed'">
-                    <label
+                    <div
                       v-for="err in datasetsStore.lastValidation.result.type_errors"
                       :key="`${err.row_index}-${err.column}`"
-                      class="flex items-start gap-2 cursor-pointer text-xs text-red-700 hover:text-red-900"
+                      class="space-y-1"
                     >
-                      <input
-                        type="checkbox"
-                        :checked="selectedTypeErrors.includes(err.row_index)"
-                        @change="toggleErrorRow(err.row_index)"
-                        class="mt-0.5 accent-red-600 flex-shrink-0"
-                      />
-                      Fila {{ err.row_index + 1 }} — <span class="font-mono">{{ err.column }}</span>: {{ err.error }}
-                    </label>
+                      <div class="flex items-start gap-2 text-xs text-red-700">
+                        <input
+                          type="checkbox"
+                          :checked="selectedTypeErrors.includes(err.row_index)"
+                          @change="toggleErrorRow(err.row_index)"
+                          class="mt-0.5 accent-red-600 flex-shrink-0 cursor-pointer"
+                        />
+                        <span class="flex-1">
+                          Fila {{ err.row_index + 1 }} — <span class="font-mono">{{ err.column }}</span>: {{ err.error }}
+                        </span>
+                        <button
+                          @click="toggleCellEdit(err)"
+                          :class="[
+                            'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs transition-colors flex-shrink-0',
+                            `${err.row_index}|${err.column}` in editingInputs
+                              ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+                          ]"
+                        >
+                          <Pencil class="w-2.5 h-2.5" />
+                          {{ `${err.row_index}|${err.column}` in editingInputs ? 'Cancelar' : 'Editar' }}
+                        </button>
+                      </div>
+                      <div v-if="`${err.row_index}|${err.column}` in editingInputs" class="ml-5 flex items-center gap-2">
+                        <input
+                          :value="editingInputs[`${err.row_index}|${err.column}`]"
+                          @input="editingInputs[`${err.row_index}|${err.column}`] = ($event.target as HTMLInputElement).value"
+                          type="text"
+                          :placeholder="`Nuevo valor para ${err.column}`"
+                          class="flex-1 min-w-0 border border-amber-300 rounded px-2 py-1 text-xs text-foreground bg-amber-50 focus:outline-none focus:border-amber-500"
+                        />
+                        <span class="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">actual: <span class="font-mono">{{ String(err.value ?? '(nulo)') }}</span></span>
+                      </div>
+                    </div>
                     <!-- Controles eliminar seleccionadas -->
                     <div v-if="selectedTypeErrors.length > 0" class="pt-2 mt-1 space-y-2 border-t border-red-100">
                       <input
@@ -786,6 +885,29 @@ onUnmounted(() => {
                         </button>
                       </div>
                       <p v-if="previewError" class="text-xs text-red-700">{{ previewError }}</p>
+                    </div>
+                    <!-- Controles guardar ediciones de celdas -->
+                    <div v-if="Object.keys(editingInputs).length > 0" class="pt-2 mt-1 space-y-1.5 border-t border-amber-100">
+                      <p class="text-xs text-amber-700 font-medium">
+                        {{ Object.keys(editingInputs).length }} celda{{ Object.keys(editingInputs).length !== 1 ? 's' : '' }} pendiente{{ Object.keys(editingInputs).length !== 1 ? 's' : '' }} de guardar
+                      </p>
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <button
+                          @click="handleSaveCellEdits"
+                          :disabled="datasetsStore.editingCells !== null"
+                          class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <span v-if="datasetsStore.editingCells !== null" class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <Save v-else class="w-3 h-3" />
+                          Guardar {{ Object.keys(editingInputs).length }} edición{{ Object.keys(editingInputs).length !== 1 ? 'es' : '' }}
+                        </button>
+                        <button
+                          @click="clearCellEdits"
+                          class="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          Cancelar todo
+                        </button>
+                      </div>
                     </div>
                   </template>
                   <!-- Solo lectura (no admin o dataset confirmado) -->

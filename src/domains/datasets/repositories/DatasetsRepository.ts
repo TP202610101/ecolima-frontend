@@ -54,4 +54,12 @@ export const DatasetsRepository = {
     })
     return res.data
   },
+
+  async editDatasetCells(
+    datasetId: number,
+    edits: Array<{ row_index: number; column: string; new_value: unknown }>,
+  ): Promise<{ edited_count: number }> {
+    const res = await api.patch(`/api/v1/datasets/${datasetId}/cells`, { edits })
+    return res.data
+  },
 }
