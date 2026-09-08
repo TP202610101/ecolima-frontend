@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, computed, ref } from 'vue'
-import { RefreshCw, Clock, Calendar, TrendingUp, Upload, Database, FileText, Info, X, Layers, Download } from '@lucide/vue'
+import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
+import { RefreshCw, Clock, Calendar, TrendingUp, Upload, Database, FileText, Info, X, Layers, Download, Trash2 } from '@lucide/vue'
 import { useMLStore } from '../stores/useMLStore'
 import { useDatasetsStore } from '@/domains/datasets/stores/useDatasetsStore'
 import { DatasetsRepository } from '@/domains/datasets/repositories/DatasetsRepository'
+import type { Dataset } from '@/domains/datasets/entities/Dataset'
 import { useAuth } from '@/shared/composables/useAuth'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import KpiCard from '@/shared/components/KpiCard.vue'
@@ -18,6 +19,7 @@ const confirm = ref<{
   title: string
   message: string
   confirmLabel: string
+  variant?: 'normal' | 'danger'
   action: () => void
 }>({ visible: false, title: '', message: '', confirmLabel: '', action: () => {} })
 
@@ -25,7 +27,18 @@ const showUpdateDetail = ref(false)
 const exportingId = ref<string | null>(null)
 const exportError = ref<string | null>(null)
 
+const selectedTypeErrors = ref<number[]>([])
+const deleteReason = ref('')
+const previewingDelete = ref(false)
+const previewError = ref<string | null>(null)
+
 const isBusy = computed(() => mlStore.inferring || mlStore.recalculating || mlStore.updating)
+
+const validationDataset = computed(() => {
+  const lv = datasetsStore.lastValidation
+  if (!lv) return null
+  return datasetsStore.datasets.find(d => d.dataset_id === lv.datasetId) ?? null
+})
 
 function fmtDate(iso?: string | null): string {
   if (!iso) return '—'
@@ -68,6 +81,72 @@ const datasetResultClass = computed((): string => {
   if (lc) return lc.result.inserted > 0 ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'
   return 'bg-red-50 border-red-200'
 })
+
+watch(() => datasetsStore.lastValidation, () => {
+  selectedTypeErrors.value = []
+  deleteReason.value = ''
+  previewError.value = null
+})
+
+function toggleErrorRow(rowIndex: number) {
+  const idx = selectedTypeErrors.value.indexOf(rowIndex)
+  if (idx === -1) selectedTypeErrors.value.push(rowIndex)
+  else selectedTypeErrors.value.splice(idx, 1)
+}
+
+function clearSelection() {
+  selectedTypeErrors.value = []
+  deleteReason.value = ''
+}
+
+function handleDeleteIncomplete(ds: Dataset) {
+  confirm.value = {
+    visible: true,
+    title: 'Eliminar filas incompletas',
+    message: `Esto eliminará todas las filas sin latitud, longitud o distrito en "${ds.filename}". Esta acción no se puede deshacer.`,
+    confirmLabel: 'Eliminar',
+    variant: 'danger',
+    action: () => datasetsStore.deleteIncompleteRows(ds.dataset_id, ds.filename),
+  }
+}
+
+async function handleDeleteSelected() {
+  const validation = datasetsStore.lastValidation
+  if (!validation || selectedTypeErrors.value.length === 0) return
+  const reason = deleteReason.value.trim()
+  if (!reason) return
+
+  previewingDelete.value = true
+  previewError.value = null
+  let preview: { deleted_count: number; remaining_rows: number }
+  try {
+    preview = await DatasetsRepository.deleteSelectedRows(
+      validation.datasetId,
+      selectedTypeErrors.value,
+      reason,
+      false,
+    )
+  } catch (e) {
+    previewError.value = e instanceof Error ? e.message : 'Error al previsualizar eliminación'
+    previewingDelete.value = false
+    return
+  }
+  previewingDelete.value = false
+
+  const rowsToDelete = [...selectedTypeErrors.value]
+  confirm.value = {
+    visible: true,
+    title: 'Eliminar filas seleccionadas',
+    message: `Se eliminarán ${preview.deleted_count} fila${preview.deleted_count !== 1 ? 's' : ''} de "${validation.filename}". Quedarán ${preview.remaining_rows} en el dataset. Esta acción no se puede deshacer.`,
+    confirmLabel: 'Eliminar',
+    variant: 'danger',
+    action: () => {
+      datasetsStore.deleteSelectedRows(validation.datasetId, validation.filename, rowsToDelete, reason)
+      selectedTypeErrors.value = []
+      deleteReason.value = ''
+    },
+  }
+}
 
 function handleActivate(version: string) {
   confirm.value = {
@@ -537,38 +616,52 @@ onUnmounted(() => {
                   </td>
                   <td class="px-4 py-4 text-muted-foreground">{{ fmtDate(ds.uploaded_at) }}</td>
                   <td class="px-4 py-4">
-                    <!-- Validar: pending, invalid o failed (backend exige status=valid antes de confirmar) -->
-                    <button
-                      v-if="ds.status === 'pending' || ds.status === 'invalid' || ds.status === 'failed'"
-                      @click="datasetsStore.validateDataset(ds.dataset_id, ds.filename)"
-                      :disabled="datasetsStore.validatingId !== null || datasetsStore.committingId !== null"
-                      class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <span v-if="datasetsStore.validatingId === ds.dataset_id" class="w-3 h-3 border border-gray-500 border-t-transparent rounded-full animate-spin" />
-                      {{ datasetsStore.validatingId === ds.dataset_id ? 'Validando…' : 'Validar' }}
-                    </button>
-                    <!-- Confirmar: valid -->
-                    <button
-                      v-else-if="ds.status === 'valid'"
-                      @click="datasetsStore.commitDataset(ds.dataset_id, ds.filename)"
-                      :disabled="datasetsStore.validatingId !== null || datasetsStore.committingId !== null"
-                      class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-primary text-white rounded-md hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <span v-if="datasetsStore.committingId === ds.dataset_id" class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      {{ datasetsStore.committingId === ds.dataset_id ? 'Aplicando…' : 'Confirmar' }}
-                    </button>
-                    <!-- committed: exportar CSV / XLSX -->
-                    <div v-else class="flex gap-1">
+                    <div class="flex flex-wrap items-center gap-1">
+                      <!-- Validar: pending, invalid o failed -->
                       <button
-                        v-for="fmt in (['csv', 'xlsx'] as const)"
-                        :key="fmt"
-                        @click="handleExport(ds.dataset_id, fmt)"
-                        :disabled="exportingId !== null"
-                        class="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed uppercase"
+                        v-if="ds.status === 'pending' || ds.status === 'invalid' || ds.status === 'failed'"
+                        @click="datasetsStore.validateDataset(ds.dataset_id, ds.filename)"
+                        :disabled="datasetsStore.validatingId !== null || datasetsStore.committingId !== null"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <span v-if="exportingId === `${ds.dataset_id}-${fmt}`" class="w-3 h-3 border border-gray-500 border-t-transparent rounded-full animate-spin" />
-                        <Download v-else class="w-3 h-3" />
-                        {{ fmt }}
+                        <span v-if="datasetsStore.validatingId === ds.dataset_id" class="w-3 h-3 border border-gray-500 border-t-transparent rounded-full animate-spin" />
+                        {{ datasetsStore.validatingId === ds.dataset_id ? 'Validando…' : 'Validar' }}
+                      </button>
+                      <!-- Confirmar: valid -->
+                      <button
+                        v-else-if="ds.status === 'valid'"
+                        @click="datasetsStore.commitDataset(ds.dataset_id, ds.filename)"
+                        :disabled="datasetsStore.validatingId !== null || datasetsStore.committingId !== null"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-primary text-white rounded-md hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <span v-if="datasetsStore.committingId === ds.dataset_id" class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        {{ datasetsStore.committingId === ds.dataset_id ? 'Aplicando…' : 'Confirmar' }}
+                      </button>
+                      <!-- committed: exportar CSV / XLSX -->
+                      <template v-else>
+                        <button
+                          v-for="fmt in (['csv', 'xlsx'] as const)"
+                          :key="fmt"
+                          @click="handleExport(ds.dataset_id, fmt)"
+                          :disabled="exportingId !== null"
+                          class="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed uppercase"
+                        >
+                          <span v-if="exportingId === `${ds.dataset_id}-${fmt}`" class="w-3 h-3 border border-gray-500 border-t-transparent rounded-full animate-spin" />
+                          <Download v-else class="w-3 h-3" />
+                          {{ fmt }}
+                        </button>
+                      </template>
+                      <!-- Eliminar filas incompletas — solo admin, solo no confirmado -->
+                      <button
+                        v-if="isAdmin && ds.status !== 'committed'"
+                        @click="handleDeleteIncomplete(ds)"
+                        :disabled="datasetsStore.deletingRows !== null"
+                        :title="`Eliminar filas sin lat/lon/distrito en ${ds.filename}`"
+                        class="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium border border-red-200 text-red-600 rounded-md hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <span v-if="datasetsStore.deletingRows === ds.dataset_id" class="w-3 h-3 border border-red-400 border-t-transparent rounded-full animate-spin" />
+                        <Trash2 v-else class="w-3 h-3" />
+                        Limpiar
                       </button>
                     </div>
                   </td>
@@ -577,6 +670,36 @@ onUnmounted(() => {
             </table>
           </div>
 
+        </div>
+
+        <!-- Resultado de eliminación de filas -->
+        <div
+          v-if="datasetsStore.deleteRowsResult || datasetsStore.deleteRowsError"
+          class="flex items-start gap-3 p-3 rounded-lg border"
+          :class="datasetsStore.deleteRowsResult ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'"
+        >
+          <div class="flex-1 min-w-0">
+            <template v-if="datasetsStore.deleteRowsResult">
+              <p class="text-sm font-semibold text-green-800">✓ Filas eliminadas correctamente</p>
+              <p class="text-xs text-green-700 mt-0.5">
+                {{ datasetsStore.deleteRowsResult.deleted_count }} fila{{ datasetsStore.deleteRowsResult.deleted_count !== 1 ? 's' : '' }}
+                eliminada{{ datasetsStore.deleteRowsResult.deleted_count !== 1 ? 's' : '' }} de "{{ datasetsStore.deleteRowsResult.filename }}".
+                Quedan {{ datasetsStore.deleteRowsResult.remaining_rows }} en el dataset.
+                <span class="font-medium">Valida de nuevo antes de confirmar.</span>
+              </p>
+            </template>
+            <template v-else>
+              <p class="text-sm font-semibold text-red-800">Error al eliminar filas</p>
+              <p class="text-xs text-red-700">{{ datasetsStore.deleteRowsError }}</p>
+            </template>
+          </div>
+          <button
+            @click="datasetsStore.clearDeleteResult()"
+            class="flex-shrink-0 p-1 rounded hover:bg-black/10 transition-colors"
+            aria-label="Cerrar"
+          >
+            <X class="w-3.5 h-3.5 opacity-50" />
+          </button>
         </div>
 
         <!-- Error de exportación -->
@@ -617,20 +740,67 @@ onUnmounted(() => {
                   </div>
                 </div>
                 <!-- Errores de tipo -->
-                <div v-if="datasetsStore.lastValidation.result.type_errors.length" class="space-y-0.5">
+                <div v-if="datasetsStore.lastValidation.result.type_errors.length" class="space-y-1">
                   <p class="text-xs font-medium text-red-800">
                     Errores de tipo — {{ datasetsStore.lastValidation.result.error_rows }} fila{{ datasetsStore.lastValidation.result.error_rows !== 1 ? 's' : '' }} afectada{{ datasetsStore.lastValidation.result.error_rows !== 1 ? 's' : '' }}:
                   </p>
-                  <p
-                    v-for="err in datasetsStore.lastValidation.result.type_errors.slice(0, 5)"
-                    :key="`${err.row_index}-${err.column}`"
-                    class="text-xs text-red-700"
-                  >
-                    Fila {{ err.row_index + 1 }} — <span class="font-mono">{{ err.column }}</span>: {{ err.error }}
-                  </p>
-                  <p v-if="datasetsStore.lastValidation.result.type_errors.length > 5" class="text-xs text-red-600 italic">
-                    y {{ datasetsStore.lastValidation.result.type_errors.length - 5 }} errores más…
-                  </p>
+                  <!-- Admin + dataset no confirmado: checkboxes para selección manual -->
+                  <template v-if="isAdmin && validationDataset && validationDataset.status !== 'committed'">
+                    <label
+                      v-for="err in datasetsStore.lastValidation.result.type_errors"
+                      :key="`${err.row_index}-${err.column}`"
+                      class="flex items-start gap-2 cursor-pointer text-xs text-red-700 hover:text-red-900"
+                    >
+                      <input
+                        type="checkbox"
+                        :checked="selectedTypeErrors.includes(err.row_index)"
+                        @change="toggleErrorRow(err.row_index)"
+                        class="mt-0.5 accent-red-600 flex-shrink-0"
+                      />
+                      Fila {{ err.row_index + 1 }} — <span class="font-mono">{{ err.column }}</span>: {{ err.error }}
+                    </label>
+                    <!-- Controles eliminar seleccionadas -->
+                    <div v-if="selectedTypeErrors.length > 0" class="pt-2 mt-1 space-y-2 border-t border-red-100">
+                      <input
+                        v-model="deleteReason"
+                        type="text"
+                        placeholder="Motivo de eliminación (requerido)"
+                        maxlength="200"
+                        class="w-full border border-red-200 rounded-md px-2 py-1.5 text-xs text-foreground bg-white focus:outline-none focus:border-red-400 placeholder:text-muted-foreground/60"
+                      />
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <button
+                          @click="handleDeleteSelected"
+                          :disabled="!deleteReason.trim() || previewingDelete || datasetsStore.deletingRows !== null"
+                          class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <span v-if="previewingDelete" class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <Trash2 v-else class="w-3 h-3" />
+                          Eliminar {{ selectedTypeErrors.length }} fila{{ selectedTypeErrors.length !== 1 ? 's' : '' }} seleccionada{{ selectedTypeErrors.length !== 1 ? 's' : '' }}
+                        </button>
+                        <button
+                          @click="clearSelection"
+                          class="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          Deseleccionar todo
+                        </button>
+                      </div>
+                      <p v-if="previewError" class="text-xs text-red-700">{{ previewError }}</p>
+                    </div>
+                  </template>
+                  <!-- Solo lectura (no admin o dataset confirmado) -->
+                  <template v-else>
+                    <p
+                      v-for="err in datasetsStore.lastValidation.result.type_errors.slice(0, 5)"
+                      :key="`${err.row_index}-${err.column}`"
+                      class="text-xs text-red-700"
+                    >
+                      Fila {{ err.row_index + 1 }} — <span class="font-mono">{{ err.column }}</span>: {{ err.error }}
+                    </p>
+                    <p v-if="datasetsStore.lastValidation.result.type_errors.length > 5" class="text-xs text-red-600 italic">
+                      y {{ datasetsStore.lastValidation.result.type_errors.length - 5 }} errores más…
+                    </p>
+                  </template>
                 </div>
                 <!-- Coordenadas duplicadas dentro del archivo (advertencia, no bloquea validez) -->
                 <div v-if="datasetsStore.lastValidation.result.duplicate_rows?.length" class="space-y-0.5">
@@ -687,6 +857,7 @@ onUnmounted(() => {
     :title="confirm.title"
     :message="confirm.message"
     :confirm-label="confirm.confirmLabel"
+    :variant="confirm.variant ?? 'normal'"
     @confirm="() => { confirm.action(); confirm.visible = false }"
     @cancel="confirm.visible = false"
   />

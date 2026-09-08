@@ -34,4 +34,24 @@ export const DatasetsRepository = {
     const filename = match ? match[1].trim() : `dataset_${datasetId}_limpio.${format}`
     return { blob: res.data as Blob, filename }
   },
+
+  async deleteIncompleteRows(datasetId: number): Promise<{ deleted_count: number; remaining_rows: number }> {
+    const res = await api.delete(`/api/v1/datasets/${datasetId}/rows`, {
+      params: { status: 'incomplete' },
+    })
+    return res.data
+  },
+
+  async deleteSelectedRows(
+    datasetId: number,
+    rowIndices: number[],
+    reason: string,
+    confirmed: boolean,
+  ): Promise<{ deleted_count: number; remaining_rows: number }> {
+    const res = await api.delete(`/api/v1/datasets/${datasetId}/rows`, {
+      params: { confirm: confirmed },
+      data: { row_indices: rowIndices, reason },
+    })
+    return res.data
+  },
 }
