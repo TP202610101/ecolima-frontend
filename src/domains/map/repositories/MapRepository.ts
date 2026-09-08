@@ -4,6 +4,7 @@ import type { District } from '../entities/District'
 
 export interface PointFilters {
   verified_only?: boolean
+  material?: string
 }
 
 export const MapRepository = {

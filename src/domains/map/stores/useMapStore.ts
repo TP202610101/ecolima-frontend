@@ -13,17 +13,25 @@ export const useMapStore = defineStore('map', () => {
   const error = ref<string | null>(null)
   const showZones = ref(true)
   const showPoints = ref(true)
+  const selectedMaterial = ref('')
 
   async function fetchPoints() {
     loadingPoints.value = true
     error.value = null
     try {
-      points.value = await GetPointsUseCase()
+      points.value = await GetPointsUseCase(
+        selectedMaterial.value ? { material: selectedMaterial.value } : {}
+      )
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Error al cargar puntos'
     } finally {
       loadingPoints.value = false
     }
+  }
+
+  async function setMaterial(material: string) {
+    selectedMaterial.value = material
+    await fetchPoints()
   }
 
   async function fetchDistricts() {
@@ -41,5 +49,5 @@ export const useMapStore = defineStore('map', () => {
     }
   }
 
-  return { points, districts, loadingPoints, loadingDistricts, error, showZones, showPoints, fetchPoints, fetchDistricts }
+  return { points, districts, loadingPoints, loadingDistricts, error, showZones, showPoints, selectedMaterial, fetchPoints, fetchDistricts, setMaterial }
 })

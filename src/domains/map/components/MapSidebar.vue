@@ -11,6 +11,7 @@ const mapStore = useMapStore()
 
 const ALL_PRIORITIES = ['Alta', 'Media', 'Baja']
 const NSE_OPTIONS = ['A', 'B', 'C', 'D', 'E']
+const MATERIALS = ['papel', 'plástico', 'vidrio', 'metal', 'cartón'] as const
 
 const localPriorities = ref<string[]>([...ALL_PRIORITIES])
 const localDistrict = ref<string>('')
@@ -56,6 +57,7 @@ function clearFilters() {
   mapStore.showZones = true
   mapStore.showPoints = true
   recStore.setFilters([...ALL_PRIORITIES], null, [...NSE_OPTIONS])
+  if (mapStore.selectedMaterial) mapStore.setMaterial('')
 }
 
 function onZoneSelect(zone: Recommendation) {
@@ -89,6 +91,32 @@ function onZoneSelect(zone: Recommendation) {
             :value="d.district_name"
           >{{ d.district_name }}</option>
         </select>
+      </div>
+
+      <!-- Material (puntos de reciclaje) -->
+      <div>
+        <p class="text-xs font-medium text-muted-foreground mb-1.5">Material aceptado</p>
+        <select
+          :value="mapStore.selectedMaterial"
+          @change="mapStore.setMaterial(($event.target as HTMLSelectElement).value)"
+          :disabled="mapStore.loadingPoints"
+          class="w-full border border-border rounded-md px-2 py-1.5 text-sm text-foreground bg-white focus:outline-none focus:border-primary disabled:opacity-60"
+        >
+          <option value="">Todos los materiales</option>
+          <option v-for="m in MATERIALS" :key="m" :value="m">
+            {{ m.charAt(0).toUpperCase() + m.slice(1) }}
+          </option>
+        </select>
+        <!-- Estado vacío cuando el filtro no devuelve puntos -->
+        <p
+          v-if="mapStore.selectedMaterial && !mapStore.loadingPoints && mapStore.points.length === 0"
+          class="text-xs text-muted-foreground mt-1.5 italic"
+        >
+          Sin puntos con ese material en el mapa actual.
+        </p>
+        <p v-else-if="mapStore.loadingPoints && mapStore.selectedMaterial" class="text-xs text-muted-foreground mt-1.5">
+          Cargando puntos…
+        </p>
       </div>
 
       <!-- Prioridad -->
