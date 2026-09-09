@@ -1,6 +1,24 @@
 import api from '@/shared/api/axios'
 import type { Dataset, ValidationResult, CommitResult } from '../entities/Dataset'
 
+export interface DatasetAuditEntry {
+  audit_id: number
+  action: string
+  user_id: number | null
+  created_at: string | null
+  details: Record<string, unknown> | null
+}
+
+export interface DatasetHistoryResponse {
+  dataset_id: number
+  filename: string
+  uploads: DatasetAuditEntry[]
+  validations: DatasetAuditEntry[]
+  edits: DatasetAuditEntry[]
+  commit: DatasetAuditEntry | null
+  exported_at: string | null
+}
+
 export const DatasetsRepository = {
   async getDatasets(): Promise<Dataset[]> {
     const res = await api.get('/api/v1/datasets')
@@ -60,6 +78,11 @@ export const DatasetsRepository = {
     edits: Array<{ row_index: number; column: string; new_value: unknown }>,
   ): Promise<{ edited_count: number }> {
     const res = await api.patch(`/api/v1/datasets/${datasetId}/cells`, { edits })
+    return res.data
+  },
+
+  async getDatasetHistory(datasetId: number): Promise<DatasetHistoryResponse> {
+    const res = await api.get(`/api/v1/datasets/${datasetId}/history`)
     return res.data
   },
 }

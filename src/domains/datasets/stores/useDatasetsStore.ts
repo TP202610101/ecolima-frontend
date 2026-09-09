@@ -4,6 +4,7 @@ import type { Dataset, ValidationResult, CommitResult } from '../entities/Datase
 import { FetchDatasetsUseCase } from '../use-cases/FetchDatasetsUseCase'
 import { UploadDatasetUseCase } from '../use-cases/UploadDatasetUseCase'
 import { DatasetsRepository } from '../repositories/DatasetsRepository'
+import type { DatasetHistoryResponse } from '../repositories/DatasetsRepository'
 
 export const useDatasetsStore = defineStore('datasets', () => {
   const datasets = ref<Dataset[]>([])
@@ -26,6 +27,10 @@ export const useDatasetsStore = defineStore('datasets', () => {
   const editingCells = ref<number | null>(null)
   const editCellsResult = ref<{ edited_count: number; filename: string } | null>(null)
   const editCellsError = ref<string | null>(null)
+
+  const historyResult = ref<DatasetHistoryResponse | null>(null)
+  const loadingHistory = ref(false)
+  const historyError = ref<string | null>(null)
 
   async function fetchDatasets() {
     loading.value = true
@@ -146,6 +151,24 @@ export const useDatasetsStore = defineStore('datasets', () => {
     editCellsError.value = null
   }
 
+  async function fetchHistory(id: number) {
+    loadingHistory.value = true
+    historyError.value = null
+    historyResult.value = null
+    try {
+      historyResult.value = await DatasetsRepository.getDatasetHistory(id)
+    } catch (e) {
+      historyError.value = e instanceof Error ? e.message : 'Error al cargar historial'
+    } finally {
+      loadingHistory.value = false
+    }
+  }
+
+  function clearHistory() {
+    historyResult.value = null
+    historyError.value = null
+  }
+
   function clearLastResult() {
     lastValidation.value = null
     lastCommit.value = null
@@ -195,6 +218,11 @@ export const useDatasetsStore = defineStore('datasets', () => {
     clearDeleteResult,
     editCells,
     clearEditCellsResult,
+    historyResult,
+    loadingHistory,
+    historyError,
+    fetchHistory,
+    clearHistory,
     clearLastResult,
     clearUploadState,
     openUploader,

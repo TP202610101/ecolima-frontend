@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
-import { RefreshCw, Clock, Calendar, TrendingUp, Upload, Database, FileText, Info, X, Layers, Download, Trash2, Pencil, Save, ArrowLeftRight, ArrowUp } from '@lucide/vue'
+import { RefreshCw, Clock, Calendar, TrendingUp, Upload, Database, FileText, Info, X, Layers, Download, Trash2, Pencil, Save, ArrowLeftRight, ArrowUp, History } from '@lucide/vue'
 import { useMLStore } from '../stores/useMLStore'
 import { useDatasetsStore } from '@/domains/datasets/stores/useDatasetsStore'
 import { DatasetsRepository } from '@/domains/datasets/repositories/DatasetsRepository'
@@ -24,6 +24,91 @@ const confirm = ref<{
 }>({ visible: false, title: '', message: '', confirmLabel: '', action: () => {} })
 
 const showUpdateDetail = ref(false)
+const showHistoryModal = ref(false)
+const historyDatasetName = ref('')
+
+import type { DatasetAuditEntry } from '@/domains/datasets/repositories/DatasetsRepository'
+
+const timelineEntries = computed(() => {
+  const r = datasetsStore.historyResult
+  if (!r) return []
+  const all = [
+    ...r.uploads,
+    ...r.validations,
+    ...r.edits,
+    ...(r.commit ? [r.commit] : []),
+  ] as DatasetAuditEntry[]
+  return all.sort((a, b) => {
+    if (!a.created_at) return 1
+    if (!b.created_at) return -1
+    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  })
+})
+
+function actionLabel(action: string): string {
+  const map: Record<string, string> = {
+    upload: 'Cargado',
+    validate: 'Validado',
+    validation: 'Validado',
+    edit_cell: 'Celda editada',
+    delete_rows: 'Filas eliminadas',
+    delete_incomplete_rows: 'Filas incompletas eliminadas',
+    commit: 'Confirmado',
+  }
+  return map[action] ?? action
+}
+
+function actionDotClass(action: string, details: Record<string, unknown> | null): string {
+  if (action === 'upload') return 'bg-blue-400'
+  if (action === 'validate' || action === 'validation')
+    return details?.valid ? 'bg-green-500' : 'bg-red-500'
+  if (action === 'edit_cell') return 'bg-amber-400'
+  if (action === 'delete_rows' || action === 'delete_incomplete_rows') return 'bg-orange-400'
+  if (action === 'commit') return 'bg-green-600'
+  return 'bg-gray-400'
+}
+
+function actionSummary(action: string, details: Record<string, unknown> | null): string {
+  if (!details) return ''
+  if (action === 'upload')
+    return `${details.row_count} filas`
+  if (action === 'validate' || action === 'validation') {
+    const base = details.valid ? '✓ Válido' : '✗ Inválido'
+    const counts = `${details.valid_rows} filas válidas, ${details.error_rows} con error`
+    const types = (details.type_error_count as number) > 0
+      ? `, ${details.type_error_count} errores de tipo` : ''
+    return `${base} — ${counts}${types}`
+  }
+  if (action === 'edit_cell')
+    return `Columna "${details.column}": ${details.old_value} → ${details.new_value}`
+  if (action === 'delete_rows')
+    return `${details.deleted_count} fila(s) eliminada(s)${details.reason ? ` · "${details.reason}"` : ''}`
+  if (action === 'delete_incomplete_rows')
+    return `${details.deleted_count} fila(s) incompleta(s) eliminada(s)`
+  if (action === 'commit')
+    return `${details.inserted} zona(s) insertada(s), ${details.skipped_duplicates} omitida(s)`
+  return ''
+}
+
+function fmtDateTime(iso?: string | null): string {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleString('es-PE', {
+    year: 'numeric', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
+}
+
+async function handleViewHistory(ds: { dataset_id: number; filename: string }) {
+  historyDatasetName.value = ds.filename
+  showHistoryModal.value = true
+  await datasetsStore.fetchHistory(ds.dataset_id)
+}
+
+function closeHistoryModal() {
+  showHistoryModal.value = false
+  datasetsStore.clearHistory()
+  historyDatasetName.value = ''
+}
 
 const selectedForCompare = ref<string[]>([])
 const showCompareModal = ref(false)
@@ -713,6 +798,79 @@ onUnmounted(() => {
       </section>
 
       <!-- ── Dataset ───────────────────────────────────────────────────────── -->
+
+      <!-- Modal historial de dataset -->
+      <Teleport to="body">
+        <div
+          v-if="showHistoryModal"
+          class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+        >
+          <div class="absolute inset-0 bg-black/50" @click="closeHistoryModal" />
+          <div class="relative bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+
+            <div class="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-white">
+              <div class="flex items-center gap-2 min-w-0">
+                <History class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <h2 class="text-sm font-semibold text-foreground truncate">Historial — {{ historyDatasetName }}</h2>
+              </div>
+              <button @click="closeHistoryModal" class="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0 ml-2">
+                <X class="w-4 h-4" />
+              </button>
+            </div>
+
+            <div class="p-6">
+              <!-- Loading -->
+              <div v-if="datasetsStore.loadingHistory" class="space-y-3">
+                <div v-for="i in 4" :key="i" class="h-14 bg-gray-100 rounded animate-pulse" />
+              </div>
+
+              <!-- Error -->
+              <div v-else-if="datasetsStore.historyError" class="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p class="text-sm text-red-700">{{ datasetsStore.historyError }}</p>
+              </div>
+
+              <!-- Vacío -->
+              <div
+                v-else-if="timelineEntries.length === 0"
+                class="flex flex-col items-center justify-center py-8 text-center"
+              >
+                <History class="w-10 h-10 text-muted-foreground/30 mb-2" />
+                <p class="text-sm text-muted-foreground">Sin acciones registradas para este dataset</p>
+              </div>
+
+              <!-- Timeline -->
+              <div v-else class="relative pl-6">
+                <div class="absolute left-[9px] top-2 bottom-2 w-px bg-border" />
+                <div
+                  v-for="(entry, idx) in timelineEntries"
+                  :key="entry.audit_id ?? idx"
+                  class="relative mb-5 last:mb-0"
+                >
+                  <span
+                    class="absolute -left-6 top-0.5 w-3 h-3 rounded-full border-2 border-white flex-shrink-0"
+                    :class="actionDotClass(entry.action, entry.details)"
+                  />
+                  <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="text-sm font-medium text-foreground">{{ actionLabel(entry.action) }}</span>
+                      <span class="text-xs text-muted-foreground">{{ fmtDateTime(entry.created_at) }}</span>
+                    </div>
+                    <p
+                      v-if="actionSummary(entry.action, entry.details)"
+                      class="text-xs text-muted-foreground mt-0.5"
+                    >
+                      {{ actionSummary(entry.action, entry.details) }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </Teleport>
+
+
       <section class="space-y-4">
 
         <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2">
@@ -851,6 +1009,15 @@ onUnmounted(() => {
                         <span v-if="datasetsStore.deletingRows === ds.dataset_id" class="w-3 h-3 border border-red-400 border-t-transparent rounded-full animate-spin" />
                         <Trash2 v-else class="w-3 h-3" />
                         Limpiar
+                      </button>
+                      <!-- Ver historial -->
+                      <button
+                        @click="handleViewHistory(ds)"
+                        :title="`Ver historial de acciones de ${ds.filename}`"
+                        class="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors"
+                      >
+                        <History class="w-3 h-3" />
+                        Historial
                       </button>
                     </div>
                   </td>
