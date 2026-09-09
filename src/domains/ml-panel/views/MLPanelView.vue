@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
-import { RefreshCw, Clock, Calendar, TrendingUp, Upload, Database, FileText, Info, X, Layers, Download, Trash2, Pencil, Save, ArrowLeftRight, ArrowUp, History } from '@lucide/vue'
+import { RefreshCw, Clock, Calendar, TrendingUp, Upload, Database, FileText, Info, X, Layers, Download, Trash2, Pencil, Save, ArrowLeftRight, ArrowUp, History, FileX } from '@lucide/vue'
 import { useMLStore } from '../stores/useMLStore'
 import { useDatasetsStore } from '@/domains/datasets/stores/useDatasetsStore'
 import { DatasetsRepository } from '@/domains/datasets/repositories/DatasetsRepository'
@@ -306,6 +306,17 @@ async function handleDeleteSelected() {
       selectedTypeErrors.value = []
       deleteReason.value = ''
     },
+  }
+}
+
+function handleDeleteDataset(ds: Dataset) {
+  confirm.value = {
+    visible: true,
+    title: 'Eliminar dataset',
+    message: `¿Eliminar "${ds.filename}"? Esto eliminará el dataset completo, incluyendo el archivo subido. Esta acción no se puede deshacer.`,
+    confirmLabel: 'Eliminar',
+    variant: 'danger',
+    action: () => datasetsStore.deleteDataset(ds.dataset_id),
   }
 }
 
@@ -1019,6 +1030,18 @@ onUnmounted(() => {
                         <History class="w-3 h-3" />
                         Historial
                       </button>
+                      <!-- Eliminar dataset — solo no confirmados -->
+                      <button
+                        v-if="ds.status !== 'committed'"
+                        @click="handleDeleteDataset(ds)"
+                        :disabled="datasetsStore.deletingDataset !== null"
+                        :title="`Eliminar dataset ${ds.filename} por completo`"
+                        class="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <span v-if="datasetsStore.deletingDataset === ds.dataset_id" class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <FileX v-else class="w-3 h-3" />
+                        Eliminar
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -1083,6 +1106,17 @@ onUnmounted(() => {
             class="flex-shrink-0 p-1 rounded hover:bg-black/10 transition-colors"
             aria-label="Cerrar"
           >
+            <X class="w-3.5 h-3.5 opacity-50" />
+          </button>
+        </div>
+
+        <!-- Error al eliminar dataset -->
+        <div
+          v-if="datasetsStore.deleteDatasetError"
+          class="flex items-center justify-between gap-2 p-3 bg-red-50 border border-red-200 rounded-lg"
+        >
+          <p class="text-sm text-red-700">{{ datasetsStore.deleteDatasetError }}</p>
+          <button @click="datasetsStore.clearDeleteDatasetError()" class="p-1 rounded hover:bg-black/10 transition-colors flex-shrink-0" aria-label="Cerrar">
             <X class="w-3.5 h-3.5 opacity-50" />
           </button>
         </div>

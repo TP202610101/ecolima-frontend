@@ -85,4 +85,8 @@ export const DatasetsRepository = {
     const res = await api.get(`/api/v1/datasets/${datasetId}/history`)
     return res.data
   },
+
+  async deleteDataset(datasetId: number): Promise<void> {
+    await api.delete(`/api/v1/datasets/${datasetId}`)
+  },
 }

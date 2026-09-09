@@ -32,6 +32,9 @@ export const useDatasetsStore = defineStore('datasets', () => {
   const loadingHistory = ref(false)
   const historyError = ref<string | null>(null)
 
+  const deletingDataset = ref<number | null>(null)
+  const deleteDatasetError = ref<string | null>(null)
+
   async function fetchDatasets() {
     loading.value = true
     try {
@@ -151,6 +154,24 @@ export const useDatasetsStore = defineStore('datasets', () => {
     editCellsError.value = null
   }
 
+  async function deleteDataset(id: number) {
+    deletingDataset.value = id
+    deleteDatasetError.value = null
+    try {
+      await DatasetsRepository.deleteDataset(id)
+      datasets.value = datasets.value.filter(d => d.dataset_id !== id)
+    } catch (e) {
+      deleteDatasetError.value = e instanceof Error ? e.message : 'Error al eliminar el dataset'
+      await fetchDatasets()
+    } finally {
+      deletingDataset.value = null
+    }
+  }
+
+  function clearDeleteDatasetError() {
+    deleteDatasetError.value = null
+  }
+
   async function fetchHistory(id: number) {
     loadingHistory.value = true
     historyError.value = null
@@ -218,6 +239,10 @@ export const useDatasetsStore = defineStore('datasets', () => {
     clearDeleteResult,
     editCells,
     clearEditCellsResult,
+    deletingDataset,
+    deleteDatasetError,
+    deleteDataset,
+    clearDeleteDatasetError,
     historyResult,
     loadingHistory,
     historyError,
