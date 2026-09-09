@@ -1,4 +1,5 @@
 ﻿import type { Recommendation } from '@/domains/recommendations/entities/Recommendation'
+import type { CoverageRedundancyItem } from '@/domains/map/repositories/MapRepository'
 
 function incomeToNSE(stratum?: number): string {
   if (stratum == null) return 'N/D'
@@ -10,7 +11,7 @@ function incomeToNSE(stratum?: number): string {
 }
 
 export const ExportReportUseCase = {
-  exportCSV(data: Recommendation[]) {
+  exportCSV(data: Recommendation[], redundancy: CoverageRedundancyItem[] = []) {
     const headers = [
       'Zona',
       'Distrito',
@@ -35,9 +36,48 @@ export const ExportReportUseCase = {
       'Recomendado',
     ])
 
-    const csvContent = [headers, ...rows]
-      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-      .join('\n')
+    const csv = (rows2: string[][]): string =>
+      rows2.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n')
+
+    const zonesSection = csv([headers, ...rows])
+
+    const redundancyHeaders = [
+      'Distrito',
+      'Zonas recomendadas',
+      'Zonas cubiertas',
+      '% Redundancia',
+      'Estado semáforo',
+      'Modelo demo',
+    ]
+
+    const statusLabel = (item: CoverageRedundancyItem): string => {
+      if (item.total_recommended === 0) return 'Sin datos'
+      const map: Record<string, string> = { verde: 'Verde (0–50%)', amarillo: 'Amarillo (51–80%)', rojo: 'Rojo (>80%)' }
+      return map[item.status] ?? item.status
+    }
+
+    const redundancyRows = redundancy
+      .slice()
+      .sort((a, b) => b.redundancy_pct - a.redundancy_pct || a.district_name.localeCompare(b.district_name, 'es'))
+      .map(item => [
+        item.district_name,
+        String(item.total_recommended),
+        String(item.already_covered),
+        item.total_recommended > 0 ? item.redundancy_pct.toFixed(2) : '',
+        statusLabel(item),
+        item.is_demo ? 'Sí' : 'No',
+      ])
+
+    const redundancySection = [
+      '',
+      '',
+      '"--- Redundancia de cobertura por distrito ---"',
+      csv([redundancyHeaders, ...redundancyRows]),
+    ].join('\n')
+
+    const csvContent = redundancy.length > 0
+      ? zonesSection + redundancySection
+      : zonesSection
 
     const BOM = '\uFEFF'
     const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' })

@@ -66,7 +66,7 @@ onMounted(() => {
         </div>
         <div class="flex gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto">
           <button
-            @click="ExportReportUseCase.exportCSV(store.recommendations)"
+            @click="ExportReportUseCase.exportCSV(store.recommendations, coverageStore.items)"
             :disabled="store.loading || !store.recommendations.length"
             class="flex items-center gap-2 px-4 py-2 border border-border rounded-md text-sm text-foreground hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -154,7 +154,7 @@ onMounted(() => {
           <p class="text-sm text-muted-foreground">Sin datos de redundancia disponibles</p>
         </div>
 
-        <div v-else class="divide-y divide-border max-h-80 overflow-y-auto">
+        <div v-else class="divide-y divide-border max-h-80 overflow-y-auto redundancia-scroll">
           <div
             v-for="item in sortedRedundancy"
             :key="item.district_id"
@@ -371,6 +371,12 @@ onMounted(() => {
   /* Evitar corte de filas entre páginas */
   tr {
     page-break-inside: avoid;
+  }
+
+  /* Redundancia de cobertura: mostrar lista completa sin scroll al imprimir */
+  .redundancia-scroll {
+    max-height: none !important;
+    overflow: visible !important;
   }
 }
 </style>
