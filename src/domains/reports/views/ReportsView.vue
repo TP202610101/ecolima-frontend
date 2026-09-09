@@ -154,7 +154,7 @@ onMounted(() => {
           <p class="text-sm text-muted-foreground">Sin datos de redundancia disponibles</p>
         </div>
 
-        <div v-else class="divide-y divide-border">
+        <div v-else class="divide-y divide-border max-h-80 overflow-y-auto">
           <div
             v-for="item in sortedRedundancy"
             :key="item.district_id"
