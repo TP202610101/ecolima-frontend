@@ -619,6 +619,12 @@ onUnmounted(() => {
             :icon="TrendingUp"
             icon-bg="bg-green-100"
             label="AUC-ROC"
+            :value="mlStore.loading ? '—' : fmtPct(mlStore.activeModel?.metrics?.auc_roc)"
+          />
+          <KpiCard
+            :icon="TrendingUp"
+            icon-bg="bg-green-100"
+            label="AUC-PR"
             :value="mlStore.loading ? '—' : fmtPct(mlStore.activeModel?.metrics?.auc_pr)"
           />
         </div>
