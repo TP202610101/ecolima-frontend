@@ -589,8 +589,8 @@ onUnmounted(() => {
           </button>
         </div>
 
-        <!-- KPIs del modelo — 2 columnas en móvil, 5 en desktop -->
-        <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
+        <!-- KPIs del modelo — 2 columnas en móvil, 3 en desktop -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <KpiCard
             :icon="Clock"
             icon-bg="bg-blue-100"
