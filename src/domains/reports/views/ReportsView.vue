@@ -3,7 +3,7 @@ import { onMounted, computed } from 'vue'
 import { MapPin, TrendingUp, Building2, FileDown, Info } from '@lucide/vue'
 import { useReportsStore } from '../stores/useReportsStore'
 import { useCoverageRedundancyStore } from '../stores/useCoverageRedundancyStore'
-import { useAuthStore } from '@/domains/auth/stores/useAuthStore'
+import { useAuth } from '@/shared/composables/useAuth'
 import { ExportReportUseCase } from '../use-cases/ExportReportUseCase'
 import KpiCard from '@/shared/components/KpiCard.vue'
 import Badge from '@/shared/components/Badge.vue'
@@ -12,7 +12,7 @@ import { formatMetric } from '@/shared/utils/formatters'
 
 const store = useReportsStore()
 const coverageStore = useCoverageRedundancyStore()
-const auth = useAuthStore()
+const { isAdmin } = useAuth()
 
 const sortedRedundancy = computed(() => {
   const withData = coverageStore.items
@@ -48,6 +48,7 @@ function formatGap(m: number | null): { text: string; high: boolean } {
 
 onMounted(() => {
   store.fetchAll()
+  if (isAdmin.value) store.fetchStats()
   coverageStore.fetchRedundancy()
 })
 </script>
@@ -96,7 +97,7 @@ onMounted(() => {
       </div>
 
       <!-- KPI Cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div :class="['grid grid-cols-1 gap-4', isAdmin ? 'sm:grid-cols-3' : 'sm:grid-cols-2']">
         <KpiCard
           :icon="MapPin"
           icon-bg="bg-green-100"
@@ -112,6 +113,7 @@ onMounted(() => {
           subtitle="Con is_recommended = true"
         />
         <KpiCard
+          v-if="isAdmin"
           :icon="Building2"
           icon-bg="bg-purple-100"
           label="Distritos cubiertos"
@@ -268,7 +270,7 @@ onMounted(() => {
                 <!-- Puntaje ML -->
                 <td class="px-4 py-4 min-w-[160px]">
                   <PriorityBar
-                    v-if="auth.isAdmin && rec.ml_score != null"
+                    v-if="isAdmin && rec.ml_score != null"
                     :value="rec.ml_score"
                     :show-label="true"
                   />

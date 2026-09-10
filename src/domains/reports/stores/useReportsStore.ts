@@ -9,14 +9,19 @@ export const useReportsStore = defineStore('reports', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
 
+  async function fetchStats() {
+    try {
+      stats.value = await ReportsRepository.getStats()
+    } catch {
+      // admin-only endpoint; callers must guard by role
+    }
+  }
+
   async function fetchAll() {
     loading.value = true
     error.value = null
     try {
-      const [geojson] = await Promise.all([
-        ReportsRepository.getRecommendationsList(),
-        ReportsRepository.getStats().then(s => { stats.value = s }).catch(() => {}),
-      ])
+      const geojson = await ReportsRepository.getRecommendationsList()
       recommendations.value = geojson.features.map(f => {
         const polygon = f.geometry as GeoJSON.Polygon
         const ring = polygon.coordinates[0]
@@ -36,5 +41,5 @@ export const useReportsStore = defineStore('reports', () => {
     }
   }
 
-  return { recommendations, stats, loading, error, fetchAll }
+  return { recommendations, stats, loading, error, fetchAll, fetchStats }
 })
