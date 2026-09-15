@@ -37,6 +37,10 @@ function incomeToNSE(stratum?: number): string {
   return 'E'
 }
 
+function priorityVariant(label: string): 'alta' | 'media' | 'baja' {
+  return label.toLowerCase() as 'alta' | 'media' | 'baja'
+}
+
 function formatGap(m: number | null): { text: string; high: boolean } {
   if (m == null) return { text: 'N/D', high: false }
   return {
@@ -325,7 +329,7 @@ onMounted(() => {
                   />
                   <Badge
                     v-else
-                    :variant="rec.priority_label.toLowerCase() as 'alta' | 'media' | 'baja'"
+                    :variant="priorityVariant(rec.priority_label)"
                   />
                 </td>
 

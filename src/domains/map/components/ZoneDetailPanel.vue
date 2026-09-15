@@ -47,6 +47,10 @@ function roadAccessPct(road_density?: number | null): number {
   return Math.min((road_density / MAX_ROAD_DENSITY_M_PER_KM2) * 100, 100)
 }
 
+function priorityVariant(label: string): 'alta' | 'media' | 'baja' {
+  return label.toLowerCase() as 'alta' | 'media' | 'baja'
+}
+
 function close() {
   recStore.selectZone(null)
 }
@@ -81,7 +85,7 @@ function close() {
           </p>
         </div>
         <div class="flex items-center gap-2 flex-shrink-0 ml-2">
-          <Badge :variant="zone.priority_label.toLowerCase() as 'alta' | 'media' | 'baja'" />
+          <Badge :variant="priorityVariant(zone.priority_label)" />
           <button
             class="p-1 rounded hover:bg-secondary transition-colors"
             aria-label="Cerrar"

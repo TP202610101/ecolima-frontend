@@ -172,11 +172,11 @@ watch(() => recStore.selectedZone, zone => { if (zone) flyTo(zone.centroid_lat, 
 
 watch(() => mapStore.showZones, show => {
   if (!map || !zonesLayer) return
-  show ? map.addLayer(zonesLayer) : map.removeLayer(zonesLayer)
+  if (show) { map.addLayer(zonesLayer) } else { map.removeLayer(zonesLayer) }
 })
 watch(() => mapStore.showPoints, show => {
   if (!map || !pointsLayer) return
-  show ? map.addLayer(pointsLayer) : map.removeLayer(pointsLayer)
+  if (show) { map.addLayer(pointsLayer) } else { map.removeLayer(pointsLayer) }
 })
 watch(() => mapStore.showHeatmap, show => {
   if (!map || !heatmapLayer) return
