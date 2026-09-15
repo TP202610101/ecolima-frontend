@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue'
-import * as L from 'leaflet'
+import * as maplibregl from 'maplibre-gl'
+import 'maplibre-gl/dist/maplibre-gl.css'
 import { Plus, Minus, RotateCcw, AlertTriangle, Ruler } from '@lucide/vue'
 import type { Recommendation } from '@/domains/recommendations/entities/Recommendation'
 import type { RecyclingPoint } from '../entities/RecyclingPoint'
@@ -13,221 +14,396 @@ const mapStore = useMapStore()
 const emit = defineEmits<{ 'zone-selected': [zone: Recommendation] }>()
 
 const mapContainer = ref<HTMLElement>()
-const LIMA_CENTER: [number, number] = [-12.0464, -77.0428]
+const LIMA_CENTER: [number, number] = [-77.0428, -12.0464]
 
-let map: L.Map | null = null
-let zonesLayer: L.LayerGroup | null = null
-let pointsLayer: L.LayerGroup | null = null
-let heatmapLayer: L.LayerGroup | null = null
-let measureLayer: L.LayerGroup | null = null
-let measurePoints: L.LatLng[] = []
+let map: maplibregl.Map | null = null
+let mapStyleLoaded = false
 
 const measuring = ref(false)
+let measurePoints: Array<[number, number]> = []
+let measureMarkers: maplibregl.Marker[] = []
+let measureLabelMarker: maplibregl.Marker | null = null
 
-function getZoneColor(zone: Recommendation): string {
-  if (zone.priority_label === 'Alta') return '#16a34a'
-  if (zone.priority_label === 'Media') return '#eab308'
-  return '#9ca3af'
+// --- GeoJSON builders ---
+
+function buildZonesGeoJSON(zones: Recommendation[]) {
+  return {
+    type: 'FeatureCollection' as const,
+    features: zones.map(z => ({
+      type: 'Feature' as const,
+      geometry: { type: 'Point' as const, coordinates: [z.centroid_lon, z.centroid_lat] as [number, number] },
+      properties: {
+        zone_id: z.zone_id,
+        district_name: z.district_name,
+        priority_label: z.priority_label,
+      },
+    })),
+  }
 }
 
-function renderZones(zones: Recommendation[]) {
-  if (!zonesLayer) return
-  zonesLayer.clearLayers()
-  zones.forEach(zone => {
-    const color = getZoneColor(zone)
-    L.circleMarker([zone.centroid_lat, zone.centroid_lon], {
-      radius: 8,
-      color,
-      fillColor: color,
-      fillOpacity: 0.75,
-      weight: 2
-    })
-      .bindTooltip(
-        `<div style="font-size:12px"><strong>Zona ${zone.zone_id} — ${zone.district_name}</strong><br>Prioridad ${zone.priority_label}</div>`,
-        { sticky: true }
-      )
-      .on('click', () => { if (measuring.value) return; emit('zone-selected', zone) })
-      .addTo(zonesLayer!)
-  })
+function buildPointsGeoJSON(points: RecyclingPoint[]) {
+  return {
+    type: 'FeatureCollection' as const,
+    features: points.map(p => ({
+      type: 'Feature' as const,
+      geometry: {
+        type: 'Point' as const,
+        coordinates: [p.geometry.coordinates[0], p.geometry.coordinates[1]] as [number, number],
+      },
+      properties: {
+        address: p.address ?? 'Punto de reciclaje',
+        point_type: p.point_type ?? '',
+        materials_accepted: p.materials_accepted ?? 'No especificado',
+        verified: p.verified,
+      },
+    })),
+  }
 }
 
-function renderPoints(points: RecyclingPoint[]) {
-  if (!pointsLayer) return
-  pointsLayer.clearLayers()
-  points.forEach(point => {
-    const lat = point.geometry.coordinates[1]
-    const lng = point.geometry.coordinates[0]
-    const mats = point.materials_accepted || 'No especificado'
-    const popupHtml = `<div style="font-size:13px;min-width:190px">
-          <strong style="font-size:14px;display:block;margin-bottom:4px">${point.address || 'Punto de reciclaje'}</strong>
-          ${point.point_type ? `<span style="color:#6b7280;font-size:12px;display:block;margin-bottom:4px">Tipo: ${point.point_type}</span>` : ''}
-          <hr style="margin:6px 0;border-color:#e5e7eb">
-          <span style="font-size:12px"><strong>Acepta:</strong> ${mats}</span>
-          ${point.verified ? '<br><span style="color:#16a34a;font-size:11px;margin-top:4px;display:inline-block">✓ Verificado</span>' : ''}
-        </div>`
-    L.circleMarker([lat, lng], {
-      radius: 8,
-      color: '#3b82f6',
-      fillColor: '#3b82f6',
-      fillOpacity: 0.8,
-      weight: 1.5
-    })
-      .bindTooltip(`<span style="font-size:12px">${point.address || 'Punto de reciclaje'}</span>`, { sticky: true })
-      .on('click', () => {
-        if (measuring.value || !map) return
-        flyTo(lat, lng)
-        L.popup({ minWidth: 200 }).setLatLng([lat, lng]).setContent(popupHtml).openOn(map)
-      })
-      .addTo(pointsLayer!)
-  })
+// --- Haversine (reemplaza L.LatLng.distanceTo(); a y b son [lng, lat]) ---
+
+function haversineMeters(a: [number, number], b: [number, number]): number {
+  const R = 6371000
+  const toRad = (d: number) => (d * Math.PI) / 180
+  const dLat = toRad(b[1] - a[1])
+  const dLon = toRad(b[0] - a[0])
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a[1])) * Math.cos(toRad(b[1])) * Math.sin(dLon / 2) ** 2
+  return 2 * R * Math.asin(Math.sqrt(h))
 }
 
-function renderHeatmap(pts: Array<[number, number, number]>) {
-  if (!heatmapLayer) return
-  heatmapLayer.clearLayers()
-  if (!pts.length) return
+// --- Heatmap builder (misma fórmula que Leaflet: hsl((1-t)*120, 80%, 45%)) ---
+
+function buildHeatmapGeoJSON(pts: Array<[number, number, number]>) {
   const values = pts.map(p => p[2])
-  const min = Math.min(...values)
-  const max = Math.max(...values)
+  const min = values.length ? Math.min(...values) : 0
+  const max = values.length ? Math.max(...values) : 1
   const range = max - min || 1
-  pts.forEach(([lat, lon, val]) => {
-    const t = (val - min) / range
-    const hue = Math.round((1 - t) * 120)
-    L.circleMarker([lat, lon], {
-      radius: 14,
-      color: 'transparent',
-      fillColor: `hsl(${hue}, 80%, 45%)`,
-      fillOpacity: 0.6,
-      weight: 0,
-      interactive: false,
-      pane: 'heatmapPane',
-    } as L.CircleMarkerOptions).addTo(heatmapLayer!)
-  })
+  return {
+    type: 'FeatureCollection' as const,
+    features: pts.map(([lat, lon, val]) => {
+      const t = (val - min) / range
+      const hue = Math.round((1 - t) * 120)
+      return {
+        type: 'Feature' as const,
+        geometry: { type: 'Point' as const, coordinates: [lon, lat] as [number, number] },
+        properties: { color: `hsl(${hue}, 80%, 45%)` },
+      }
+    }),
+  }
 }
 
-function zoomIn() { map?.zoomIn() }
-function zoomOut() { map?.zoomOut() }
-function resetView() { map?.setView(LIMA_CENTER, 12) }
-function flyTo(lat: number, lon: number) {
+// --- Sync ---
+
+function syncZones() {
+  if (!map || !mapStyleLoaded) return
+  ;(map.getSource('zones') as maplibregl.GeoJSONSource | undefined)
+    ?.setData(buildZonesGeoJSON(recStore.filteredRecommendations))
+}
+
+function syncPoints() {
+  if (!map || !mapStyleLoaded) return
+  ;(map.getSource('points') as maplibregl.GeoJSONSource | undefined)
+    ?.setData(buildPointsGeoJSON(mapStore.points))
+}
+
+function addHeatmapLayer(pts: Array<[number, number, number]>) {
   if (!map) return
-  if (map.getZoom() < 15) map.setZoom(15, { animate: false })
-  map.panTo([lat, lon], { animate: true, duration: 0.35 })
+  map.addSource('heatmap', { type: 'geojson', data: buildHeatmapGeoJSON(pts) })
+  // beforeId inserta la capa debajo de zonas y puntos (equivalente a heatmapPane zIndex 350)
+  map.addLayer({
+    id: 'heatmap-circles',
+    type: 'circle',
+    source: 'heatmap',
+    paint: {
+      'circle-radius': 14,
+      'circle-color': ['get', 'color'],
+      'circle-opacity': 0.6,
+      'circle-stroke-width': 0,
+    },
+  }, 'zones-circles')
 }
-function invalidateSize() { map?.invalidateSize() }
 
-function clearMeasure() {
-  measureLayer?.clearLayers()
-  measurePoints = []
+function removeHeatmapLayer() {
+  if (!map) return
+  if (map.getLayer('heatmap-circles')) map.removeLayer('heatmap-circles')
+  if (map.getSource('heatmap')) map.removeSource('heatmap')
 }
 
-function toggleMeasure() {
-  measuring.value = !measuring.value
-  clearMeasure()
-  if (map) map.getContainer().style.cursor = measuring.value ? 'crosshair' : ''
+// --- Measure tool ---
+
+function addMeasureDot(lngLat: [number, number]) {
+  const el = document.createElement('div')
+  el.style.cssText = 'width:14px;height:14px;border-radius:50%;background:#7c3aed;box-shadow:0 0 0 2px white,0 0 0 3px #7c3aed;'
+  measureMarkers.push(new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat(lngLat).addTo(map!))
 }
 
-function onMapClick(e: L.LeafletMouseEvent) {
-  if (!measuring.value || !measureLayer) return
+function clearMeasureVisuals() {
+  measureMarkers.forEach(m => m.remove())
+  measureMarkers = []
+  measureLabelMarker?.remove()
+  measureLabelMarker = null
+  if (map) {
+    ;(map.getSource('measure-line') as maplibregl.GeoJSONSource | undefined)
+      ?.setData({ type: 'FeatureCollection', features: [] })
+  }
+}
+
+function onMapClick(e: maplibregl.MapMouseEvent) {
+  if (!measuring.value) return
+  const lngLat: [number, number] = [e.lngLat.lng, e.lngLat.lat]
 
   if (measurePoints.length === 0) {
-    // Nuevo tramo — borrar la medición anterior
-    measureLayer.clearLayers()
-  }
-
-  measurePoints.push(e.latlng)
-
-  if (measurePoints.length === 1) {
-    L.circleMarker(e.latlng, {
-      radius: 7, color: '#7c3aed', fillColor: '#7c3aed', fillOpacity: 1, weight: 3,
-      pane: 'measurePane',
-    }).addTo(measureLayer)
+    clearMeasureVisuals()
+    measurePoints.push(lngLat)
+    addMeasureDot(lngLat)
   } else {
-    const [a, b] = measurePoints
-    const distMeters = a.distanceTo(b)
+    const [a] = measurePoints
+    const b = lngLat
+    const distMeters = haversineMeters(a, b)
     const distLabel = distMeters >= 1000
       ? `${(distMeters / 1000).toFixed(2)} km`
       : `${Math.round(distMeters)} m`
 
-    L.polyline([a, b], { color: '#7c3aed', weight: 3, dashArray: '6 4', pane: 'measurePane' }).addTo(measureLayer)
-    L.circleMarker(b, {
-      radius: 7, color: '#7c3aed', fillColor: '#7c3aed', fillOpacity: 1, weight: 3,
-      pane: 'measurePane',
-    }).addTo(measureLayer)
-    L.marker(L.latLng((a.lat + b.lat) / 2, (a.lng + b.lng) / 2), {
-      icon: L.divIcon({
-        className: '',
-        iconSize: [0, 0],
-        iconAnchor: [0, 0],
-        html: `<div style="display:inline-block;background:white;border:1.5px solid #7c3aed;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600;color:#7c3aed;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.15);transform:translate(-50%,-50%)">${distLabel}</div>`,
-      }),
-    }).addTo(measureLayer)
+    ;(map!.getSource('measure-line') as maplibregl.GeoJSONSource).setData({
+      type: 'FeatureCollection',
+      features: [{ type: 'Feature', geometry: { type: 'LineString', coordinates: [a, b] }, properties: {} }],
+    })
+    addMeasureDot(b)
 
-    measurePoints = []  // listo para la siguiente medición
+    const mid: [number, number] = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]
+    const labelEl = document.createElement('div')
+    labelEl.style.cssText = 'display:inline-block;background:white;border:1.5px solid #7c3aed;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600;color:#7c3aed;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.15);transform:translate(-50%,-50%)'
+    labelEl.textContent = distLabel
+    measureLabelMarker = new maplibregl.Marker({ element: labelEl, anchor: 'center' }).setLngLat(mid).addTo(map!)
+
+    measurePoints = []
   }
 }
 
-watch(() => recStore.filteredRecommendations, zones => renderZones(zones), { deep: true })
-watch(() => mapStore.points, points => renderPoints(points), { deep: true })
+watch(() => recStore.filteredRecommendations, syncZones, { deep: true })
+watch(() => mapStore.points, syncPoints, { deep: true })
 watch(() => recStore.selectedZone, zone => { if (zone) flyTo(zone.centroid_lat, zone.centroid_lon) })
 
 watch(() => mapStore.showZones, show => {
-  if (!map || !zonesLayer) return
-  if (show) { map.addLayer(zonesLayer) } else { map.removeLayer(zonesLayer) }
+  if (!map || !mapStyleLoaded) return
+  map.setLayoutProperty('zones-circles', 'visibility', show ? 'visible' : 'none')
 })
 watch(() => mapStore.showPoints, show => {
-  if (!map || !pointsLayer) return
-  if (show) { map.addLayer(pointsLayer) } else { map.removeLayer(pointsLayer) }
+  if (!map || !mapStyleLoaded) return
+  map.setLayoutProperty('points-circles', 'visibility', show ? 'visible' : 'none')
 })
+
 watch(() => mapStore.showHeatmap, show => {
-  if (!map || !heatmapLayer) return
+  if (!map || !mapStyleLoaded) return
   if (show) {
-    map.addLayer(heatmapLayer)
+    addHeatmapLayer(mapStore.heatmapPoints)
   } else {
-    map.removeLayer(heatmapLayer)
-    heatmapLayer.clearLayers()
+    removeHeatmapLayer()
   }
 })
+
 watch(() => mapStore.heatmapPoints, pts => {
-  if (mapStore.showHeatmap) renderHeatmap(pts)
+  if (!map || !mapStyleLoaded || !mapStore.showHeatmap) return
+  const src = map.getSource('heatmap') as maplibregl.GeoJSONSource | undefined
+  if (src) {
+    src.setData(buildHeatmapGeoJSON(pts))
+  } else {
+    addHeatmapLayer(pts)
+  }
 }, { deep: true })
+
+// --- Controls (mismas firmas que antes para compatibilidad con AnalysisView) ---
+
+function zoomIn() { map?.zoomIn() }
+function zoomOut() { map?.zoomOut() }
+function resetView() { map?.flyTo({ center: LIMA_CENTER, zoom: 12 }) }
+
+function flyTo(lat: number, lon: number) {
+  if (!map) return
+  const targetZoom = Math.max(15, map.getZoom())
+  map.flyTo({ center: [lon, lat], zoom: targetZoom })
+}
+
+function invalidateSize() { map?.resize() }
+
+function toggleMeasure() {
+  measuring.value = !measuring.value
+  clearMeasureVisuals()
+  measurePoints = []
+  if (!map) return
+  map.getCanvas().style.cursor = measuring.value ? 'crosshair' : ''
+}
+
+// --- Lifecycle ---
 
 onMounted(() => {
   if (!mapContainer.value) return
 
-  map = L.map(mapContainer.value, {
+  map = new maplibregl.Map({
+    container: mapContainer.value,
+    style: 'https://tiles.openfreemap.org/styles/liberty',
     center: LIMA_CENTER,
     zoom: 12,
-    zoomControl: false,
-    attributionControl: true
   })
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    maxZoom: 19
-  }).addTo(map)
+  map.on('load', () => {
+    mapStyleLoaded = true
 
-  map.createPane('heatmapPane').style.zIndex = '350'
-  map.createPane('measurePane').style.zIndex = '450'
+    map!.addSource('zones', {
+      type: 'geojson',
+      data: buildZonesGeoJSON(recStore.filteredRecommendations),
+    })
+    map!.addSource('points', {
+      type: 'geojson',
+      data: buildPointsGeoJSON(mapStore.points),
+    })
 
-  heatmapLayer = L.layerGroup()
-  zonesLayer = L.layerGroup().addTo(map)
-  pointsLayer = L.layerGroup().addTo(map)
-  measureLayer = L.layerGroup().addTo(map)
+    map!.addLayer({
+      id: 'zones-circles',
+      type: 'circle',
+      source: 'zones',
+      layout: { visibility: mapStore.showZones ? 'visible' : 'none' },
+      paint: {
+        'circle-radius': 8,
+        'circle-color': [
+          'match', ['get', 'priority_label'],
+          'Alta', '#16a34a',
+          'Media', '#eab308',
+          '#9ca3af',
+        ],
+        'circle-stroke-width': 2,
+        'circle-stroke-color': '#ffffff',
+        'circle-opacity': 0.75,
+      },
+    })
 
-  map.on('click', onMapClick)
+    map!.addLayer({
+      id: 'points-circles',
+      type: 'circle',
+      source: 'points',
+      layout: { visibility: mapStore.showPoints ? 'visible' : 'none' },
+      paint: {
+        'circle-radius': 8,
+        'circle-color': '#3b82f6',
+        'circle-stroke-width': 1.5,
+        'circle-stroke-color': '#ffffff',
+        'circle-opacity': 0.8,
+      },
+    })
 
-  renderZones(recStore.filteredRecommendations)
-  renderPoints(mapStore.points)
+    // Línea de medición — fuente siempre presente, empieza vacía
+    map!.addSource('measure-line', {
+      type: 'geojson',
+      data: { type: 'FeatureCollection', features: [] },
+    })
+    map!.addLayer({
+      id: 'measure-line-layer',
+      type: 'line',
+      source: 'measure-line',
+      paint: {
+        'line-color': '#7c3aed',
+        'line-width': 3,
+        'line-dasharray': [2, 1.5],
+      },
+    })
+
+    // Popup compartido para tooltips hover
+    const hoverPopup = new maplibregl.Popup({
+      closeButton: false,
+      closeOnClick: false,
+      offset: 10,
+    })
+
+    // Tooltip zonas — desactivado durante medición para no cambiar el cursor
+    map!.on('mouseenter', 'zones-circles', e => {
+      if (measuring.value) return
+      map!.getCanvas().style.cursor = 'pointer'
+      const f = e.features?.[0]
+      if (!f) return
+      const coords = (f.geometry as GeoJSON.Point).coordinates as [number, number]
+      const p = f.properties ?? {}
+      hoverPopup
+        .setLngLat(coords)
+        .setHTML(`<div style="font-size:12px"><strong>Zona ${p['zone_id'] as number} — ${p['district_name'] as string}</strong><br>Prioridad ${p['priority_label'] as string}</div>`)
+        .addTo(map!)
+    })
+    map!.on('mouseleave', 'zones-circles', () => {
+      if (measuring.value) return
+      map!.getCanvas().style.cursor = ''
+      hoverPopup.remove()
+    })
+
+    // Tooltip puntos — desactivado durante medición
+    map!.on('mouseenter', 'points-circles', e => {
+      if (measuring.value) return
+      map!.getCanvas().style.cursor = 'pointer'
+      const f = e.features?.[0]
+      if (!f) return
+      const coords = (f.geometry as GeoJSON.Point).coordinates as [number, number]
+      const p = f.properties ?? {}
+      hoverPopup
+        .setLngLat(coords)
+        .setHTML(`<span style="font-size:12px">${p['address'] as string}</span>`)
+        .addTo(map!)
+    })
+    map!.on('mouseleave', 'points-circles', () => {
+      if (measuring.value) return
+      map!.getCanvas().style.cursor = ''
+      hoverPopup.remove()
+    })
+
+    // Click zona — guard: si medición activa, el clic va a onMapClick
+    map!.on('click', 'zones-circles', e => {
+      if (measuring.value) return
+      const f = e.features?.[0]
+      if (!f) return
+      const zoneId = Number((f.properties ?? {})['zone_id'])
+      const zone = recStore.filteredRecommendations.find(z => z.zone_id === zoneId)
+      if (zone) emit('zone-selected', zone)
+    })
+
+    // Click punto — guard: si medición activa, el clic va a onMapClick
+    map!.on('click', 'points-circles', e => {
+      if (measuring.value) return
+      const f = e.features?.[0]
+      if (!f) return
+      const coords = (f.geometry as GeoJSON.Point).coordinates as [number, number]
+      const p = f.properties ?? {}
+      const mats = p['materials_accepted'] as string
+      new maplibregl.Popup({ minWidth: '200px' })
+        .setLngLat(coords)
+        .setHTML(`<div style="font-size:13px;min-width:190px">
+          <strong style="font-size:14px;display:block;margin-bottom:4px">${p['address'] as string}</strong>
+          ${p['point_type'] ? `<span style="color:#6b7280;font-size:12px;display:block;margin-bottom:4px">Tipo: ${p['point_type'] as string}</span>` : ''}
+          <hr style="margin:6px 0;border-color:#e5e7eb">
+          <span style="font-size:12px"><strong>Acepta:</strong> ${mats}</span>
+          ${p['verified'] ? '<br><span style="color:#16a34a;font-size:11px;margin-top:4px;display:inline-block">✓ Verificado</span>' : ''}
+        </div>`)
+        .addTo(map!)
+    })
+
+    // Handler global de clic para medición — solo actúa si measuring.value es true
+    map!.on('click', onMapClick)
+
+    // Fix: restaurar heatmap si el store lo tenía activo al remontar el componente
+    if (mapStore.showHeatmap) {
+      if (mapStore.heatmapPoints.length > 0) {
+        addHeatmapLayer(mapStore.heatmapPoints)
+      } else {
+        mapStore.fetchHeatmap()
+      }
+    }
+  })
 })
 
 onUnmounted(() => {
+  measureMarkers.forEach(m => m.remove())
+  measureLabelMarker?.remove()
+  measurePoints = []
+  removeHeatmapLayer()
   map?.remove()
   map = null
-  zonesLayer = null
-  pointsLayer = null
-  heatmapLayer = null
-  measureLayer = null
-  measurePoints = []
+  mapStyleLoaded = false
 })
 
 defineExpose({ flyTo, invalidateSize })

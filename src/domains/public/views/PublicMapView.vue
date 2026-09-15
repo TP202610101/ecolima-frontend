@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import * as L from 'leaflet'
+import * as maplibregl from 'maplibre-gl'
+import 'maplibre-gl/dist/maplibre-gl.css'
 import { MapPin, Recycle, Navigation, Search, LogIn, Plus, Minus, RotateCcw, AlertCircle } from '@lucide/vue'
 import { PublicRepository, type PublicPoint } from '../repositories/PublicRepository'
 
-const LIMA_CENTER: [number, number] = [-12.0464, -77.0428]
-// Bounding box holgado del área metropolitana de Lima.
+// MapLibre usa orden [lng, lat] (inverso a Leaflet)
+const LIMA_CENTER: [number, number] = [-77.0428, -12.0464]
 const LIMA_LAT_MIN = -12.40
 const LIMA_LAT_MAX = -11.55
 const LIMA_LNG_MIN = -77.30
@@ -30,9 +31,9 @@ const allPoints = ref<PublicPoint[]>([])
 const selectedMaterials = ref<Material[]>([...MATERIALS])
 const hasSearched = ref(false)
 
-let map: L.Map | null = null
-let pointsLayer: L.LayerGroup | null = null
+let map: maplibregl.Map | null = null
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
+let mapStyleLoaded = false
 
 const filteredPoints = computed(() => {
   const allSelected = selectedMaterials.value.length === MATERIALS.length
@@ -49,39 +50,28 @@ function isWithinLima(lat: number, lng: number): boolean {
          lng >= LIMA_LNG_MIN && lng <= LIMA_LNG_MAX
 }
 
-function renderPoints() {
-  if (!pointsLayer) return
-  pointsLayer.clearLayers()
-  filteredPoints.value.forEach(p => {
-    const dist = p.distancia === null
-      ? 'distancia no disponible'
-      : p.distancia < 1000
-        ? `${Math.round(p.distancia)} m`
-        : `${(p.distancia / 1000).toFixed(1)} km`
-    const mats = Array.isArray(p.materiales) && p.materiales.length
-      ? p.materiales.join(', ')
-      : 'No especificado'
-    L.circleMarker([p.lat, p.lng], {
-      radius: 9,
-      color: '#16a34a',
-      fillColor: '#16a34a',
-      fillOpacity: 0.8,
-      weight: 2,
-    })
-      .bindPopup(
-        `<div style="font-size:13px;min-width:160px">
-          <strong style="font-size:14px;display:block;margin-bottom:2px">${p.nombre}</strong>
-          <span style="color:#6b7280;font-size:12px">📍 ${dist} de distancia</span>
-          <hr style="margin:6px 0;border-color:#e5e7eb">
-          <span style="font-size:12px"><strong>Acepta:</strong> ${mats}</span>
-        </div>`,
-        { minWidth: 160, maxWidth: 260, autoPanPadding: [16, 60] }
-      )
-      .addTo(pointsLayer!)
-  })
+function buildGeoJSON(points: PublicPoint[]) {
+  return {
+    type: 'FeatureCollection' as const,
+    features: points.map(p => ({
+      type: 'Feature' as const,
+      geometry: { type: 'Point' as const, coordinates: [p.lng, p.lat] as [number, number] },
+      properties: {
+        nombre: p.nombre,
+        distancia: p.distancia,
+        materiales: JSON.stringify(p.materiales ?? []),
+      },
+    })),
+  }
 }
 
-watch(filteredPoints, renderPoints)
+function syncPoints() {
+  if (!map || !mapStyleLoaded) return
+  const src = map.getSource('recycling') as maplibregl.GeoJSONSource | undefined
+  src?.setData(buildGeoJSON(filteredPoints.value))
+}
+
+watch(filteredPoints, syncPoints)
 
 async function fetchPoints(lat: number, lng: number) {
   if (!isWithinLima(lat, lng)) {
@@ -112,9 +102,9 @@ function useMyLocation() {
   navigator.geolocation.getCurrentPosition(
     pos => {
       geoError.value = false
-      const { latitude: lat, longitude: longitude } = pos.coords
-      map?.setView([lat, longitude], 15, { animate: true })
-      fetchPoints(lat, longitude)
+      const { latitude: lat, longitude: lng } = pos.coords
+      map?.flyTo({ center: [lng, lat], zoom: 15 })
+      fetchPoints(lat, lng)
     },
     () => { geoError.value = true },
     { timeout: 10000 }
@@ -141,28 +131,78 @@ function toggleMaterial(m: Material) {
 
 function zoomIn() { map?.zoomIn() }
 function zoomOut() { map?.zoomOut() }
-function resetView() { map?.setView(LIMA_CENTER, 13) }
+function resetView() { map?.flyTo({ center: LIMA_CENTER, zoom: 13 }) }
 
 onMounted(() => {
   if (!mapContainer.value) return
-  map = L.map(mapContainer.value, {
+
+  map = new maplibregl.Map({
+    container: mapContainer.value,
+    style: 'https://tiles.openfreemap.org/styles/liberty',
     center: LIMA_CENTER,
     zoom: 13,
-    zoomControl: false,
-    attributionControl: true,
   })
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    maxZoom: 19,
-  }).addTo(map)
-  pointsLayer = L.layerGroup().addTo(map)
+
+  map.on('load', () => {
+    mapStyleLoaded = true
+
+    map!.addSource('recycling', {
+      type: 'geojson',
+      data: buildGeoJSON(filteredPoints.value),
+    })
+
+    map!.addLayer({
+      id: 'recycling-circles',
+      type: 'circle',
+      source: 'recycling',
+      paint: {
+        'circle-radius': 9,
+        'circle-color': '#16a34a',
+        'circle-stroke-width': 2,
+        'circle-stroke-color': '#ffffff',
+        'circle-opacity': 0.85,
+      },
+    })
+
+    map!.on('click', 'recycling-circles', e => {
+      const f = e.features?.[0]
+      if (!f) return
+      const coords = (f.geometry as { type: 'Point'; coordinates: [number, number] }).coordinates
+      const p = f.properties ?? {}
+      const mats: string[] = JSON.parse((p['materiales'] as string | null) ?? '[]')
+      const matsStr = mats.length ? mats.join(', ') : 'No especificado'
+      const rawDist = p['distancia'] as number | null
+      const dist = rawDist === null
+        ? 'distancia no disponible'
+        : rawDist < 1000
+          ? `${Math.round(rawDist)} m`
+          : `${(rawDist / 1000).toFixed(1)} km`
+
+      new maplibregl.Popup({ maxWidth: '260px', offset: 12 })
+        .setLngLat(coords)
+        .setHTML(`<div style="font-size:13px;min-width:160px">
+          <strong style="font-size:14px;display:block;margin-bottom:2px">${p['nombre'] as string}</strong>
+          <span style="color:#6b7280;font-size:12px">📍 ${dist} de distancia</span>
+          <hr style="margin:6px 0;border-color:#e5e7eb">
+          <span style="font-size:12px"><strong>Acepta:</strong> ${matsStr}</span>
+        </div>`)
+        .addTo(map!)
+    })
+
+    map!.on('mouseenter', 'recycling-circles', () => {
+      map!.getCanvas().style.cursor = 'pointer'
+    })
+    map!.on('mouseleave', 'recycling-circles', () => {
+      map!.getCanvas().style.cursor = ''
+    })
+  })
 })
 
 onUnmounted(() => {
   if (debounceTimer) clearTimeout(debounceTimer)
   map?.remove()
   map = null
-  pointsLayer = null
+  mapStyleLoaded = false
 })
 </script>
 
