@@ -43,7 +43,6 @@ onMounted(() => {
 
 <template>
   <div class="flex flex-col h-[calc(100vh-56px)]">
-
     <!-- Banner datos de demostración -->
     <div
       v-if="isDemoData"
@@ -58,25 +57,25 @@ onMounted(() => {
     <!-- Tab bar (solo móvil) -->
     <nav class="lg:hidden flex border-b border-border bg-white flex-shrink-0">
       <button
-        @click="activeTab = 'filtros'"
         :class="['flex-1 py-2.5 flex flex-col items-center gap-0.5 text-xs font-medium transition-colors',
-          activeTab === 'filtros' ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground']"
+                 activeTab === 'filtros' ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground']"
+        @click="activeTab = 'filtros'"
       >
         <Filter class="w-4 h-4" />
         Filtros
       </button>
       <button
-        @click="activeTab = 'mapa'"
         :class="['flex-1 py-2.5 flex flex-col items-center gap-0.5 text-xs font-medium transition-colors',
-          activeTab === 'mapa' ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground']"
+                 activeTab === 'mapa' ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground']"
+        @click="activeTab = 'mapa'"
       >
         <MapPin class="w-4 h-4" />
         Mapa
       </button>
       <button
-        @click="activeTab = 'detalle'"
         :class="['flex-1 py-2.5 flex flex-col items-center gap-0.5 text-xs font-medium transition-colors',
-          activeTab === 'detalle' ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground']"
+                 activeTab === 'detalle' ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground']"
+        @click="activeTab = 'detalle'"
       >
         <Info class="w-4 h-4" />
         Detalle
@@ -85,7 +84,6 @@ onMounted(() => {
 
     <!-- Columnas -->
     <div class="flex flex-1 overflow-hidden">
-
       <!-- Sidebar filtros -->
       <div
         class="lg:w-72 lg:flex-shrink-0 h-full overflow-hidden"
@@ -99,7 +97,11 @@ onMounted(() => {
         class="flex-1 min-w-0 h-full"
         :class="activeTab === 'mapa' ? 'flex' : 'hidden lg:flex'"
       >
-        <MapView ref="mapViewRef" class="flex-1" @zone-selected="onZoneSelected" />
+        <MapView
+          ref="mapViewRef"
+          class="flex-1"
+          @zone-selected="onZoneSelected"
+        />
       </div>
 
       <!-- Panel detalle -->
@@ -109,7 +111,6 @@ onMounted(() => {
       >
         <ZoneDetailPanel />
       </div>
-
     </div>
   </div>
 </template>

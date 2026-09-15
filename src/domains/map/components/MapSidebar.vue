@@ -80,43 +80,57 @@ function onZoneSelect(zone: Recommendation) {
 
 <template>
   <aside class="w-full h-full border-r border-border overflow-y-auto bg-white flex flex-col">
-
     <!-- Header -->
     <div class="px-4 py-3 border-b border-border flex items-center gap-2 flex-shrink-0">
       <Filter class="w-4 h-4 text-muted-foreground" />
-      <h2 class="text-sm font-semibold text-foreground">Filtros</h2>
+      <h2 class="text-sm font-semibold text-foreground">
+        Filtros
+      </h2>
     </div>
 
     <!-- Sección filtros -->
     <div class="px-4 py-3 border-b border-border flex-shrink-0 space-y-4">
-
       <!-- Distrito -->
       <div>
-        <p class="text-xs font-medium text-muted-foreground mb-1.5">Distrito</p>
+        <p class="text-xs font-medium text-muted-foreground mb-1.5">
+          Distrito
+        </p>
         <select
           v-model="localDistrict"
           class="w-full border border-border rounded-md px-2 py-1.5 text-sm text-foreground bg-white focus:outline-none focus:border-primary"
         >
-          <option value="">Todos los distritos</option>
+          <option value="">
+            Todos los distritos
+          </option>
           <option
             v-for="d in mapStore.districts"
             :key="d.district_id"
             :value="d.district_name"
-          >{{ d.district_name }}</option>
+          >
+            {{ d.district_name }}
+          </option>
         </select>
       </div>
 
       <!-- Material (puntos de reciclaje) -->
       <div>
-        <p class="text-xs font-medium text-muted-foreground mb-1.5">Material aceptado</p>
+        <p class="text-xs font-medium text-muted-foreground mb-1.5">
+          Material aceptado
+        </p>
         <select
           :value="mapStore.selectedMaterial"
-          @change="mapStore.setMaterial(($event.target as HTMLSelectElement).value)"
           :disabled="mapStore.loadingPoints"
           class="w-full border border-border rounded-md px-2 py-1.5 text-sm text-foreground bg-white focus:outline-none focus:border-primary disabled:opacity-60"
+          @change="mapStore.setMaterial(($event.target as HTMLSelectElement).value)"
         >
-          <option value="">Todos los materiales</option>
-          <option v-for="m in MATERIALS" :key="m" :value="m">
+          <option value="">
+            Todos los materiales
+          </option>
+          <option
+            v-for="m in MATERIALS"
+            :key="m"
+            :value="m"
+          >
             {{ m.charAt(0).toUpperCase() + m.slice(1) }}
           </option>
         </select>
@@ -127,14 +141,19 @@ function onZoneSelect(zone: Recommendation) {
         >
           Sin puntos con ese material en el mapa actual.
         </p>
-        <p v-else-if="mapStore.loadingPoints && mapStore.selectedMaterial" class="text-xs text-muted-foreground mt-1.5">
+        <p
+          v-else-if="mapStore.loadingPoints && mapStore.selectedMaterial"
+          class="text-xs text-muted-foreground mt-1.5"
+        >
           Cargando puntos…
         </p>
       </div>
 
       <!-- Prioridad -->
       <div>
-        <p class="text-xs font-medium text-muted-foreground mb-1.5">Prioridad</p>
+        <p class="text-xs font-medium text-muted-foreground mb-1.5">
+          Prioridad
+        </p>
         <div class="space-y-1.5">
           <label
             v-for="p in ALL_PRIORITIES"
@@ -144,9 +163,9 @@ function onZoneSelect(zone: Recommendation) {
             <input
               type="checkbox"
               :checked="localPriorities.includes(p)"
-              @change="togglePriority(p)"
               class="accent-primary"
-            />
+              @change="togglePriority(p)"
+            >
             <span
               class="w-2 h-2 rounded-full flex-shrink-0"
               :class="p === 'Alta' ? 'bg-green-600' : p === 'Media' ? 'bg-yellow-500' : 'bg-gray-400'"
@@ -159,18 +178,25 @@ function onZoneSelect(zone: Recommendation) {
       <!-- Más filtros (NSE + Capas) -->
       <div>
         <button
-          @click="showMoreFilters = !showMoreFilters"
           class="flex items-center gap-1 text-xs text-primary hover:underline transition-colors"
+          @click="showMoreFilters = !showMoreFilters"
         >
-          <component :is="showMoreFilters ? ChevronUp : ChevronDown" class="w-3.5 h-3.5" />
+          <component
+            :is="showMoreFilters ? ChevronUp : ChevronDown"
+            class="w-3.5 h-3.5"
+          />
           Más filtros
         </button>
 
-        <div v-if="showMoreFilters" class="mt-2.5 space-y-4">
-
+        <div
+          v-if="showMoreFilters"
+          class="mt-2.5 space-y-4"
+        >
           <!-- NSE -->
           <div>
-            <p class="text-xs font-medium text-muted-foreground mb-1.5">NSE</p>
+            <p class="text-xs font-medium text-muted-foreground mb-1.5">
+              NSE
+            </p>
             <div class="flex gap-3">
               <label
                 v-for="n in NSE_OPTIONS"
@@ -180,9 +206,9 @@ function onZoneSelect(zone: Recommendation) {
                 <input
                   type="checkbox"
                   :checked="localNSE.includes(n)"
-                  @change="toggleNSE(n)"
                   class="accent-primary"
-                />
+                  @change="toggleNSE(n)"
+                >
                 <span class="text-sm text-foreground">{{ n }}</span>
               </label>
             </div>
@@ -190,15 +216,25 @@ function onZoneSelect(zone: Recommendation) {
 
           <!-- Capas del mapa -->
           <div>
-            <p class="text-xs font-medium text-muted-foreground mb-1.5">Capas del mapa</p>
+            <p class="text-xs font-medium text-muted-foreground mb-1.5">
+              Capas del mapa
+            </p>
             <div class="space-y-1.5">
               <label class="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" v-model="mapStore.showZones" class="accent-primary" />
+                <input
+                  v-model="mapStore.showZones"
+                  type="checkbox"
+                  class="accent-primary"
+                >
                 <span class="w-2 h-2 rounded-full flex-shrink-0 bg-green-600" />
                 <span class="text-sm text-foreground">Zonas recomendadas</span>
               </label>
               <label class="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" v-model="mapStore.showPoints" class="accent-primary" />
+                <input
+                  v-model="mapStore.showPoints"
+                  type="checkbox"
+                  class="accent-primary"
+                >
                 <span class="w-2 h-2 rounded-full flex-shrink-0 bg-blue-500" />
                 <span class="text-sm text-foreground">Puntos existentes</span>
               </label>
@@ -206,40 +242,60 @@ function onZoneSelect(zone: Recommendation) {
               <div class="pt-1.5 border-t border-border/60">
                 <label class="flex items-center gap-2 cursor-pointer">
                   <input
-                    type="checkbox"
                     v-model="mapStore.showHeatmap"
-                    @change="onToggleHeatmap"
+                    type="checkbox"
                     class="accent-primary"
+                    @change="onToggleHeatmap"
+                  >
+                  <span
+                    class="w-2 h-2 rounded-sm flex-shrink-0"
+                    style="background: linear-gradient(to right, #16a34a, #eab308, #dc2626)"
                   />
-                  <span class="w-2 h-2 rounded-sm flex-shrink-0"
-                    style="background: linear-gradient(to right, #16a34a, #eab308, #dc2626)" />
                   <span class="text-sm text-foreground">Mapa de calor</span>
                 </label>
-                <div v-if="mapStore.showHeatmap" class="mt-1.5 ml-5 space-y-1">
+                <div
+                  v-if="mapStore.showHeatmap"
+                  class="mt-1.5 ml-5 space-y-1"
+                >
                   <select
                     v-model="mapStore.heatmapMetric"
-                    @change="onHeatmapMetricChange"
                     class="w-full border border-border rounded-md px-2 py-1 text-xs text-foreground bg-white focus:outline-none focus:border-primary"
+                    @change="onHeatmapMetricChange"
                   >
-                    <option value="density">Densidad poblacional</option>
-                    <option value="priority">Prioridad ML</option>
-                    <option value="gap">Brecha de cobertura</option>
+                    <option value="density">
+                      Densidad poblacional
+                    </option>
+                    <option value="priority">
+                      Prioridad ML
+                    </option>
+                    <option value="gap">
+                      Brecha de cobertura
+                    </option>
                   </select>
-                  <p v-if="mapStore.loadingHeatmap" class="text-xs text-muted-foreground">Cargando…</p>
-                  <p v-if="mapStore.heatmapError" class="text-xs text-red-500">{{ mapStore.heatmapError }}</p>
+                  <p
+                    v-if="mapStore.loadingHeatmap"
+                    class="text-xs text-muted-foreground"
+                  >
+                    Cargando…
+                  </p>
+                  <p
+                    v-if="mapStore.heatmapError"
+                    class="text-xs text-red-500"
+                  >
+                    {{ mapStore.heatmapError }}
+                  </p>
                 </div>
               </div>
             </div>
           </div>
-
         </div>
       </div>
 
       <!-- Acción limpiar -->
       <div>
         <button
-          @click="clearFilters"
           class="flex items-center gap-1.5 border border-border rounded px-3 py-1 text-sm text-foreground hover:bg-secondary transition-colors"
+          @click="clearFilters"
         >
           <X class="w-3.5 h-3.5" />
           Limpiar filtros
@@ -258,14 +314,23 @@ function onZoneSelect(zone: Recommendation) {
 
     <!-- Lista de zonas -->
     <div class="flex-1 overflow-y-auto">
-      <div v-if="recStore.loading" class="space-y-2 p-3">
-        <div v-for="i in 5" :key="i" class="h-16 bg-gray-100 rounded animate-pulse" />
+      <div
+        v-if="recStore.loading"
+        class="space-y-2 p-3"
+      >
+        <div
+          v-for="i in 5"
+          :key="i"
+          class="h-16 bg-gray-100 rounded animate-pulse"
+        />
       </div>
       <div
         v-else-if="!recStore.filteredRecommendations.length"
         class="flex flex-col items-center justify-center h-32 text-center p-4"
       >
-        <p class="text-sm text-muted-foreground">No hay zonas con los filtros seleccionados</p>
+        <p class="text-sm text-muted-foreground">
+          No hay zonas con los filtros seleccionados
+        </p>
       </div>
       <template v-else>
         <ZoneCard
@@ -277,6 +342,5 @@ function onZoneSelect(zone: Recommendation) {
         />
       </template>
     </div>
-
   </aside>
 </template>

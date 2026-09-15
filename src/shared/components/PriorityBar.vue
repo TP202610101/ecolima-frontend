@@ -7,7 +7,10 @@
         :style="{ width: `${Math.min(Math.max(value, 0), 1) * 100}%` }"
       />
     </div>
-    <span v-if="showLabel" class="text-sm font-bold text-foreground w-12 text-right">{{ label }}</span>
+    <span
+      v-if="showLabel"
+      class="text-sm font-bold text-foreground w-12 text-right"
+    >{{ label }}</span>
   </div>
 </template>
 

@@ -168,7 +168,6 @@ onUnmounted(() => {
 
 <template>
   <div class="h-full flex flex-col">
-
     <!-- Cabecera pública -->
     <header class="flex items-center justify-between px-4 py-2.5 bg-white border-b border-gray-200 flex-shrink-0">
       <div class="flex items-center gap-3 min-w-0">
@@ -179,7 +178,9 @@ onUnmounted(() => {
           <span class="text-base font-bold text-gray-900 tracking-tight">EcoLima</span>
           <span class="hidden sm:inline text-base font-bold text-gray-900 tracking-tight"> — </span>
           <span class="hidden sm:inline text-sm font-normal text-gray-500">Encuentra dónde reciclar</span>
-          <p class="sm:hidden text-xs text-gray-400 leading-tight mt-0.5">Encuentra dónde reciclar</p>
+          <p class="sm:hidden text-xs text-gray-400 leading-tight mt-0.5">
+            Encuentra dónde reciclar
+          </p>
         </div>
       </div>
       <router-link
@@ -194,7 +195,10 @@ onUnmounted(() => {
 
     <!-- Área del mapa -->
     <div class="flex-1 relative overflow-hidden">
-      <div ref="mapContainer" class="w-full h-full" />
+      <div
+        ref="mapContainer"
+        class="w-full h-full"
+      />
 
       <!-- Alerta geolocalización denegada — encima de los filtros -->
       <div
@@ -218,13 +222,13 @@ onUnmounted(() => {
           <button
             v-for="m in MATERIALS"
             :key="m"
-            @click="toggleMaterial(m)"
             :class="[
               'flex-shrink-0 whitespace-nowrap px-3 py-1 rounded-full text-xs font-medium border shadow-sm transition-colors',
               selectedMaterials.includes(m)
                 ? MATERIAL_ACTIVE_CLASS[m]
                 : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400',
             ]"
+            @click="toggleMaterial(m)"
           >
             {{ m.charAt(0).toUpperCase() + m.slice(1) }}
           </button>
@@ -234,23 +238,23 @@ onUnmounted(() => {
       <!-- Controles de zoom -->
       <div class="absolute right-3 top-3 z-[1000] flex items-center gap-1">
         <button
-          @click="zoomIn"
           class="w-8 h-8 bg-white border border-gray-200 rounded-md shadow text-gray-700 hover:bg-gray-50 flex items-center justify-center transition-colors"
           aria-label="Acercar"
+          @click="zoomIn"
         >
           <Plus class="w-4 h-4" />
         </button>
         <button
-          @click="zoomOut"
           class="w-8 h-8 bg-white border border-gray-200 rounded-md shadow text-gray-700 hover:bg-gray-50 flex items-center justify-center transition-colors"
           aria-label="Alejar"
+          @click="zoomOut"
         >
           <Minus class="w-4 h-4" />
         </button>
         <button
-          @click="resetView"
           class="w-8 h-8 bg-white border border-gray-200 rounded-md shadow text-gray-700 hover:bg-gray-50 flex items-center justify-center transition-colors"
           aria-label="Restablecer vista"
+          @click="resetView"
         >
           <RotateCcw class="w-3.5 h-3.5" />
         </button>
@@ -264,7 +268,9 @@ onUnmounted(() => {
       >
         <div class="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 shadow-sm">
           <AlertCircle class="w-3.5 h-3.5 text-red-500 flex-shrink-0 mt-0.5" />
-          <p class="text-xs text-red-700">{{ error }}</p>
+          <p class="text-xs text-red-700">
+            {{ error }}
+          </p>
         </div>
       </div>
 
@@ -297,23 +303,22 @@ onUnmounted(() => {
       <!-- Botones de acción -->
       <div class="absolute bottom-20 sm:bottom-8 left-1/2 -translate-x-1/2 z-[1000] flex flex-col items-center gap-2">
         <button
-          @click="searchHere"
           :disabled="loading"
           class="flex items-center gap-2 px-5 py-3 bg-white border border-gray-300 rounded-full text-sm font-medium text-gray-700 shadow-md hover:shadow-lg hover:bg-gray-50 transition-all disabled:opacity-50"
+          @click="searchHere"
         >
           <Search class="w-4 h-4" />
           Buscar en esta zona
         </button>
         <button
-          @click="useMyLocation"
           :disabled="loading"
           class="flex items-center gap-2 px-5 py-3 bg-green-600 text-white rounded-full text-sm font-medium shadow-md hover:bg-green-700 transition-all disabled:opacity-50"
+          @click="useMyLocation"
         >
           <Navigation class="w-4 h-4" />
           Usar mi ubicación
         </button>
       </div>
-
     </div>
   </div>
 </template>

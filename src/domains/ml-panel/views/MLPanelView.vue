@@ -389,10 +389,11 @@ onUnmounted(() => {
 <template>
   <div class="flex-1 overflow-auto bg-gray-50">
     <div class="max-w-7xl mx-auto p-4 sm:p-8 space-y-8">
-
       <!-- Header -->
       <div>
-        <h1 class="text-2xl font-bold text-foreground">Panel ML</h1>
+        <h1 class="text-2xl font-bold text-foreground">
+          Panel ML
+        </h1>
         <p class="text-sm text-muted-foreground mt-1">
           Gestión del modelo de Machine Learning y dataset
         </p>
@@ -400,41 +401,57 @@ onUnmounted(() => {
 
       <!-- ── Estado del modelo ─────────────────────────────────────────────── -->
       <section class="space-y-4">
-
         <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-          <h2 class="text-lg font-semibold text-foreground flex-1">Estado del modelo</h2>
+          <h2 class="text-lg font-semibold text-foreground flex-1">
+            Estado del modelo
+          </h2>
           <button
             v-if="isAdmin"
-            @click="handleUpdate"
             :disabled="isBusy"
             title="Recalcula cobertura y re-ejecuta el modelo; muestra qué zonas cambiaron"
             class="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 border border-primary text-primary text-sm font-medium rounded-md hover:bg-accent transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            @click="handleUpdate"
           >
-            <span v-if="mlStore.updating" class="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            <Layers v-else class="w-4 h-4" />
+            <span
+              v-if="mlStore.updating"
+              class="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"
+            />
+            <Layers
+              v-else
+              class="w-4 h-4"
+            />
             {{ mlStore.updating ? 'Actualizando...' : 'Actualizar recomendaciones' }}
           </button>
           <button
             v-if="isAdmin"
-            @click="handleRecalculate"
             :disabled="isBusy"
             title="Actualiza las zonas recomendadas y la cobertura según los puntos actuales"
             class="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 border border-primary text-primary text-sm font-medium rounded-md hover:bg-accent transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            @click="handleRecalculate"
           >
-            <span v-if="mlStore.recalculating" class="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            <RefreshCw v-else class="w-4 h-4" />
+            <span
+              v-if="mlStore.recalculating"
+              class="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"
+            />
+            <RefreshCw
+              v-else
+              class="w-4 h-4"
+            />
             {{ mlStore.recalculating ? 'Recalculando...' : 'Recalcular cobertura' }}
           </button>
           <button
-            @click="mlStore.runInference()"
             :disabled="isBusy"
             class="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-primary-hover transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            @click="mlStore.runInference()"
           >
             <span
               v-if="mlStore.inferring"
               class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
             />
-            <RefreshCw v-else class="w-4 h-4" />
+            <RefreshCw
+              v-else
+              class="w-4 h-4"
+            />
             {{ mlStore.inferring ? 'Ejecutando...' : 'Ejecutar inferencia' }}
           </button>
         </div>
@@ -474,8 +491,13 @@ onUnmounted(() => {
         </div>
 
         <!-- Error de inferencia -->
-        <div v-if="mlStore.inferenceError" class="p-3 bg-red-50 border border-red-200 rounded-lg">
-          <p class="text-sm text-red-700">{{ mlStore.inferenceError }}</p>
+        <div
+          v-if="mlStore.inferenceError"
+          class="p-3 bg-red-50 border border-red-200 rounded-lg"
+        >
+          <p class="text-sm text-red-700">
+            {{ mlStore.inferenceError }}
+          </p>
         </div>
 
         <!-- Resultado de actualizar recomendaciones -->
@@ -487,7 +509,9 @@ onUnmounted(() => {
           <div class="flex items-start justify-between gap-2">
             <div class="flex-1 min-w-0">
               <template v-if="mlStore.updateResult">
-                <p class="text-sm font-semibold text-blue-800">✓ Recomendaciones actualizadas</p>
+                <p class="text-sm font-semibold text-blue-800">
+                  ✓ Recomendaciones actualizadas
+                </p>
                 <p class="text-xs text-blue-700 mt-0.5">
                   <span class="font-medium">{{ mlStore.updateResult.newZones.length }}</span> zonas nuevas ·
                   <span class="font-medium">{{ mlStore.updateResult.retiredZones.length }}</span> retiradas ·
@@ -495,22 +519,26 @@ onUnmounted(() => {
                 </p>
               </template>
               <template v-else>
-                <p class="text-sm font-semibold text-red-800">Error al actualizar recomendaciones</p>
-                <p class="text-xs text-red-700 mt-0.5">{{ mlStore.updateError }}</p>
+                <p class="text-sm font-semibold text-red-800">
+                  Error al actualizar recomendaciones
+                </p>
+                <p class="text-xs text-red-700 mt-0.5">
+                  {{ mlStore.updateError }}
+                </p>
               </template>
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
               <button
                 v-if="mlStore.updateResult && (mlStore.updateResult.newZones.length || mlStore.updateResult.retiredZones.length)"
-                @click="showUpdateDetail = !showUpdateDetail"
                 class="text-xs text-blue-600 hover:underline whitespace-nowrap"
+                @click="showUpdateDetail = !showUpdateDetail"
               >
                 {{ showUpdateDetail ? 'Ocultar' : 'Ver detalle' }}
               </button>
               <button
-                @click="mlStore.updateResult = null; mlStore.updateError = null; showUpdateDetail = false"
                 class="p-1 rounded hover:bg-black/10 transition-colors"
                 aria-label="Cerrar"
+                @click="mlStore.updateResult = null; mlStore.updateError = null; showUpdateDetail = false"
               >
                 <X class="w-3.5 h-3.5 opacity-50" />
               </button>
@@ -518,7 +546,10 @@ onUnmounted(() => {
           </div>
 
           <!-- Detalle expandible: nuevas y retiradas -->
-          <div v-if="showUpdateDetail && mlStore.updateResult" class="space-y-3 pt-1 border-t border-blue-200">
+          <div
+            v-if="showUpdateDetail && mlStore.updateResult"
+            class="space-y-3 pt-1 border-t border-blue-200"
+          >
             <div v-if="mlStore.updateResult.newZones.length">
               <p class="text-xs font-semibold text-blue-800 mb-1">
                 Nuevas recomendadas ({{ mlStore.updateResult.newZones.length }}):
@@ -529,7 +560,10 @@ onUnmounted(() => {
                   :key="z.zoneId"
                   class="flex items-center gap-2 text-xs text-blue-700"
                 >
-                  <span class="w-2 h-2 rounded-full flex-shrink-0" :class="priorityDot(z.priorityLabel)" />
+                  <span
+                    class="w-2 h-2 rounded-full flex-shrink-0"
+                    :class="priorityDot(z.priorityLabel)"
+                  />
                   {{ z.districtName }} — Zona {{ z.zoneId }}
                   <span class="text-blue-500">({{ z.priorityLabel }})</span>
                 </li>
@@ -545,7 +579,10 @@ onUnmounted(() => {
                   :key="z.zoneId"
                   class="flex items-center gap-2 text-xs text-blue-500 line-through"
                 >
-                  <span class="w-2 h-2 rounded-full flex-shrink-0 opacity-50" :class="priorityDot(z.priorityLabel)" />
+                  <span
+                    class="w-2 h-2 rounded-full flex-shrink-0 opacity-50"
+                    :class="priorityDot(z.priorityLabel)"
+                  />
                   {{ z.districtName }} — Zona {{ z.zoneId }}
                   <span>({{ z.priorityLabel }})</span>
                 </li>
@@ -568,7 +605,9 @@ onUnmounted(() => {
         >
           <div class="flex-1 min-w-0">
             <template v-if="mlStore.recalculateResult">
-              <p class="text-sm font-semibold text-green-800">✓ Cobertura recalculada</p>
+              <p class="text-sm font-semibold text-green-800">
+                ✓ Cobertura recalculada
+              </p>
               <p class="text-xs text-green-700 mt-0.5">
                 {{ mlStore.recalculateResult.is_suitable.updated_zones }} zonas evaluadas —
                 {{ mlStore.recalculateResult.is_suitable.positive_labels }} aptas,
@@ -576,14 +615,18 @@ onUnmounted(() => {
               </p>
             </template>
             <template v-else>
-              <p class="text-sm font-semibold text-red-800">Error al recalcular cobertura</p>
-              <p class="text-xs text-red-700 mt-0.5">{{ mlStore.recalculateError }}</p>
+              <p class="text-sm font-semibold text-red-800">
+                Error al recalcular cobertura
+              </p>
+              <p class="text-xs text-red-700 mt-0.5">
+                {{ mlStore.recalculateError }}
+              </p>
             </template>
           </div>
           <button
-            @click="mlStore.recalculateResult = null; mlStore.recalculateError = null"
             class="flex-shrink-0 p-1 rounded hover:bg-black/10 transition-colors"
             aria-label="Cerrar"
+            @click="mlStore.recalculateResult = null; mlStore.recalculateError = null"
           >
             <X class="w-3.5 h-3.5 opacity-50" />
           </button>
@@ -634,58 +677,112 @@ onUnmounted(() => {
         <!-- Versiones de modelo disponibles -->
         <div class="bg-white rounded-lg border border-border overflow-hidden">
           <div class="px-6 py-4 border-b border-border flex items-center justify-between gap-3 flex-wrap">
-            <h3 class="text-sm font-semibold text-foreground">Versiones de modelo</h3>
-            <div v-if="isAdmin" class="flex items-center gap-2">
-              <span v-if="mlStore.models.length < 2" class="text-xs text-muted-foreground italic">
+            <h3 class="text-sm font-semibold text-foreground">
+              Versiones de modelo
+            </h3>
+            <div
+              v-if="isAdmin"
+              class="flex items-center gap-2"
+            >
+              <span
+                v-if="mlStore.models.length < 2"
+                class="text-xs text-muted-foreground italic"
+              >
                 Se necesitan al menos 2 versiones para comparar
               </span>
               <template v-else>
-                <span v-if="selectedForCompare.length > 0" class="text-xs text-muted-foreground">
+                <span
+                  v-if="selectedForCompare.length > 0"
+                  class="text-xs text-muted-foreground"
+                >
                   {{ selectedForCompare.length }}/2 seleccionadas
                 </span>
                 <button
-                  @click="handleCompare"
                   :disabled="selectedForCompare.length !== 2 || mlStore.compareFetching"
                   class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  @click="handleCompare"
                 >
-                  <span v-if="mlStore.compareFetching" class="w-3 h-3 border border-gray-500 border-t-transparent rounded-full animate-spin" />
-                  <ArrowLeftRight v-else class="w-3.5 h-3.5" />
+                  <span
+                    v-if="mlStore.compareFetching"
+                    class="w-3 h-3 border border-gray-500 border-t-transparent rounded-full animate-spin"
+                  />
+                  <ArrowLeftRight
+                    v-else
+                    class="w-3.5 h-3.5"
+                  />
                   Comparar seleccionadas
                 </button>
               </template>
             </div>
           </div>
 
-          <div v-if="mlStore.compareError" class="px-6 py-3 bg-red-50 border-b border-red-100">
-            <p class="text-xs text-red-700">{{ mlStore.compareError }}</p>
+          <div
+            v-if="mlStore.compareError"
+            class="px-6 py-3 bg-red-50 border-b border-red-100"
+          >
+            <p class="text-xs text-red-700">
+              {{ mlStore.compareError }}
+            </p>
           </div>
 
-          <div v-if="mlStore.error" class="px-6 py-3 bg-red-50 border-b border-red-100">
-            <p class="text-xs text-red-700">{{ mlStore.error }}</p>
+          <div
+            v-if="mlStore.error"
+            class="px-6 py-3 bg-red-50 border-b border-red-100"
+          >
+            <p class="text-xs text-red-700">
+              {{ mlStore.error }}
+            </p>
           </div>
 
-          <div v-if="mlStore.loading" class="p-4 space-y-3">
-            <div v-for="i in 3" :key="i" class="h-10 bg-gray-100 rounded animate-pulse" />
+          <div
+            v-if="mlStore.loading"
+            class="p-4 space-y-3"
+          >
+            <div
+              v-for="i in 3"
+              :key="i"
+              class="h-10 bg-gray-100 rounded animate-pulse"
+            />
           </div>
 
           <div
             v-else-if="!mlStore.models.length"
             class="flex flex-col items-center justify-center py-10 text-center"
           >
-            <p class="text-sm text-muted-foreground">No hay versiones de modelo disponibles</p>
+            <p class="text-sm text-muted-foreground">
+              No hay versiones de modelo disponibles
+            </p>
           </div>
 
-          <div v-else class="overflow-x-auto">
+          <div
+            v-else
+            class="overflow-x-auto"
+          >
             <table class="w-full text-sm">
               <thead>
                 <tr class="border-b border-border bg-gray-50">
-                  <th v-if="isAdmin && mlStore.models.length >= 2" class="px-3 py-3 w-8" />
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Versión</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Entrenado</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Accuracy</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">F1</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Estado</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Acción</th>
+                  <th
+                    v-if="isAdmin && mlStore.models.length >= 2"
+                    class="px-3 py-3 w-8"
+                  />
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Versión
+                  </th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Entrenado
+                  </th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Accuracy
+                  </th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    F1
+                  </th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Estado
+                  </th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Acción
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -694,37 +791,57 @@ onUnmounted(() => {
                   :key="m.version_name"
                   class="border-b border-border hover:bg-secondary transition-colors last:border-0"
                 >
-                  <td v-if="isAdmin && mlStore.models.length >= 2" class="px-3 py-3">
+                  <td
+                    v-if="isAdmin && mlStore.models.length >= 2"
+                    class="px-3 py-3"
+                  >
                     <input
                       type="checkbox"
                       :checked="selectedForCompare.includes(m.version_name)"
                       :disabled="selectedForCompare.length >= 2 && !selectedForCompare.includes(m.version_name)"
-                      @change="toggleCompareSelect(m.version_name)"
                       class="accent-primary cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
-                    />
+                      @change="toggleCompareSelect(m.version_name)"
+                    >
                   </td>
-                  <td class="px-4 py-3 font-mono text-xs text-foreground">{{ m.version_name }}</td>
-                  <td class="px-4 py-3 text-muted-foreground">{{ fmtDate(m.training_date) }}</td>
-                  <td class="px-4 py-3 text-foreground">{{ fmtPct(m.metrics?.accuracy) }}</td>
-                  <td class="px-4 py-3 text-foreground">{{ fmtPct(m.metrics?.f1) }}</td>
+                  <td class="px-4 py-3 font-mono text-xs text-foreground">
+                    {{ m.version_name }}
+                  </td>
+                  <td class="px-4 py-3 text-muted-foreground">
+                    {{ fmtDate(m.training_date) }}
+                  </td>
+                  <td class="px-4 py-3 text-foreground">
+                    {{ fmtPct(m.metrics?.accuracy) }}
+                  </td>
+                  <td class="px-4 py-3 text-foreground">
+                    {{ fmtPct(m.metrics?.f1) }}
+                  </td>
                   <td class="px-4 py-3">
                     <span
                       v-if="m.is_active"
                       class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
                     >Activo</span>
-                    <span v-else class="text-xs text-muted-foreground">—</span>
+                    <span
+                      v-else
+                      class="text-xs text-muted-foreground"
+                    >—</span>
                   </td>
                   <td class="px-4 py-3">
                     <button
                       v-if="!m.is_active"
-                      @click="handleActivate(m.version_name)"
                       :disabled="mlStore.activatingVersion !== null || mlStore.inferring"
                       class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      @click="handleActivate(m.version_name)"
                     >
-                      <span v-if="mlStore.activatingVersion === m.version_name" class="w-3 h-3 border border-gray-500 border-t-transparent rounded-full animate-spin" />
+                      <span
+                        v-if="mlStore.activatingVersion === m.version_name"
+                        class="w-3 h-3 border border-gray-500 border-t-transparent rounded-full animate-spin"
+                      />
                       {{ mlStore.activatingVersion === m.version_name ? 'Activando…' : 'Activar' }}
                     </button>
-                    <span v-else class="text-xs text-muted-foreground">—</span>
+                    <span
+                      v-else
+                      class="text-xs text-muted-foreground"
+                    >—</span>
                   </td>
                 </tr>
               </tbody>
@@ -738,14 +855,22 @@ onUnmounted(() => {
             v-if="showCompareModal && mlStore.compareResult"
             class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
           >
-            <div class="absolute inset-0 bg-black/50" @click="closeCompareModal" />
+            <div
+              class="absolute inset-0 bg-black/50"
+              @click="closeCompareModal"
+            />
             <div class="relative bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <div class="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-white">
                 <div class="flex items-center gap-2">
                   <ArrowLeftRight class="w-4 h-4 text-muted-foreground" />
-                  <h2 class="text-sm font-semibold text-foreground">Comparación de versiones</h2>
+                  <h2 class="text-sm font-semibold text-foreground">
+                    Comparación de versiones
+                  </h2>
                 </div>
-                <button @click="closeCompareModal" class="text-muted-foreground hover:text-foreground transition-colors">
+                <button
+                  class="text-muted-foreground hover:text-foreground transition-colors"
+                  @click="closeCompareModal"
+                >
                   <X class="w-4 h-4" />
                 </button>
               </div>
@@ -754,14 +879,22 @@ onUnmounted(() => {
                 <table class="w-full text-sm border border-border rounded-md overflow-hidden">
                   <thead>
                     <tr class="bg-gray-50 border-b border-border">
-                      <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider w-32">Métrica</th>
+                      <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider w-32">
+                        Métrica
+                      </th>
                       <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         <span class="font-mono">{{ mlStore.compareResult.a.version_name }}</span>
-                        <span v-if="mlStore.compareResult.a.is_active" class="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Activo</span>
+                        <span
+                          v-if="mlStore.compareResult.a.is_active"
+                          class="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                        >Activo</span>
                       </th>
                       <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         <span class="font-mono">{{ mlStore.compareResult.b.version_name }}</span>
-                        <span v-if="mlStore.compareResult.b.is_active" class="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Activo</span>
+                        <span
+                          v-if="mlStore.compareResult.b.is_active"
+                          class="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                        >Activo</span>
                       </th>
                     </tr>
                   </thead>
@@ -771,7 +904,9 @@ onUnmounted(() => {
                       :key="m.key"
                       class="border-b border-border last:border-0"
                     >
-                      <td class="px-4 py-3 text-xs font-medium text-muted-foreground">{{ m.label }}</td>
+                      <td class="px-4 py-3 text-xs font-medium text-muted-foreground">
+                        {{ m.label }}
+                      </td>
                       <td
                         class="px-4 py-3 text-center font-mono text-sm"
                         :class="{
@@ -801,9 +936,15 @@ onUnmounted(() => {
                     </tr>
                     <!-- Training date — informational only -->
                     <tr class="bg-gray-50/50">
-                      <td class="px-4 py-3 text-xs font-medium text-muted-foreground">Entrenado</td>
-                      <td class="px-4 py-3 text-center text-xs text-muted-foreground">{{ fmtDate(mlStore.compareResult.a.training_date) }}</td>
-                      <td class="px-4 py-3 text-center text-xs text-muted-foreground">{{ fmtDate(mlStore.compareResult.b.training_date) }}</td>
+                      <td class="px-4 py-3 text-xs font-medium text-muted-foreground">
+                        Entrenado
+                      </td>
+                      <td class="px-4 py-3 text-center text-xs text-muted-foreground">
+                        {{ fmtDate(mlStore.compareResult.a.training_date) }}
+                      </td>
+                      <td class="px-4 py-3 text-center text-xs text-muted-foreground">
+                        {{ fmtDate(mlStore.compareResult.b.training_date) }}
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -811,7 +952,6 @@ onUnmounted(() => {
             </div>
           </div>
         </Teleport>
-
       </section>
 
       <!-- ── Dataset ───────────────────────────────────────────────────────── -->
@@ -822,28 +962,47 @@ onUnmounted(() => {
           v-if="showHistoryModal"
           class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
         >
-          <div class="absolute inset-0 bg-black/50" @click="closeHistoryModal" />
+          <div
+            class="absolute inset-0 bg-black/50"
+            @click="closeHistoryModal"
+          />
           <div class="relative bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-
             <div class="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-white">
               <div class="flex items-center gap-2 min-w-0">
                 <History class="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                <h2 class="text-sm font-semibold text-foreground truncate">Historial — {{ historyDatasetName }}</h2>
+                <h2 class="text-sm font-semibold text-foreground truncate">
+                  Historial — {{ historyDatasetName }}
+                </h2>
               </div>
-              <button @click="closeHistoryModal" class="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0 ml-2">
+              <button
+                class="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0 ml-2"
+                @click="closeHistoryModal"
+              >
                 <X class="w-4 h-4" />
               </button>
             </div>
 
             <div class="p-6">
               <!-- Loading -->
-              <div v-if="datasetsStore.loadingHistory" class="space-y-3">
-                <div v-for="i in 4" :key="i" class="h-14 bg-gray-100 rounded animate-pulse" />
+              <div
+                v-if="datasetsStore.loadingHistory"
+                class="space-y-3"
+              >
+                <div
+                  v-for="i in 4"
+                  :key="i"
+                  class="h-14 bg-gray-100 rounded animate-pulse"
+                />
               </div>
 
               <!-- Error -->
-              <div v-else-if="datasetsStore.historyError" class="p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p class="text-sm text-red-700">{{ datasetsStore.historyError }}</p>
+              <div
+                v-else-if="datasetsStore.historyError"
+                class="p-4 bg-red-50 border border-red-200 rounded-lg"
+              >
+                <p class="text-sm text-red-700">
+                  {{ datasetsStore.historyError }}
+                </p>
               </div>
 
               <!-- Vacío -->
@@ -852,11 +1011,16 @@ onUnmounted(() => {
                 class="flex flex-col items-center justify-center py-8 text-center"
               >
                 <History class="w-10 h-10 text-muted-foreground/30 mb-2" />
-                <p class="text-sm text-muted-foreground">Sin acciones registradas para este dataset</p>
+                <p class="text-sm text-muted-foreground">
+                  Sin acciones registradas para este dataset
+                </p>
               </div>
 
               <!-- Timeline -->
-              <div v-else class="relative pl-6">
+              <div
+                v-else
+                class="relative pl-6"
+              >
                 <div class="absolute left-[9px] top-2 bottom-2 w-px bg-border" />
                 <div
                   v-for="(entry, idx) in timelineEntries"
@@ -882,19 +1046,19 @@ onUnmounted(() => {
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       </Teleport>
 
 
       <section class="space-y-4">
-
         <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-          <h2 class="text-lg font-semibold text-foreground flex-1">Dataset</h2>
+          <h2 class="text-lg font-semibold text-foreground flex-1">
+            Dataset
+          </h2>
           <button
-            @click="datasetsStore.openUploader()"
             class="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 border border-primary text-primary text-sm font-medium rounded-md hover:bg-accent transition-colors"
+            @click="datasetsStore.openUploader()"
           >
             <Upload class="w-4 h-4" />
             Subir nuevo dataset (CSV)
@@ -928,13 +1092,21 @@ onUnmounted(() => {
 
         <!-- Tabla historial datasets -->
         <div class="bg-white rounded-lg border border-border overflow-hidden">
-
           <div class="px-6 py-4 border-b border-border">
-            <h3 class="text-sm font-semibold text-foreground">Preview del dataset (últimos 5)</h3>
+            <h3 class="text-sm font-semibold text-foreground">
+              Preview del dataset (últimos 5)
+            </h3>
           </div>
 
-          <div v-if="datasetsStore.loading" class="p-4 space-y-3">
-            <div v-for="i in 5" :key="i" class="h-10 bg-gray-100 rounded animate-pulse" />
+          <div
+            v-if="datasetsStore.loading"
+            class="p-4 space-y-3"
+          >
+            <div
+              v-for="i in 5"
+              :key="i"
+              class="h-10 bg-gray-100 rounded animate-pulse"
+            />
           </div>
 
           <div
@@ -942,19 +1114,36 @@ onUnmounted(() => {
             class="flex flex-col items-center justify-center py-12 text-center"
           >
             <FileText class="w-10 h-10 text-muted-foreground/30 mb-2" />
-            <p class="text-sm text-muted-foreground">No hay datasets subidos aún</p>
+            <p class="text-sm text-muted-foreground">
+              No hay datasets subidos aún
+            </p>
           </div>
 
-          <div v-else class="overflow-x-auto">
+          <div
+            v-else
+            class="overflow-x-auto"
+          >
             <table class="w-full text-sm">
               <thead>
                 <tr class="border-b border-border bg-gray-50">
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">ID</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nombre archivo</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Filas</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Estado</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fecha</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Acciones</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    ID
+                  </th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Nombre archivo
+                  </th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Filas
+                  </th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Estado
+                  </th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Fecha
+                  </th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Acciones
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -963,14 +1152,18 @@ onUnmounted(() => {
                   :key="ds.dataset_id"
                   class="border-b border-border hover:bg-secondary transition-colors last:border-0"
                 >
-                  <td class="px-4 py-4 text-muted-foreground">{{ ds.dataset_id }}</td>
+                  <td class="px-4 py-4 text-muted-foreground">
+                    {{ ds.dataset_id }}
+                  </td>
                   <td class="px-4 py-4">
                     <div class="flex items-center gap-2">
                       <FileText class="w-4 h-4 text-muted-foreground flex-shrink-0" />
                       <span class="font-medium text-foreground truncate max-w-[220px]">{{ ds.filename }}</span>
                     </div>
                   </td>
-                  <td class="px-4 py-4 text-foreground">{{ ds.row_count.toLocaleString('es-PE') }}</td>
+                  <td class="px-4 py-4 text-foreground">
+                    {{ ds.row_count.toLocaleString('es-PE') }}
+                  </td>
                   <td class="px-4 py-4">
                     <span
                       :class="['inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium', datasetStatusClass(ds.status)]"
@@ -978,27 +1171,35 @@ onUnmounted(() => {
                       {{ datasetStatusLabel(ds.status) }}
                     </span>
                   </td>
-                  <td class="px-4 py-4 text-muted-foreground">{{ fmtDate(ds.uploaded_at) }}</td>
+                  <td class="px-4 py-4 text-muted-foreground">
+                    {{ fmtDate(ds.uploaded_at) }}
+                  </td>
                   <td class="px-4 py-4">
                     <div class="flex flex-wrap items-center gap-1">
                       <!-- Validar: pending, invalid o failed -->
                       <button
                         v-if="ds.status === 'pending' || ds.status === 'invalid' || ds.status === 'failed'"
-                        @click="datasetsStore.validateDataset(ds.dataset_id, ds.filename)"
                         :disabled="datasetsStore.validatingId !== null || datasetsStore.committingId !== null"
                         class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        @click="datasetsStore.validateDataset(ds.dataset_id, ds.filename)"
                       >
-                        <span v-if="datasetsStore.validatingId === ds.dataset_id" class="w-3 h-3 border border-gray-500 border-t-transparent rounded-full animate-spin" />
+                        <span
+                          v-if="datasetsStore.validatingId === ds.dataset_id"
+                          class="w-3 h-3 border border-gray-500 border-t-transparent rounded-full animate-spin"
+                        />
                         {{ datasetsStore.validatingId === ds.dataset_id ? 'Validando…' : 'Validar' }}
                       </button>
                       <!-- Confirmar: valid -->
                       <button
                         v-else-if="ds.status === 'valid'"
-                        @click="datasetsStore.commitDataset(ds.dataset_id, ds.filename)"
                         :disabled="datasetsStore.validatingId !== null || datasetsStore.committingId !== null"
                         class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-primary text-white rounded-md hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        @click="datasetsStore.commitDataset(ds.dataset_id, ds.filename)"
                       >
-                        <span v-if="datasetsStore.committingId === ds.dataset_id" class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span
+                          v-if="datasetsStore.committingId === ds.dataset_id"
+                          class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"
+                        />
                         {{ datasetsStore.committingId === ds.dataset_id ? 'Aplicando…' : 'Confirmar' }}
                       </button>
                       <!-- committed: exportar CSV / XLSX -->
@@ -1006,32 +1207,44 @@ onUnmounted(() => {
                         <button
                           v-for="fmt in (['csv', 'xlsx'] as const)"
                           :key="fmt"
-                          @click="handleExport(ds.dataset_id, fmt)"
                           :disabled="exportingId !== null"
                           class="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed uppercase"
+                          @click="handleExport(ds.dataset_id, fmt)"
                         >
-                          <span v-if="exportingId === `${ds.dataset_id}-${fmt}`" class="w-3 h-3 border border-gray-500 border-t-transparent rounded-full animate-spin" />
-                          <Download v-else class="w-3 h-3" />
+                          <span
+                            v-if="exportingId === `${ds.dataset_id}-${fmt}`"
+                            class="w-3 h-3 border border-gray-500 border-t-transparent rounded-full animate-spin"
+                          />
+                          <Download
+                            v-else
+                            class="w-3 h-3"
+                          />
                           {{ fmt }}
                         </button>
                       </template>
                       <!-- Eliminar filas incompletas — solo admin, solo no confirmado -->
                       <button
                         v-if="isAdmin && ds.status !== 'committed'"
-                        @click="handleDeleteIncomplete(ds)"
                         :disabled="datasetsStore.deletingRows !== null"
                         :title="`Eliminar filas sin lat/lon/distrito en ${ds.filename}`"
                         class="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium border border-red-200 text-red-600 rounded-md hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        @click="handleDeleteIncomplete(ds)"
                       >
-                        <span v-if="datasetsStore.deletingRows === ds.dataset_id" class="w-3 h-3 border border-red-400 border-t-transparent rounded-full animate-spin" />
-                        <Trash2 v-else class="w-3 h-3" />
+                        <span
+                          v-if="datasetsStore.deletingRows === ds.dataset_id"
+                          class="w-3 h-3 border border-red-400 border-t-transparent rounded-full animate-spin"
+                        />
+                        <Trash2
+                          v-else
+                          class="w-3 h-3"
+                        />
                         Limpiar
                       </button>
                       <!-- Ver historial -->
                       <button
-                        @click="handleViewHistory(ds)"
                         :title="`Ver historial de acciones de ${ds.filename}`"
                         class="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors"
+                        @click="handleViewHistory(ds)"
                       >
                         <History class="w-3 h-3" />
                         Historial
@@ -1039,13 +1252,19 @@ onUnmounted(() => {
                       <!-- Eliminar dataset — solo no confirmados -->
                       <button
                         v-if="ds.status !== 'committed'"
-                        @click="handleDeleteDataset(ds)"
                         :disabled="datasetsStore.deletingDataset !== null"
                         :title="`Eliminar dataset ${ds.filename} por completo`"
                         class="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        @click="handleDeleteDataset(ds)"
                       >
-                        <span v-if="datasetsStore.deletingDataset === ds.dataset_id" class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        <FileX v-else class="w-3 h-3" />
+                        <span
+                          v-if="datasetsStore.deletingDataset === ds.dataset_id"
+                          class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"
+                        />
+                        <FileX
+                          v-else
+                          class="w-3 h-3"
+                        />
                         Eliminar
                       </button>
                     </div>
@@ -1054,7 +1273,6 @@ onUnmounted(() => {
               </tbody>
             </table>
           </div>
-
         </div>
 
         <!-- Resultado de eliminación de filas -->
@@ -1065,7 +1283,9 @@ onUnmounted(() => {
         >
           <div class="flex-1 min-w-0">
             <template v-if="datasetsStore.deleteRowsResult">
-              <p class="text-sm font-semibold text-green-800">✓ Filas eliminadas correctamente</p>
+              <p class="text-sm font-semibold text-green-800">
+                ✓ Filas eliminadas correctamente
+              </p>
               <p class="text-xs text-green-700 mt-0.5">
                 {{ datasetsStore.deleteRowsResult.deleted_count }} fila{{ datasetsStore.deleteRowsResult.deleted_count !== 1 ? 's' : '' }}
                 eliminada{{ datasetsStore.deleteRowsResult.deleted_count !== 1 ? 's' : '' }} de "{{ datasetsStore.deleteRowsResult.filename }}".
@@ -1074,14 +1294,18 @@ onUnmounted(() => {
               </p>
             </template>
             <template v-else>
-              <p class="text-sm font-semibold text-red-800">Error al eliminar filas</p>
-              <p class="text-xs text-red-700">{{ datasetsStore.deleteRowsError }}</p>
+              <p class="text-sm font-semibold text-red-800">
+                Error al eliminar filas
+              </p>
+              <p class="text-xs text-red-700">
+                {{ datasetsStore.deleteRowsError }}
+              </p>
             </template>
           </div>
           <button
-            @click="datasetsStore.clearDeleteResult()"
             class="flex-shrink-0 p-1 rounded hover:bg-black/10 transition-colors"
             aria-label="Cerrar"
+            @click="datasetsStore.clearDeleteResult()"
           >
             <X class="w-3.5 h-3.5 opacity-50" />
           </button>
@@ -1095,7 +1319,9 @@ onUnmounted(() => {
         >
           <div class="flex-1 min-w-0">
             <template v-if="datasetsStore.editCellsResult">
-              <p class="text-sm font-semibold text-amber-800">✓ Celdas editadas correctamente</p>
+              <p class="text-sm font-semibold text-amber-800">
+                ✓ Celdas editadas correctamente
+              </p>
               <p class="text-xs text-amber-700 mt-0.5">
                 {{ datasetsStore.editCellsResult.edited_count }} celda{{ datasetsStore.editCellsResult.edited_count !== 1 ? 's' : '' }}
                 modificada{{ datasetsStore.editCellsResult.edited_count !== 1 ? 's' : '' }} en "{{ datasetsStore.editCellsResult.filename }}".
@@ -1103,14 +1329,18 @@ onUnmounted(() => {
               </p>
             </template>
             <template v-else>
-              <p class="text-sm font-semibold text-red-800">Error al editar celdas</p>
-              <p class="text-xs text-red-700">{{ datasetsStore.editCellsError }}</p>
+              <p class="text-sm font-semibold text-red-800">
+                Error al editar celdas
+              </p>
+              <p class="text-xs text-red-700">
+                {{ datasetsStore.editCellsError }}
+              </p>
             </template>
           </div>
           <button
-            @click="datasetsStore.clearEditCellsResult()"
             class="flex-shrink-0 p-1 rounded hover:bg-black/10 transition-colors"
             aria-label="Cerrar"
+            @click="datasetsStore.clearEditCellsResult()"
           >
             <X class="w-3.5 h-3.5 opacity-50" />
           </button>
@@ -1121,16 +1351,31 @@ onUnmounted(() => {
           v-if="datasetsStore.deleteDatasetError"
           class="flex items-center justify-between gap-2 p-3 bg-red-50 border border-red-200 rounded-lg"
         >
-          <p class="text-sm text-red-700">{{ datasetsStore.deleteDatasetError }}</p>
-          <button @click="datasetsStore.clearDeleteDatasetError()" class="p-1 rounded hover:bg-black/10 transition-colors flex-shrink-0" aria-label="Cerrar">
+          <p class="text-sm text-red-700">
+            {{ datasetsStore.deleteDatasetError }}
+          </p>
+          <button
+            class="p-1 rounded hover:bg-black/10 transition-colors flex-shrink-0"
+            aria-label="Cerrar"
+            @click="datasetsStore.clearDeleteDatasetError()"
+          >
             <X class="w-3.5 h-3.5 opacity-50" />
           </button>
         </div>
 
         <!-- Error de exportación -->
-        <div v-if="exportError" class="flex items-center justify-between gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <p class="text-sm text-red-700">{{ exportError }}</p>
-          <button @click="exportError = null" class="p-1 rounded hover:bg-black/10 transition-colors" aria-label="Cerrar">
+        <div
+          v-if="exportError"
+          class="flex items-center justify-between gap-2 p-3 bg-red-50 border border-red-200 rounded-lg"
+        >
+          <p class="text-sm text-red-700">
+            {{ exportError }}
+          </p>
+          <button
+            class="p-1 rounded hover:bg-black/10 transition-colors"
+            aria-label="Cerrar"
+            @click="exportError = null"
+          >
             <X class="w-3.5 h-3.5 opacity-50" />
           </button>
         </div>
@@ -1143,19 +1388,26 @@ onUnmounted(() => {
         >
           <div class="flex items-start gap-3">
             <div class="flex-1 min-w-0 space-y-2">
-
               <!-- Resultado de validación -->
               <template v-if="datasetsStore.lastValidation">
-                <p class="text-sm font-semibold" :class="datasetsStore.lastValidation.result.valid ? 'text-green-800' : 'text-red-800'">
+                <p
+                  class="text-sm font-semibold"
+                  :class="datasetsStore.lastValidation.result.valid ? 'text-green-800' : 'text-red-800'"
+                >
                   {{ datasetsStore.lastValidation.result.valid ? '✓ Dataset válido' : '✗ Dataset inválido' }}
                   <span class="font-normal ml-1.5 opacity-70 truncate">{{ datasetsStore.lastValidation.filename }}</span>
                 </p>
-                <p class="text-xs" :class="datasetsStore.lastValidation.result.valid ? 'text-green-700' : 'text-red-700'">
+                <p
+                  class="text-xs"
+                  :class="datasetsStore.lastValidation.result.valid ? 'text-green-700' : 'text-red-700'"
+                >
                   {{ datasetsStore.lastValidation.result.valid_rows.toLocaleString('es-PE') }} filas válidas de {{ datasetsStore.lastValidation.result.row_count.toLocaleString('es-PE') }} totales
                 </p>
                 <!-- Columnas faltantes -->
                 <div v-if="datasetsStore.lastValidation.result.missing_columns.length">
-                  <p class="text-xs font-medium text-red-800 mb-1">Columnas faltantes:</p>
+                  <p class="text-xs font-medium text-red-800 mb-1">
+                    Columnas faltantes:
+                  </p>
                   <div class="flex flex-wrap gap-1">
                     <span
                       v-for="col in datasetsStore.lastValidation.result.missing_columns"
@@ -1165,7 +1417,10 @@ onUnmounted(() => {
                   </div>
                 </div>
                 <!-- Errores de tipo -->
-                <div v-if="datasetsStore.lastValidation.result.type_errors.length" class="space-y-1">
+                <div
+                  v-if="datasetsStore.lastValidation.result.type_errors.length"
+                  class="space-y-1"
+                >
                   <p class="text-xs font-medium text-red-800">
                     Errores de tipo — {{ datasetsStore.lastValidation.result.error_rows }} fila{{ datasetsStore.lastValidation.result.error_rows !== 1 ? 's' : '' }} afectada{{ datasetsStore.lastValidation.result.error_rows !== 1 ? 's' : '' }}:
                   </p>
@@ -1180,82 +1435,108 @@ onUnmounted(() => {
                         <input
                           type="checkbox"
                           :checked="selectedTypeErrors.includes(err.row_index)"
-                          @change="toggleErrorRow(err.row_index)"
                           class="mt-0.5 accent-red-600 flex-shrink-0 cursor-pointer"
-                        />
+                          @change="toggleErrorRow(err.row_index)"
+                        >
                         <span class="flex-1">
                           Fila {{ err.row_index + 1 }} — <span class="font-mono">{{ err.column }}</span>: {{ err.error }}
                         </span>
                         <button
-                          @click="toggleCellEdit(err)"
                           :class="[
                             'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs transition-colors flex-shrink-0',
                             `${err.row_index}|${err.column}` in editingInputs
                               ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
                               : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
                           ]"
+                          @click="toggleCellEdit(err)"
                         >
                           <Pencil class="w-2.5 h-2.5" />
                           {{ `${err.row_index}|${err.column}` in editingInputs ? 'Cancelar' : 'Editar' }}
                         </button>
                       </div>
-                      <div v-if="`${err.row_index}|${err.column}` in editingInputs" class="ml-5 flex items-center gap-2">
+                      <div
+                        v-if="`${err.row_index}|${err.column}` in editingInputs"
+                        class="ml-5 flex items-center gap-2"
+                      >
                         <input
                           :value="editingInputs[`${err.row_index}|${err.column}`]"
-                          @input="editingInputs[`${err.row_index}|${err.column}`] = ($event.target as HTMLInputElement).value"
                           type="text"
                           :placeholder="`Nuevo valor para ${err.column}`"
                           class="flex-1 min-w-0 border border-amber-300 rounded px-2 py-1 text-xs text-foreground bg-amber-50 focus:outline-none focus:border-amber-500"
-                        />
+                          @input="editingInputs[`${err.row_index}|${err.column}`] = ($event.target as HTMLInputElement).value"
+                        >
                         <span class="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">actual: <span class="font-mono">{{ String(err.value ?? '(nulo)') }}</span></span>
                       </div>
                     </div>
                     <!-- Controles eliminar seleccionadas -->
-                    <div v-if="selectedTypeErrors.length > 0" class="pt-2 mt-1 space-y-2 border-t border-red-100">
+                    <div
+                      v-if="selectedTypeErrors.length > 0"
+                      class="pt-2 mt-1 space-y-2 border-t border-red-100"
+                    >
                       <input
                         v-model="deleteReason"
                         type="text"
                         placeholder="Motivo de eliminación (requerido)"
                         maxlength="200"
                         class="w-full border border-red-200 rounded-md px-2 py-1.5 text-xs text-foreground bg-white focus:outline-none focus:border-red-400 placeholder:text-muted-foreground/60"
-                      />
+                      >
                       <div class="flex items-center gap-2 flex-wrap">
                         <button
-                          @click="handleDeleteSelected"
                           :disabled="!deleteReason.trim() || previewingDelete || datasetsStore.deletingRows !== null"
                           class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          @click="handleDeleteSelected"
                         >
-                          <span v-if="previewingDelete" class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          <Trash2 v-else class="w-3 h-3" />
+                          <span
+                            v-if="previewingDelete"
+                            class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"
+                          />
+                          <Trash2
+                            v-else
+                            class="w-3 h-3"
+                          />
                           Eliminar {{ selectedTypeErrors.length }} fila{{ selectedTypeErrors.length !== 1 ? 's' : '' }} seleccionada{{ selectedTypeErrors.length !== 1 ? 's' : '' }}
                         </button>
                         <button
-                          @click="clearSelection"
                           class="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                          @click="clearSelection"
                         >
                           Deseleccionar todo
                         </button>
                       </div>
-                      <p v-if="previewError" class="text-xs text-red-700">{{ previewError }}</p>
+                      <p
+                        v-if="previewError"
+                        class="text-xs text-red-700"
+                      >
+                        {{ previewError }}
+                      </p>
                     </div>
                     <!-- Controles guardar ediciones de celdas -->
-                    <div v-if="Object.keys(editingInputs).length > 0" class="pt-2 mt-1 space-y-1.5 border-t border-amber-100">
+                    <div
+                      v-if="Object.keys(editingInputs).length > 0"
+                      class="pt-2 mt-1 space-y-1.5 border-t border-amber-100"
+                    >
                       <p class="text-xs text-amber-700 font-medium">
                         {{ Object.keys(editingInputs).length }} celda{{ Object.keys(editingInputs).length !== 1 ? 's' : '' }} pendiente{{ Object.keys(editingInputs).length !== 1 ? 's' : '' }} de guardar
                       </p>
                       <div class="flex items-center gap-2 flex-wrap">
                         <button
-                          @click="handleSaveCellEdits"
                           :disabled="datasetsStore.editingCells !== null"
                           class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          @click="handleSaveCellEdits"
                         >
-                          <span v-if="datasetsStore.editingCells !== null" class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          <Save v-else class="w-3 h-3" />
+                          <span
+                            v-if="datasetsStore.editingCells !== null"
+                            class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"
+                          />
+                          <Save
+                            v-else
+                            class="w-3 h-3"
+                          />
                           Guardar {{ Object.keys(editingInputs).length }} edición{{ Object.keys(editingInputs).length !== 1 ? 'es' : '' }}
                         </button>
                         <button
-                          @click="clearCellEdits"
                           class="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                          @click="clearCellEdits"
                         >
                           Cancelar todo
                         </button>
@@ -1271,13 +1552,19 @@ onUnmounted(() => {
                     >
                       Fila {{ err.row_index + 1 }} — <span class="font-mono">{{ err.column }}</span>: {{ err.error }}
                     </p>
-                    <p v-if="datasetsStore.lastValidation.result.type_errors.length > 5" class="text-xs text-red-600 italic">
+                    <p
+                      v-if="datasetsStore.lastValidation.result.type_errors.length > 5"
+                      class="text-xs text-red-600 italic"
+                    >
                       y {{ datasetsStore.lastValidation.result.type_errors.length - 5 }} errores más…
                     </p>
                   </template>
                 </div>
                 <!-- Coordenadas duplicadas dentro del archivo (advertencia, no bloquea validez) -->
-                <div v-if="datasetsStore.lastValidation.result.duplicate_rows?.length" class="space-y-0.5">
+                <div
+                  v-if="datasetsStore.lastValidation.result.duplicate_rows?.length"
+                  class="space-y-0.5"
+                >
                   <p class="text-xs font-medium text-amber-700">
                     Coordenadas repetidas en el archivo — {{ datasetsStore.lastValidation.result.duplicate_rows.length }} grupo{{ datasetsStore.lastValidation.result.duplicate_rows.length !== 1 ? 's' : '' }}:
                   </p>
@@ -1293,36 +1580,47 @@ onUnmounted(() => {
 
               <!-- Resultado de confirmación -->
               <template v-else-if="datasetsStore.lastCommit">
-                <p class="text-sm font-semibold" :class="datasetsStore.lastCommit.result.inserted > 0 ? 'text-green-800' : 'text-orange-800'">
+                <p
+                  class="text-sm font-semibold"
+                  :class="datasetsStore.lastCommit.result.inserted > 0 ? 'text-green-800' : 'text-orange-800'"
+                >
                   {{ datasetsStore.lastCommit.result.inserted > 0 ? '✓ Dataset confirmado' : '⚠ Sin filas insertadas' }}
                   <span class="font-normal ml-1.5 opacity-70">{{ datasetsStore.lastCommit.filename }}</span>
                 </p>
-                <div class="space-y-0.5 text-xs" :class="datasetsStore.lastCommit.result.inserted > 0 ? 'text-green-700' : 'text-orange-700'">
+                <div
+                  class="space-y-0.5 text-xs"
+                  :class="datasetsStore.lastCommit.result.inserted > 0 ? 'text-green-700' : 'text-orange-700'"
+                >
                   <p><strong>{{ datasetsStore.lastCommit.result.inserted.toLocaleString('es-PE') }}</strong> punto{{ datasetsStore.lastCommit.result.inserted !== 1 ? 's' : '' }} de reciclaje insertado{{ datasetsStore.lastCommit.result.inserted !== 1 ? 's' : '' }}</p>
-                  <p v-if="datasetsStore.lastCommit.result.skipped_duplicates > 0">{{ datasetsStore.lastCommit.result.skipped_duplicates }} duplicado{{ datasetsStore.lastCommit.result.skipped_duplicates !== 1 ? 's' : '' }} omitido{{ datasetsStore.lastCommit.result.skipped_duplicates !== 1 ? 's' : '' }}</p>
-                  <p v-if="datasetsStore.lastCommit.result.errors.length > 0">{{ datasetsStore.lastCommit.result.errors.length }} fila{{ datasetsStore.lastCommit.result.errors.length !== 1 ? 's' : '' }} con error</p>
+                  <p v-if="datasetsStore.lastCommit.result.skipped_duplicates > 0">
+                    {{ datasetsStore.lastCommit.result.skipped_duplicates }} duplicado{{ datasetsStore.lastCommit.result.skipped_duplicates !== 1 ? 's' : '' }} omitido{{ datasetsStore.lastCommit.result.skipped_duplicates !== 1 ? 's' : '' }}
+                  </p>
+                  <p v-if="datasetsStore.lastCommit.result.errors.length > 0">
+                    {{ datasetsStore.lastCommit.result.errors.length }} fila{{ datasetsStore.lastCommit.result.errors.length !== 1 ? 's' : '' }} con error
+                  </p>
                 </div>
               </template>
 
               <!-- Error de API -->
               <template v-else-if="datasetsStore.actionError">
-                <p class="text-sm font-semibold text-red-800">Error al procesar el dataset</p>
-                <p class="text-xs text-red-700">{{ datasetsStore.actionError }}</p>
+                <p class="text-sm font-semibold text-red-800">
+                  Error al procesar el dataset
+                </p>
+                <p class="text-xs text-red-700">
+                  {{ datasetsStore.actionError }}
+                </p>
               </template>
-
             </div>
             <button
-              @click="datasetsStore.clearLastResult()"
               class="flex-shrink-0 p-1 rounded hover:bg-black/10 transition-colors"
               aria-label="Cerrar"
+              @click="datasetsStore.clearLastResult()"
             >
               <X class="w-3.5 h-3.5 opacity-50" />
             </button>
           </div>
         </div>
-
       </section>
-
     </div>
   </div>
 

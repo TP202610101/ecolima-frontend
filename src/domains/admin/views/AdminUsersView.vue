@@ -121,16 +121,19 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
 <template>
   <div class="flex-1 overflow-auto bg-gray-50">
     <div class="max-w-5xl mx-auto p-4 sm:p-8 space-y-6">
-
       <!-- Header -->
       <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
         <div class="flex-1">
-          <h1 class="text-2xl font-bold text-foreground">Gestión de usuarios</h1>
-          <p class="text-sm text-muted-foreground mt-1">Administra los accesos al sistema</p>
+          <h1 class="text-2xl font-bold text-foreground">
+            Gestión de usuarios
+          </h1>
+          <p class="text-sm text-muted-foreground mt-1">
+            Administra los accesos al sistema
+          </p>
         </div>
         <button
-          @click="openCreate"
           class="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-primary-hover transition-colors"
+          @click="openCreate"
         >
           <UserPlus class="w-4 h-4" />
           Crear usuario
@@ -138,20 +141,33 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
       </div>
 
       <!-- Action error banner -->
-      <div v-if="store.actionError" class="p-3 bg-red-50 border border-red-200 rounded-lg">
-        <p class="text-sm text-red-700">{{ store.actionError }}</p>
+      <div
+        v-if="store.actionError"
+        class="p-3 bg-red-50 border border-red-200 rounded-lg"
+      >
+        <p class="text-sm text-red-700">
+          {{ store.actionError }}
+        </p>
       </div>
 
       <!-- Users table -->
       <div class="bg-white rounded-lg border border-border overflow-hidden">
-
         <div class="px-6 py-4 border-b border-border flex items-center gap-2">
           <Users class="w-4 h-4 text-muted-foreground" />
-          <h2 class="text-sm font-semibold text-foreground">Usuarios del sistema</h2>
+          <h2 class="text-sm font-semibold text-foreground">
+            Usuarios del sistema
+          </h2>
         </div>
 
-        <div v-if="store.loading" class="p-4 space-y-3">
-          <div v-for="i in 4" :key="i" class="h-12 bg-gray-100 rounded animate-pulse" />
+        <div
+          v-if="store.loading"
+          class="p-4 space-y-3"
+        >
+          <div
+            v-for="i in 4"
+            :key="i"
+            class="h-12 bg-gray-100 rounded animate-pulse"
+          />
         </div>
 
         <div
@@ -159,19 +175,36 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
           class="flex flex-col items-center justify-center py-14 text-center"
         >
           <Users class="w-10 h-10 text-muted-foreground/30 mb-2" />
-          <p class="text-sm text-muted-foreground">No hay usuarios registrados</p>
+          <p class="text-sm text-muted-foreground">
+            No hay usuarios registrados
+          </p>
         </div>
 
-        <div v-else class="overflow-x-auto">
+        <div
+          v-else
+          class="overflow-x-auto"
+        >
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b border-border bg-gray-50">
-                <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Email</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nombre</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Rol</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Estado</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Creado</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Acciones</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Email
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Nombre
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Rol
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Estado
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Creado
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Acciones
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -184,10 +217,15 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
                 <td class="px-4 py-3">
                   <div class="flex items-center gap-1.5">
                     <span class="text-foreground">{{ user.email }}</span>
-                    <span v-if="isSelf(user.user_id)" class="text-xs text-blue-600 font-medium">(tú)</span>
+                    <span
+                      v-if="isSelf(user.user_id)"
+                      class="text-xs text-blue-600 font-medium"
+                    >(tú)</span>
                   </div>
                 </td>
-                <td class="px-4 py-3 text-muted-foreground">{{ user.full_name || '—' }}</td>
+                <td class="px-4 py-3 text-muted-foreground">
+                  {{ user.full_name || '—' }}
+                </td>
                 <td class="px-4 py-3">
                   <span
                     :class="[
@@ -204,42 +242,63 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
                     ]"
                   >{{ user.is_active ? 'Activo' : 'Inactivo' }}</span>
                 </td>
-                <td class="px-4 py-3 text-muted-foreground text-xs">{{ fmtDate(user.created_at) }}</td>
+                <td class="px-4 py-3 text-muted-foreground text-xs">
+                  {{ fmtDate(user.created_at) }}
+                </td>
                 <td class="px-4 py-3">
-                  <div v-if="isSelf(user.user_id)" class="text-xs text-muted-foreground italic">Tu cuenta</div>
-                  <div v-else-if="user.role === 'admin'" class="text-xs text-muted-foreground">—</div>
-                  <div v-else class="flex items-center gap-2 flex-wrap">
+                  <div
+                    v-if="isSelf(user.user_id)"
+                    class="text-xs text-muted-foreground italic"
+                  >
+                    Tu cuenta
+                  </div>
+                  <div
+                    v-else-if="user.role === 'admin'"
+                    class="text-xs text-muted-foreground"
+                  >
+                    —
+                  </div>
+                  <div
+                    v-else
+                    class="flex items-center gap-2 flex-wrap"
+                  >
                     <!-- Cambiar rol -->
                     <button
-                      @click="handleRoleChange(user.user_id, user.email, user.role === 'admin' ? 'analista' : 'admin')"
                       :disabled="store.actionUserId !== null || isLastActiveAdmin(user.user_id) || (!user.is_active && user.role === 'analista')"
                       :title="isLastActiveAdmin(user.user_id) ? 'No se puede degradar al único admin activo' : (!user.is_active && user.role === 'analista') ? 'Activa la cuenta antes de promoverla a administrador.' : undefined"
                       class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      @click="handleRoleChange(user.user_id, user.email, user.role === 'admin' ? 'analista' : 'admin')"
                     >
-                      <span v-if="store.actionUserId === user.user_id" class="w-2.5 h-2.5 border border-gray-500 border-t-transparent rounded-full animate-spin" />
+                      <span
+                        v-if="store.actionUserId === user.user_id"
+                        class="w-2.5 h-2.5 border border-gray-500 border-t-transparent rounded-full animate-spin"
+                      />
                       → {{ user.role === 'admin' ? 'Analista' : 'Admin' }}
                     </button>
                     <!-- Activar / Desactivar -->
                     <button
                       v-if="user.is_active"
-                      @click="handleDeactivate(user.user_id, user.email)"
                       :disabled="store.actionUserId !== null || isLastActiveAdmin(user.user_id)"
                       :title="isLastActiveAdmin(user.user_id) ? 'No se puede desactivar al único admin activo' : undefined"
                       class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium border border-red-200 text-red-700 rounded-md hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >Desactivar</button>
+                      @click="handleDeactivate(user.user_id, user.email)"
+                    >
+                      Desactivar
+                    </button>
                     <button
                       v-else
-                      @click="handleActivate(user.user_id, user.email)"
                       :disabled="store.actionUserId !== null"
                       class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium border border-green-200 text-green-700 rounded-md hover:bg-green-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >Activar</button>
+                      @click="handleActivate(user.user_id, user.email)"
+                    >
+                      Activar
+                    </button>
                   </div>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
-
       </div>
     </div>
   </div>
@@ -252,10 +311,17 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
     aria-modal="true"
     aria-labelledby="create-user-title"
   >
-    <div class="absolute inset-0 bg-black/50" @click="showCreate = false" />
+    <div
+      class="absolute inset-0 bg-black/50"
+      @click="showCreate = false"
+    />
     <div class="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-5">
-
-      <h2 id="create-user-title" class="text-base font-semibold text-foreground">Crear usuario</h2>
+      <h2
+        id="create-user-title"
+        class="text-base font-semibold text-foreground"
+      >
+        Crear usuario
+      </h2>
 
       <div class="space-y-4">
         <!-- Email -->
@@ -267,7 +333,7 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
             placeholder="usuario@ejemplo.com"
             autocomplete="off"
             class="w-full px-3 py-2 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-          />
+          >
         </div>
         <!-- Nombre -->
         <div>
@@ -277,7 +343,7 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
             type="text"
             placeholder="Nombre (opcional)"
             class="w-full px-3 py-2 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-          />
+          >
         </div>
         <!-- Password -->
         <div>
@@ -288,9 +354,12 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
             placeholder="Mínimo 8 caracteres"
             autocomplete="new-password"
             class="w-full px-3 py-2 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-          />
+          >
           <!-- Requisitos de contraseña (solo cuando el usuario empieza a escribir) -->
-          <div v-if="form.password.length > 0" class="mt-2 grid grid-cols-2 gap-x-4 gap-y-0.5">
+          <div
+            v-if="form.password.length > 0"
+            class="mt-2 grid grid-cols-2 gap-x-4 gap-y-0.5"
+          >
             <p :class="['text-xs', pwChecks.length ? 'text-green-600' : 'text-muted-foreground']">
               {{ pwChecks.length ? '✓' : '○' }} 8 caracteres mínimo
             </p>
@@ -315,8 +384,11 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
             autocomplete="new-password"
             class="w-full px-3 py-2 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
             :class="form.confirmPassword && form.confirmPassword !== form.password ? 'border-red-300' : ''"
-          />
-          <p v-if="form.confirmPassword && form.confirmPassword !== form.password" class="mt-1 text-xs text-red-600">
+          >
+          <p
+            v-if="form.confirmPassword && form.confirmPassword !== form.password"
+            class="mt-1 text-xs text-red-600"
+          >
             Las contraseñas no coinciden
           </p>
         </div>
@@ -327,31 +399,44 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
             v-model="form.role"
             class="w-full px-3 py-2 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-white"
           >
-            <option value="analista">Analista</option>
-            <option value="admin">Admin</option>
+            <option value="analista">
+              Analista
+            </option>
+            <option value="admin">
+              Admin
+            </option>
           </select>
         </div>
       </div>
 
       <!-- Error -->
-      <p v-if="formError" class="text-xs text-red-700 bg-red-50 border border-red-100 rounded px-3 py-2">{{ formError }}</p>
+      <p
+        v-if="formError"
+        class="text-xs text-red-700 bg-red-50 border border-red-100 rounded px-3 py-2"
+      >
+        {{ formError }}
+      </p>
 
       <!-- Actions -->
       <div class="flex justify-end gap-3 pt-1">
         <button
-          @click="showCreate = false"
           class="px-4 py-2 text-sm font-medium border border-border rounded-md hover:bg-secondary transition-colors"
-        >Cancelar</button>
+          @click="showCreate = false"
+        >
+          Cancelar
+        </button>
         <button
-          @click="submitCreate"
           :disabled="store.creating"
           class="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary text-white rounded-md hover:bg-primary-hover transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          @click="submitCreate"
         >
-          <span v-if="store.creating" class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          <span
+            v-if="store.creating"
+            class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"
+          />
           {{ store.creating ? 'Creando...' : 'Crear usuario' }}
         </button>
       </div>
-
     </div>
   </div>
 

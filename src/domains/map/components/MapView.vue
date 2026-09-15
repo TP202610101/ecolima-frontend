@@ -235,35 +235,37 @@ defineExpose({ flyTo, invalidateSize })
 
 <template>
   <div class="flex-1 relative overflow-hidden">
-    <div ref="mapContainer" class="w-full h-full" />
+    <div
+      ref="mapContainer"
+      class="w-full h-full"
+    />
 
     <!-- Controles de zoom + medición -->
     <div class="absolute right-3 top-3 z-[1000] flex flex-col gap-1">
       <button
-        @click="zoomIn"
         class="w-8 h-8 bg-white border border-border rounded-md shadow text-foreground hover:bg-secondary flex items-center justify-center transition-colors"
         aria-label="Acercar"
+        @click="zoomIn"
       >
         <Plus class="w-4 h-4" />
       </button>
       <button
-        @click="zoomOut"
         class="w-8 h-8 bg-white border border-border rounded-md shadow text-foreground hover:bg-secondary flex items-center justify-center transition-colors"
         aria-label="Alejar"
+        @click="zoomOut"
       >
         <Minus class="w-4 h-4" />
       </button>
       <button
-        @click="resetView"
         class="w-8 h-8 bg-white border border-border rounded-md shadow text-foreground hover:bg-secondary flex items-center justify-center transition-colors"
         aria-label="Restablecer vista"
+        @click="resetView"
       >
         <RotateCcw class="w-3.5 h-3.5" />
       </button>
       <!-- Separador -->
       <div class="h-px bg-border mx-1 my-0.5" />
       <button
-        @click="toggleMeasure"
         :class="[
           'w-8 h-8 border rounded-md shadow flex items-center justify-center transition-colors',
           measuring
@@ -272,6 +274,7 @@ defineExpose({ flyTo, invalidateSize })
         ]"
         :title="measuring ? 'Desactivar medición (activo: haz clic en dos puntos)' : 'Medir distancia entre dos puntos'"
         aria-label="Medir distancia"
+        @click="toggleMeasure"
       >
         <Ruler class="w-3.5 h-3.5" />
       </button>
@@ -279,7 +282,9 @@ defineExpose({ flyTo, invalidateSize })
 
     <!-- Leyenda -->
     <div class="absolute bottom-6 right-3 z-[1000] bg-white border border-border rounded-lg shadow p-3">
-      <h4 class="text-xs font-semibold text-foreground mb-2">Leyenda</h4>
+      <h4 class="text-xs font-semibold text-foreground mb-2">
+        Leyenda
+      </h4>
       <div class="space-y-1.5">
         <div class="flex items-center gap-2 text-xs text-foreground">
           <span class="w-3 h-3 rounded-full bg-green-600 flex-shrink-0" />
@@ -305,7 +310,10 @@ defineExpose({ flyTo, invalidateSize })
             </p>
             <div class="flex items-center gap-1.5">
               <span class="text-xs text-muted-foreground">Bajo</span>
-              <div class="flex-1 h-2 rounded-sm" style="background: linear-gradient(to right, #16a34a, #eab308, #dc2626)" />
+              <div
+                class="flex-1 h-2 rounded-sm"
+                style="background: linear-gradient(to right, #16a34a, #eab308, #dc2626)"
+              />
               <span class="text-xs text-muted-foreground">Alto</span>
             </div>
           </div>
@@ -320,7 +328,9 @@ defineExpose({ flyTo, invalidateSize })
     >
       <div class="flex flex-col items-center gap-2">
         <div class="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-        <p class="text-sm text-muted-foreground">Cargando datos…</p>
+        <p class="text-sm text-muted-foreground">
+          Cargando datos…
+        </p>
       </div>
     </div>
 
@@ -333,10 +343,12 @@ defineExpose({ flyTo, invalidateSize })
         <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
           <AlertTriangle class="w-5 h-5 text-red-600" />
         </div>
-        <p class="text-sm font-medium text-foreground">{{ recStore.error || mapStore.error }}</p>
+        <p class="text-sm font-medium text-foreground">
+          {{ recStore.error || mapStore.error }}
+        </p>
         <button
-          @click="recStore.fetchRecommendations(); mapStore.fetchPoints()"
           class="px-4 py-2 bg-primary text-white text-sm rounded-md hover:bg-primary-hover transition-colors"
+          @click="recStore.fetchRecommendations(); mapStore.fetchPoints()"
         >
           Reintentar
         </button>

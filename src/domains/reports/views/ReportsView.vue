@@ -56,28 +56,29 @@ onMounted(() => {
 <template>
   <div class="flex-1 overflow-auto bg-gray-50">
     <div class="max-w-7xl mx-auto p-4 sm:p-8 space-y-6">
-
       <!-- Header -->
       <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 print:hidden">
         <div class="flex-1">
-          <h1 class="text-2xl font-bold text-foreground">Reporte de Análisis</h1>
+          <h1 class="text-2xl font-bold text-foreground">
+            Reporte de Análisis
+          </h1>
           <p class="text-sm text-muted-foreground mt-1">
             Sistema de recomendación de ubicaciones para puntos de reciclaje
           </p>
         </div>
         <div class="flex gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto">
           <button
-            @click="ExportReportUseCase.exportCSV(store.recommendations, coverageStore.items)"
             :disabled="store.loading || !store.recommendations.length"
             class="flex items-center gap-2 px-4 py-2 border border-border rounded-md text-sm text-foreground hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            @click="ExportReportUseCase.exportCSV(store.recommendations, coverageStore.items)"
           >
             <FileDown class="w-4 h-4" />
             Exportar Excel
           </button>
           <button
-            @click="ExportReportUseCase.exportPDF()"
             :disabled="store.loading || !store.recommendations.length"
             class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-md text-sm font-medium hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            @click="ExportReportUseCase.exportPDF()"
           >
             <FileDown class="w-4 h-4" />
             Exportar PDF
@@ -87,7 +88,9 @@ onMounted(() => {
 
       <!-- Header solo para impresión -->
       <div class="hidden print:block">
-        <h1 class="text-2xl font-bold text-foreground">Reporte de Análisis — EcoLima ML</h1>
+        <h1 class="text-2xl font-bold text-foreground">
+          Reporte de Análisis — EcoLima ML
+        </h1>
         <p class="text-sm text-muted-foreground mt-1">
           Sistema de recomendación · Municipalidad Metropolitana de Lima
         </p>
@@ -124,9 +127,10 @@ onMounted(() => {
 
       <!-- Redundancia de cobertura -->
       <div class="bg-white rounded-lg border border-border overflow-hidden">
-
         <div class="px-6 py-4 border-b border-border">
-          <h2 class="text-base font-semibold text-foreground">Redundancia de cobertura por distrito</h2>
+          <h2 class="text-base font-semibold text-foreground">
+            Redundancia de cobertura por distrito
+          </h2>
           <p class="text-xs text-muted-foreground mt-0.5">
             % de zonas recomendadas que ya tienen un punto de reciclaje a &lt;500 m ·
             <span class="text-green-700 font-medium">Verde 0–50%</span> ·
@@ -135,28 +139,51 @@ onMounted(() => {
           </p>
         </div>
 
-        <div v-if="isDemoRedundancy" class="flex items-center gap-2 px-6 py-3 bg-amber-50 border-b border-amber-200">
+        <div
+          v-if="isDemoRedundancy"
+          class="flex items-center gap-2 px-6 py-3 bg-amber-50 border-b border-amber-200"
+        >
           <Info class="w-4 h-4 text-amber-600 flex-shrink-0" />
           <p class="text-xs text-amber-800">
             Datos de ejemplo — el modelo activo es de demostración y no refleja inferencia con datos reales.
           </p>
         </div>
 
-        <div v-if="coverageStore.loading" class="p-4 space-y-2">
-          <div v-for="i in 6" :key="i" class="h-10 bg-gray-100 rounded animate-pulse" />
+        <div
+          v-if="coverageStore.loading"
+          class="p-4 space-y-2"
+        >
+          <div
+            v-for="i in 6"
+            :key="i"
+            class="h-10 bg-gray-100 rounded animate-pulse"
+          />
         </div>
 
-        <div v-else-if="coverageStore.error" class="p-6">
+        <div
+          v-else-if="coverageStore.error"
+          class="p-6"
+        >
           <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p class="text-sm text-red-700">{{ coverageStore.error }}</p>
+            <p class="text-sm text-red-700">
+              {{ coverageStore.error }}
+            </p>
           </div>
         </div>
 
-        <div v-else-if="!coverageStore.items.length" class="flex flex-col items-center justify-center py-10 text-center">
-          <p class="text-sm text-muted-foreground">Sin datos de redundancia disponibles</p>
+        <div
+          v-else-if="!coverageStore.items.length"
+          class="flex flex-col items-center justify-center py-10 text-center"
+        >
+          <p class="text-sm text-muted-foreground">
+            Sin datos de redundancia disponibles
+          </p>
         </div>
 
-        <div v-else class="divide-y divide-border max-h-80 overflow-y-auto redundancia-scroll">
+        <div
+          v-else
+          class="divide-y divide-border max-h-80 overflow-y-auto redundancia-scroll"
+        >
           <div
             v-for="item in sortedRedundancy"
             :key="item.district_id"
@@ -186,24 +213,37 @@ onMounted(() => {
             >
               {{ item.redundancy_pct.toFixed(1) }}%
             </span>
-            <span v-else class="text-xs text-muted-foreground italic w-14 text-right shrink-0">Sin datos</span>
+            <span
+              v-else
+              class="text-xs text-muted-foreground italic w-14 text-right shrink-0"
+            >Sin datos</span>
           </div>
         </div>
-
       </div>
 
       <!-- Tabla -->
       <div class="bg-white rounded-lg border border-border overflow-hidden">
-
         <!-- Skeleton loading -->
-        <div v-if="store.loading" class="p-4 space-y-3">
-          <div v-for="i in 5" :key="i" class="h-14 bg-gray-100 rounded animate-pulse" />
+        <div
+          v-if="store.loading"
+          class="p-4 space-y-3"
+        >
+          <div
+            v-for="i in 5"
+            :key="i"
+            class="h-14 bg-gray-100 rounded animate-pulse"
+          />
         </div>
 
         <!-- Error -->
-        <div v-else-if="store.error" class="p-6">
+        <div
+          v-else-if="store.error"
+          class="p-6"
+        >
           <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p class="text-sm text-red-700">{{ store.error }}</p>
+            <p class="text-sm text-red-700">
+              {{ store.error }}
+            </p>
           </div>
         </div>
 
@@ -213,11 +253,16 @@ onMounted(() => {
           class="flex flex-col items-center justify-center py-16 text-center"
         >
           <MapPin class="w-12 h-12 text-muted-foreground/30 mb-3" />
-          <p class="text-sm text-muted-foreground">No hay recomendaciones disponibles aún</p>
+          <p class="text-sm text-muted-foreground">
+            No hay recomendaciones disponibles aún
+          </p>
         </div>
 
         <!-- Tabla de datos -->
-        <div v-else class="overflow-x-auto">
+        <div
+          v-else
+          class="overflow-x-auto"
+        >
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b border-border bg-gray-50">
@@ -262,10 +307,14 @@ onMounted(() => {
                 </td>
 
                 <!-- Distrito -->
-                <td class="px-4 py-4 text-foreground">{{ rec.district_name }}</td>
+                <td class="px-4 py-4 text-foreground">
+                  {{ rec.district_name }}
+                </td>
 
                 <!-- NSE -->
-                <td class="px-4 py-4 text-foreground">{{ incomeToNSE(rec.income_stratum) }}</td>
+                <td class="px-4 py-4 text-foreground">
+                  {{ incomeToNSE(rec.income_stratum) }}
+                </td>
 
                 <!-- Puntaje ML -->
                 <td class="px-4 py-4 min-w-[160px]">
@@ -281,7 +330,9 @@ onMounted(() => {
                 </td>
 
                 <!-- Densidad poblacional -->
-                <td class="px-4 py-4 text-foreground">{{ formatMetric(rec.population_density, 'hab/km²') }}</td>
+                <td class="px-4 py-4 text-foreground">
+                  {{ formatMetric(rec.population_density, 'hab/km²') }}
+                </td>
 
                 <!-- Brecha cobertura -->
                 <td class="px-4 py-4">
@@ -291,7 +342,9 @@ onMounted(() => {
                 </td>
 
                 <!-- Densidad vial -->
-                <td class="px-4 py-4 text-foreground">{{ formatMetric(rec.road_density, 'm/km²') }}</td>
+                <td class="px-4 py-4 text-foreground">
+                  {{ formatMetric(rec.road_density, 'm/km²') }}
+                </td>
 
                 <!-- Estado -->
                 <td class="px-4 py-4">
@@ -301,7 +354,6 @@ onMounted(() => {
             </tbody>
           </table>
         </div>
-
       </div>
     </div>
   </div>

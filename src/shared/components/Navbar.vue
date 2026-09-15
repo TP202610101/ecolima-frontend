@@ -1,31 +1,66 @@
 <template>
   <nav class="sticky top-0 z-50 h-14 bg-white border-b border-border px-4 flex items-center justify-between print:hidden">
-
     <!-- Logo -->
     <div class="flex items-center gap-3">
       <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
         <Recycle class="w-5 h-5 text-white" />
       </div>
       <div>
-        <p class="text-sm font-semibold text-foreground">EcoLima ML</p>
-        <p class="hidden sm:block text-xs text-muted-foreground">Municipalidad de Lima</p>
+        <p class="text-sm font-semibold text-foreground">
+          EcoLima ML
+        </p>
+        <p class="hidden sm:block text-xs text-muted-foreground">
+          Municipalidad de Lima
+        </p>
       </div>
     </div>
 
     <!-- Desktop: tabs de navegación -->
-    <div v-if="auth.isAuthenticated" class="hidden sm:flex items-center gap-1">
-      <router-link :class="linkClass('/analisis')" to="/analisis">Análisis</router-link>
-      <router-link :class="linkClass('/reportes')" to="/reportes">Reportes</router-link>
-      <router-link v-if="auth.isAdmin" :class="linkClass('/panel-ml')" to="/panel-ml">Panel ML</router-link>
-      <router-link v-if="auth.isAdmin" :class="linkClass('/admin/usuarios')" to="/admin/usuarios">Usuarios</router-link>
+    <div
+      v-if="auth.isAuthenticated"
+      class="hidden sm:flex items-center gap-1"
+    >
+      <router-link
+        :class="linkClass('/analisis')"
+        to="/analisis"
+      >
+        Análisis
+      </router-link>
+      <router-link
+        :class="linkClass('/reportes')"
+        to="/reportes"
+      >
+        Reportes
+      </router-link>
+      <router-link
+        v-if="auth.isAdmin"
+        :class="linkClass('/panel-ml')"
+        to="/panel-ml"
+      >
+        Panel ML
+      </router-link>
+      <router-link
+        v-if="auth.isAdmin"
+        :class="linkClass('/admin/usuarios')"
+        to="/admin/usuarios"
+      >
+        Usuarios
+      </router-link>
     </div>
 
     <!-- Zona derecha -->
-    <div v-if="auth.isAuthenticated" class="flex items-center gap-2 sm:gap-3">
+    <div
+      v-if="auth.isAuthenticated"
+      class="flex items-center gap-2 sm:gap-3"
+    >
       <!-- Nombre y rol (solo desktop) -->
       <div class="hidden sm:block text-right">
-        <p class="text-sm font-semibold text-foreground">{{ auth.user?.full_name }}</p>
-        <p class="text-xs text-muted-foreground capitalize">{{ auth.user?.role }}</p>
+        <p class="text-sm font-semibold text-foreground">
+          {{ auth.user?.full_name }}
+        </p>
+        <p class="text-xs text-muted-foreground capitalize">
+          {{ auth.user?.role }}
+        </p>
       </div>
       <!-- Avatar (siempre visible) -->
       <div class="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-sm font-semibold text-white">
@@ -34,22 +69,28 @@
       <!-- Logout (solo desktop) -->
       <button
         type="button"
-        @click="onLogout"
         class="hidden sm:flex p-2 rounded hover:bg-secondary transition-colors"
         aria-label="Cerrar sesión"
+        @click="onLogout"
       >
         <LogOut class="w-4 h-4 text-muted-foreground hover:text-foreground" />
       </button>
       <!-- Hamburger (solo móvil) -->
       <button
         type="button"
-        @click="menuOpen = !menuOpen"
         class="sm:hidden p-2 rounded hover:bg-secondary transition-colors"
         :aria-label="menuOpen ? 'Cerrar menú' : 'Abrir menú'"
         :aria-expanded="menuOpen"
+        @click="menuOpen = !menuOpen"
       >
-        <X v-if="menuOpen" class="w-5 h-5 text-muted-foreground" />
-        <Menu v-else class="w-5 h-5 text-muted-foreground" />
+        <X
+          v-if="menuOpen"
+          class="w-5 h-5 text-muted-foreground"
+        />
+        <Menu
+          v-else
+          class="w-5 h-5 text-muted-foreground"
+        />
       </button>
     </div>
 
@@ -60,8 +101,12 @@
     >
       <!-- Info del usuario -->
       <div class="px-4 py-3 border-b border-border">
-        <p class="text-sm font-semibold text-foreground">{{ auth.user?.full_name }}</p>
-        <p class="text-xs text-muted-foreground capitalize">{{ auth.user?.role }}</p>
+        <p class="text-sm font-semibold text-foreground">
+          {{ auth.user?.full_name }}
+        </p>
+        <p class="text-xs text-muted-foreground capitalize">
+          {{ auth.user?.role }}
+        </p>
       </div>
       <!-- Links de navegación -->
       <div class="py-1">
@@ -70,41 +115,48 @@
           class="flex items-center px-4 py-3 text-sm hover:bg-secondary transition-colors"
           :class="route.path === '/analisis' ? 'text-primary font-medium bg-accent' : 'text-foreground'"
           @click="closeMenu"
-        >Análisis</router-link>
+        >
+          Análisis
+        </router-link>
         <router-link
           to="/reportes"
           class="flex items-center px-4 py-3 text-sm hover:bg-secondary transition-colors"
           :class="route.path === '/reportes' ? 'text-primary font-medium bg-accent' : 'text-foreground'"
           @click="closeMenu"
-        >Reportes</router-link>
+        >
+          Reportes
+        </router-link>
         <router-link
           v-if="auth.isAdmin"
           to="/panel-ml"
           class="flex items-center px-4 py-3 text-sm hover:bg-secondary transition-colors"
           :class="route.path === '/panel-ml' ? 'text-primary font-medium bg-accent' : 'text-foreground'"
           @click="closeMenu"
-        >Panel ML</router-link>
+        >
+          Panel ML
+        </router-link>
         <router-link
           v-if="auth.isAdmin"
           to="/admin/usuarios"
           class="flex items-center px-4 py-3 text-sm hover:bg-secondary transition-colors"
           :class="route.path === '/admin/usuarios' ? 'text-primary font-medium bg-accent' : 'text-foreground'"
           @click="closeMenu"
-        >Usuarios</router-link>
+        >
+          Usuarios
+        </router-link>
       </div>
       <!-- Cerrar sesión -->
       <div class="border-t border-border py-1">
         <button
           type="button"
-          @click="onLogout"
           class="flex items-center gap-2 w-full px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors"
+          @click="onLogout"
         >
           <LogOut class="w-4 h-4 text-muted-foreground" />
           Cerrar sesión
         </button>
       </div>
     </div>
-
   </nav>
 </template>
 
