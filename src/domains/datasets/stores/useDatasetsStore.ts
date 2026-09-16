@@ -4,6 +4,7 @@ import type { Dataset, ValidationResult, CommitResult } from '../entities/Datase
 import { FetchDatasetsUseCase } from '../use-cases/FetchDatasetsUseCase'
 import { UploadDatasetUseCase } from '../use-cases/UploadDatasetUseCase'
 import { DatasetsRepository } from '../repositories/DatasetsRepository'
+import type { DatasetHistoryResponse } from '../repositories/DatasetsRepository'
 
 export const useDatasetsStore = defineStore('datasets', () => {
   const datasets = ref<Dataset[]>([])
@@ -18,6 +19,21 @@ export const useDatasetsStore = defineStore('datasets', () => {
   const lastValidation = ref<{ datasetId: number; filename: string; result: ValidationResult } | null>(null)
   const lastCommit = ref<{ datasetId: number; filename: string; result: CommitResult } | null>(null)
   const actionError = ref<string | null>(null)
+
+  const deletingRows = ref<number | null>(null)
+  const deleteRowsResult = ref<{ deleted_count: number; remaining_rows: number; filename: string } | null>(null)
+  const deleteRowsError = ref<string | null>(null)
+
+  const editingCells = ref<number | null>(null)
+  const editCellsResult = ref<{ edited_count: number; filename: string } | null>(null)
+  const editCellsError = ref<string | null>(null)
+
+  const historyResult = ref<DatasetHistoryResponse | null>(null)
+  const loadingHistory = ref(false)
+  const historyError = ref<string | null>(null)
+
+  const deletingDataset = ref<number | null>(null)
+  const deleteDatasetError = ref<string | null>(null)
 
   async function fetchDatasets() {
     loading.value = true
@@ -76,6 +92,104 @@ export const useDatasetsStore = defineStore('datasets', () => {
     }
   }
 
+  async function deleteIncompleteRows(id: number, filename: string) {
+    deletingRows.value = id
+    deleteRowsResult.value = null
+    deleteRowsError.value = null
+    try {
+      const result = await DatasetsRepository.deleteIncompleteRows(id)
+      deleteRowsResult.value = { ...result, filename }
+      lastValidation.value = null
+      await fetchDatasets()
+    } catch (e) {
+      deleteRowsError.value = e instanceof Error ? e.message : 'Error al eliminar filas incompletas'
+    } finally {
+      deletingRows.value = null
+    }
+  }
+
+  async function deleteSelectedRows(id: number, filename: string, rowIndices: number[], reason: string) {
+    deletingRows.value = id
+    deleteRowsResult.value = null
+    deleteRowsError.value = null
+    try {
+      const result = await DatasetsRepository.deleteSelectedRows(id, rowIndices, reason, true)
+      deleteRowsResult.value = { ...result, filename }
+      lastValidation.value = null
+      await fetchDatasets()
+    } catch (e) {
+      deleteRowsError.value = e instanceof Error ? e.message : 'Error al eliminar filas seleccionadas'
+    } finally {
+      deletingRows.value = null
+    }
+  }
+
+  function clearDeleteResult() {
+    deleteRowsResult.value = null
+    deleteRowsError.value = null
+  }
+
+  async function editCells(
+    id: number,
+    filename: string,
+    edits: Array<{ row_index: number; column: string; new_value: unknown }>,
+  ) {
+    editingCells.value = id
+    editCellsResult.value = null
+    editCellsError.value = null
+    try {
+      const result = await DatasetsRepository.editDatasetCells(id, edits)
+      editCellsResult.value = { edited_count: result.edited_count, filename }
+      lastValidation.value = null
+      await fetchDatasets()
+    } catch (e) {
+      editCellsError.value = e instanceof Error ? e.message : 'Error al editar celdas'
+    } finally {
+      editingCells.value = null
+    }
+  }
+
+  function clearEditCellsResult() {
+    editCellsResult.value = null
+    editCellsError.value = null
+  }
+
+  async function deleteDataset(id: number) {
+    deletingDataset.value = id
+    deleteDatasetError.value = null
+    try {
+      await DatasetsRepository.deleteDataset(id)
+      datasets.value = datasets.value.filter(d => d.dataset_id !== id)
+    } catch (e) {
+      deleteDatasetError.value = e instanceof Error ? e.message : 'Error al eliminar el dataset'
+      await fetchDatasets()
+    } finally {
+      deletingDataset.value = null
+    }
+  }
+
+  function clearDeleteDatasetError() {
+    deleteDatasetError.value = null
+  }
+
+  async function fetchHistory(id: number) {
+    loadingHistory.value = true
+    historyError.value = null
+    historyResult.value = null
+    try {
+      historyResult.value = await DatasetsRepository.getDatasetHistory(id)
+    } catch (e) {
+      historyError.value = e instanceof Error ? e.message : 'Error al cargar historial'
+    } finally {
+      loadingHistory.value = false
+    }
+  }
+
+  function clearHistory() {
+    historyResult.value = null
+    historyError.value = null
+  }
+
   function clearLastResult() {
     lastValidation.value = null
     lastCommit.value = null
@@ -110,10 +224,30 @@ export const useDatasetsStore = defineStore('datasets', () => {
     lastValidation,
     lastCommit,
     actionError,
+    deletingRows,
+    deleteRowsResult,
+    deleteRowsError,
+    editingCells,
+    editCellsResult,
+    editCellsError,
     fetchDatasets,
     uploadDataset,
     validateDataset,
     commitDataset,
+    deleteIncompleteRows,
+    deleteSelectedRows,
+    clearDeleteResult,
+    editCells,
+    clearEditCellsResult,
+    deletingDataset,
+    deleteDatasetError,
+    deleteDataset,
+    clearDeleteDatasetError,
+    historyResult,
+    loadingHistory,
+    historyError,
+    fetchHistory,
+    clearHistory,
     clearLastResult,
     clearUploadState,
     openUploader,

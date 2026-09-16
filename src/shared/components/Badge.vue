@@ -1,5 +1,8 @@
 <template>
-  <span :class="badgeClass" class="inline-flex items-center px-2.5 rounded-full text-xs font-medium">
+  <span
+    :class="badgeClass"
+    class="inline-flex items-center px-2.5 rounded-full text-xs font-medium"
+  >
     <slot>{{ label }}</slot>
   </span>
 </template>

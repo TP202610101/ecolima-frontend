@@ -5,17 +5,25 @@
         <div class="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mb-4">
           <Recycle class="w-8 h-8 text-white" />
         </div>
-        <h1 class="text-2xl font-bold text-foreground">EcoLima ML</h1>
+        <h1 class="text-2xl font-bold text-foreground">
+          EcoLima ML
+        </h1>
         <p class="text-sm text-muted-foreground text-center mt-1">
           Sistema de Recomendación de Ubicaciones<br>Municipalidad de Lima
         </p>
       </div>
 
-      <div v-if="isExpired" class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700 text-center">
+      <div
+        v-if="isExpired"
+        class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700 text-center"
+      >
         Tu sesión expiró, vuelve a iniciar sesión.
       </div>
 
-      <form @submit.prevent="onSubmit" class="space-y-5">
+      <form
+        class="space-y-5"
+        @submit.prevent="onSubmit"
+      >
         <div>
           <label class="block text-sm font-medium text-muted-foreground mb-2">Correo electrónico</label>
           <input
@@ -23,7 +31,7 @@
             type="email"
             placeholder="correo@ejemplo.com"
             class="w-full rounded-xl border border-border bg-input-bg px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
-          />
+          >
         </div>
 
         <div>
@@ -33,7 +41,7 @@
             type="password"
             placeholder="••••••••"
             class="w-full rounded-xl border border-border bg-input-bg px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
-          />
+          >
         </div>
 
         <button
@@ -43,11 +51,17 @@
           Iniciar sesión
         </button>
 
-        <p v-if="errorMessage" class="text-sm text-destructive text-center">{{ errorMessage }}</p>
+        <p
+          v-if="errorMessage"
+          class="text-sm text-destructive text-center"
+        >
+          {{ errorMessage }}
+        </p>
       </form>
-
     </div>
-    <p class="mt-6 text-xs text-muted-foreground">© 2026 EcoLima ML</p>
+    <p class="mt-6 text-xs text-muted-foreground">
+      © 2026 EcoLima ML
+    </p>
   </div>
 </template>
 

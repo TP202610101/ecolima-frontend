@@ -1,4 +1,5 @@
 import api from '@/shared/api/axios'
+import type { ModelVersionMetrics } from '../entities/ModelVersion'
 
 export interface InferenceStatus {
   status: 'running' | 'done' | 'error'
@@ -35,6 +36,11 @@ export const MLRepository = {
 
   async recalculateCoverage(): Promise<RecalculateResult> {
     const res = await api.post('/api/v1/geo/recalculate')
+    return res.data
+  },
+
+  async getModelMetrics(version: string): Promise<ModelVersionMetrics> {
+    const res = await api.get(`/api/v1/ml/models/${version}/metrics`)
     return res.data
   },
 }
