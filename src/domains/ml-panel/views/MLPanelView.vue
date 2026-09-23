@@ -113,9 +113,10 @@ function closeHistoryModal() {
 const selectedForCompare = ref<string[]>([])
 const showCompareModal = ref(false)
 
-const COMPARE_METRICS: Array<{ key: keyof { accuracy: number; f1: number; auc_pr: number; precision: number; recall: number }; label: string }> = [
+const COMPARE_METRICS: Array<{ key: keyof NonNullable<typeof mlStore.compareResult>['a']['metrics']; label: string }> = [
   { key: 'accuracy', label: 'Accuracy' },
   { key: 'f1', label: 'F1' },
+  { key: 'auc_roc', label: 'AUC-ROC' },
   { key: 'auc_pr', label: 'AUC-PR' },
   { key: 'precision', label: 'Precision' },
   { key: 'recall', label: 'Recall' },
@@ -910,26 +911,26 @@ onUnmounted(() => {
                       <td
                         class="px-4 py-3 text-center font-mono text-sm"
                         :class="{
-                          'bg-green-50 text-green-800': mlStore.compareResult.a.metrics?.[m.key] != null && mlStore.compareResult.b.metrics?.[m.key] != null && mlStore.compareResult.a.metrics[m.key] > mlStore.compareResult.b.metrics[m.key],
-                          'text-foreground': !(mlStore.compareResult.a.metrics?.[m.key] != null && mlStore.compareResult.b.metrics?.[m.key] != null && mlStore.compareResult.a.metrics[m.key] > mlStore.compareResult.b.metrics[m.key]),
+                          'bg-green-50 text-green-800': mlStore.compareResult.a.metrics?.[m.key] != null && mlStore.compareResult.b.metrics?.[m.key] != null && (mlStore.compareResult.a.metrics[m.key] as number) > (mlStore.compareResult.b.metrics[m.key] as number),
+                          'text-foreground': !(mlStore.compareResult.a.metrics?.[m.key] != null && mlStore.compareResult.b.metrics?.[m.key] != null && (mlStore.compareResult.a.metrics[m.key] as number) > (mlStore.compareResult.b.metrics[m.key] as number)),
                         }"
                       >
                         {{ fmtPct(mlStore.compareResult.a.metrics?.[m.key]) }}
                         <ArrowUp
-                          v-if="mlStore.compareResult.a.metrics?.[m.key] != null && mlStore.compareResult.b.metrics?.[m.key] != null && mlStore.compareResult.a.metrics[m.key] > mlStore.compareResult.b.metrics[m.key]"
+                          v-if="mlStore.compareResult.a.metrics?.[m.key] != null && mlStore.compareResult.b.metrics?.[m.key] != null && (mlStore.compareResult.a.metrics[m.key] as number) > (mlStore.compareResult.b.metrics[m.key] as number)"
                           class="inline w-3 h-3 text-green-600"
                         />
                       </td>
                       <td
                         class="px-4 py-3 text-center font-mono text-sm"
                         :class="{
-                          'bg-green-50 text-green-800': mlStore.compareResult.a.metrics?.[m.key] != null && mlStore.compareResult.b.metrics?.[m.key] != null && mlStore.compareResult.b.metrics[m.key] > mlStore.compareResult.a.metrics[m.key],
-                          'text-foreground': !(mlStore.compareResult.a.metrics?.[m.key] != null && mlStore.compareResult.b.metrics?.[m.key] != null && mlStore.compareResult.b.metrics[m.key] > mlStore.compareResult.a.metrics[m.key]),
+                          'bg-green-50 text-green-800': mlStore.compareResult.a.metrics?.[m.key] != null && mlStore.compareResult.b.metrics?.[m.key] != null && (mlStore.compareResult.b.metrics[m.key] as number) > (mlStore.compareResult.a.metrics[m.key] as number),
+                          'text-foreground': !(mlStore.compareResult.a.metrics?.[m.key] != null && mlStore.compareResult.b.metrics?.[m.key] != null && (mlStore.compareResult.b.metrics[m.key] as number) > (mlStore.compareResult.a.metrics[m.key] as number)),
                         }"
                       >
                         {{ fmtPct(mlStore.compareResult.b.metrics?.[m.key]) }}
                         <ArrowUp
-                          v-if="mlStore.compareResult.a.metrics?.[m.key] != null && mlStore.compareResult.b.metrics?.[m.key] != null && mlStore.compareResult.b.metrics[m.key] > mlStore.compareResult.a.metrics[m.key]"
+                          v-if="mlStore.compareResult.a.metrics?.[m.key] != null && mlStore.compareResult.b.metrics?.[m.key] != null && (mlStore.compareResult.b.metrics[m.key] as number) > (mlStore.compareResult.a.metrics[m.key] as number)"
                           class="inline w-3 h-3 text-green-600"
                         />
                       </td>
