@@ -286,7 +286,7 @@ onMounted(() => {
                   Densidad Pobl.
                 </th>
                 <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Brecha Cobertura
+                  Dist. Reciclaje
                 </th>
                 <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Dens. Vial

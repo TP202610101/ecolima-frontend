@@ -19,7 +19,7 @@ export const ExportReportUseCase = {
       'Prioridade',
       'Puntaje ML (%)',
       'Densidad Poblacional (hab/km²)',
-      'Brecha Cobertura (km)',
+      'Dist. pto. reciclaje (km)',
       'Densidad Vial (m/km²)',
       'Estado',
     ]
