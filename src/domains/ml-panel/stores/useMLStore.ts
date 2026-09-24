@@ -214,6 +214,12 @@ export const useMLStore = defineStore('ml', () => {
     }
   }
 
+  function abortInProgress() {
+    stopPolling()
+    inferring.value = false
+    updating.value = false
+  }
+
   function clearData() {
     stopPolling()
     models.value = []
@@ -260,6 +266,7 @@ export const useMLStore = defineStore('ml', () => {
     runInference,
     updateRecommendations,
     stopPolling,
+    abortInProgress,
     compareFetching,
     compareResult,
     compareError,

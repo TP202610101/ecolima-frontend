@@ -383,7 +383,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  mlStore.stopPolling()
+  mlStore.abortInProgress()
 })
 </script>
 
