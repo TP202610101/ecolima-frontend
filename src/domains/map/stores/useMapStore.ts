@@ -21,34 +21,44 @@ export const useMapStore = defineStore('map', () => {
   const heatmapError = ref<string | null>(null)
   const selectedDistrictId = ref<number | undefined>(undefined)
 
+  let fetchPointsSeq = 0
+  let fetchHeatmapSeq = 0
+
   async function fetchPoints() {
+    const seq = ++fetchPointsSeq
     loadingPoints.value = true
     error.value = null
     try {
-      points.value = await GetPointsUseCase(
+      const result = await GetPointsUseCase(
         selectedMaterial.value ? { material: selectedMaterial.value } : {}
       )
+      if (seq !== fetchPointsSeq) return
+      points.value = result
     } catch (e) {
+      if (seq !== fetchPointsSeq) return
       error.value = e instanceof Error ? e.message : 'Error al cargar puntos'
     } finally {
-      loadingPoints.value = false
+      if (seq === fetchPointsSeq) loadingPoints.value = false
     }
   }
 
   async function fetchHeatmap() {
+    const seq = ++fetchHeatmapSeq
     loadingHeatmap.value = true
     heatmapError.value = null
     try {
       const geojson = await MapRepository.getHeatmap(heatmapMetric.value, selectedDistrictId.value)
+      if (seq !== fetchHeatmapSeq) return
       heatmapPoints.value = (geojson.features ?? []).map(f => {
         const coords = (f.geometry as GeoJSON.Point).coordinates
         const value = ((f.properties ?? {}) as { value: number }).value ?? 0
         return [coords[1], coords[0], value] as [number, number, number]
       })
     } catch (e) {
+      if (seq !== fetchHeatmapSeq) return
       heatmapError.value = e instanceof Error ? e.message : 'Error al cargar mapa de calor'
     } finally {
-      loadingHeatmap.value = false
+      if (seq === fetchHeatmapSeq) loadingHeatmap.value = false
     }
   }
 
