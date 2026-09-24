@@ -19,7 +19,7 @@ export const ExportReportUseCase = {
       'Prioridade',
       'Puntaje ML (%)',
       'Densidad Poblacional (hab/km²)',
-      'Dist. pto. reciclaje (km)',
+      'Dist. pto. reciclaje (m)',
       'Densidad Vial (m/km²)',
       'Estado',
     ]
@@ -31,7 +31,7 @@ export const ExportReportUseCase = {
       r.priority_label,
       r.ml_score != null ? (r.ml_score * 100).toFixed(0) : '',
       r.population_density != null ? String(Math.round(r.population_density)) : '',
-      r.coverage_gap_m != null ? (r.coverage_gap_m / 1000).toFixed(1) : '',
+      r.coverage_gap_m != null ? String(Math.round(r.coverage_gap_m)) : '',
       r.road_density != null ? String(Math.round(r.road_density)) : '',
       'Recomendado',
     ])
