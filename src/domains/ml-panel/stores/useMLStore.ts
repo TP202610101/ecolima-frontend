@@ -214,6 +214,28 @@ export const useMLStore = defineStore('ml', () => {
     }
   }
 
+  function clearData() {
+    stopPolling()
+    models.value = []
+    error.value = null
+    inferenceTaskId.value = null
+    inferring.value = false
+    inferenceProgress.value = 0
+    inferenceError.value = null
+    zonesProcessed.value = 0
+    estimatedZones.value = 0
+    activatingVersion.value = null
+    recalculating.value = false
+    recalculateResult.value = null
+    recalculateError.value = null
+    updating.value = false
+    updateResult.value = null
+    updateError.value = null
+    compareFetching.value = false
+    compareResult.value = null
+    compareError.value = null
+  }
+
   return {
     models,
     activeModel,
@@ -243,5 +265,6 @@ export const useMLStore = defineStore('ml', () => {
     compareError,
     fetchCompare,
     clearCompare,
+    clearData,
   }
 })

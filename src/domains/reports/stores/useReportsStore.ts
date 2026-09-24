@@ -41,5 +41,11 @@ export const useReportsStore = defineStore('reports', () => {
     }
   }
 
-  return { recommendations, stats, loading, error, fetchAll, fetchStats }
+  function clearData() {
+    recommendations.value = []
+    stats.value = null
+    error.value = null
+  }
+
+  return { recommendations, stats, loading, error, fetchAll, fetchStats, clearData }
 })

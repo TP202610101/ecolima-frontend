@@ -72,10 +72,18 @@ export const useMapStore = defineStore('map', () => {
     }
   }
 
+  function clearData() {
+    points.value = []
+    districts.value = []
+    heatmapPoints.value = []
+    heatmapError.value = null
+    error.value = null
+  }
+
   return {
     points, districts, loadingPoints, loadingDistricts, error,
     showZones, showPoints, selectedMaterial,
     showHeatmap, heatmapMetric, heatmapPoints, loadingHeatmap, heatmapError, selectedDistrictId,
-    fetchPoints, fetchDistricts, setMaterial, fetchHeatmap,
+    fetchPoints, fetchDistricts, setMaterial, fetchHeatmap, clearData,
   }
 })
