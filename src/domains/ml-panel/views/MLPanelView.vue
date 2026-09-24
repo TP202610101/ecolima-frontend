@@ -1419,7 +1419,7 @@ onUnmounted(() => {
                 </div>
                 <!-- Errores de tipo -->
                 <div
-                  v-if="datasetsStore.lastValidation.result.type_errors.length"
+                  v-if="datasetsStore.lastValidation.result.type_errors?.length"
                   class="space-y-1"
                 >
                   <p class="text-xs font-medium text-red-800">
@@ -1428,7 +1428,7 @@ onUnmounted(() => {
                   <!-- Admin + dataset no confirmado: checkboxes + edición inline -->
                   <template v-if="isAdmin && validationDataset && validationDataset.status !== 'committed'">
                     <div
-                      v-for="err in datasetsStore.lastValidation.result.type_errors"
+                      v-for="err in (datasetsStore.lastValidation.result.type_errors ?? [])"
                       :key="`${err.row_index}-${err.column}`"
                       class="space-y-1"
                     >
@@ -1547,17 +1547,17 @@ onUnmounted(() => {
                   <!-- Solo lectura (no admin o dataset confirmado) -->
                   <template v-else>
                     <p
-                      v-for="err in datasetsStore.lastValidation.result.type_errors.slice(0, 5)"
+                      v-for="err in (datasetsStore.lastValidation.result.type_errors?.slice(0, 5) ?? [])"
                       :key="`${err.row_index}-${err.column}`"
                       class="text-xs text-red-700"
                     >
                       Fila {{ err.row_index + 1 }} — <span class="font-mono">{{ err.column }}</span>: {{ err.error }}
                     </p>
                     <p
-                      v-if="datasetsStore.lastValidation.result.type_errors.length > 5"
+                      v-if="(datasetsStore.lastValidation.result.type_errors?.length ?? 0) > 5"
                       class="text-xs text-red-600 italic"
                     >
-                      y {{ datasetsStore.lastValidation.result.type_errors.length - 5 }} errores más…
+                      y {{ (datasetsStore.lastValidation.result.type_errors?.length ?? 0) - 5 }} errores más…
                     </p>
                   </template>
                 </div>
