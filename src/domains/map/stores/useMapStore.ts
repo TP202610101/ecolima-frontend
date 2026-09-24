@@ -88,6 +88,12 @@ export const useMapStore = defineStore('map', () => {
     heatmapPoints.value = []
     heatmapError.value = null
     error.value = null
+    showHeatmap.value = false
+    heatmapMetric.value = 'density'
+    selectedMaterial.value = ''
+    selectedDistrictId.value = undefined
+    showZones.value = true
+    showPoints.value = true
   }
 
   return {

@@ -132,6 +132,12 @@ describe('LogoutUseCase — limpieza de stores', () => {
     mapStore.heatmapPoints = [[-12.0, -77.0, 1.0]]
     mapStore.error = 'error map'
     mapStore.heatmapError = 'error heatmap'
+    mapStore.showHeatmap = true
+    mapStore.heatmapMetric = 'priority'
+    mapStore.selectedMaterial = 'papel'
+    mapStore.selectedDistrictId = 42
+    mapStore.showZones = false
+    mapStore.showPoints = false
 
     reportsStore.recommendations = [stubRec]
     reportsStore.stats = stubStats
@@ -171,6 +177,12 @@ describe('LogoutUseCase — limpieza de stores', () => {
     expect(mapStore.heatmapPoints).toHaveLength(0)
     expect(mapStore.error).toBeNull()
     expect(mapStore.heatmapError).toBeNull()
+    expect(mapStore.showHeatmap).toBe(false)
+    expect(mapStore.heatmapMetric).toBe('density')
+    expect(mapStore.selectedMaterial).toBe('')
+    expect(mapStore.selectedDistrictId).toBeUndefined()
+    expect(mapStore.showZones).toBe(true)
+    expect(mapStore.showPoints).toBe(true)
 
     // useReportsStore
     expect(reportsStore.recommendations).toHaveLength(0)
