@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import * as maplibregl from 'maplibre-gl'
+import type * as GeoJSON from 'geojson'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { Plus, Minus, RotateCcw, AlertTriangle, Ruler } from '@lucide/vue'
 import type { Recommendation } from '@/domains/recommendations/entities/Recommendation'

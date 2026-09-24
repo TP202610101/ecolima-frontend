@@ -6,6 +6,16 @@ import globals from 'globals'
 export default tseslint.config(
   { ignores: ['dist/**', 'node_modules/**', 'coverage/**'] },
 
+  // Archivos CJS (postcss.config.cjs, etc.) necesitan entorno Node
+  {
+    files: ['**/*.cjs'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+  },
+
   js.configs.recommended,
 
   ...tseslint.configs.recommended,
