@@ -325,13 +325,13 @@ onUnmounted(() => {
       <!-- Empty state -->
       <div
         v-else-if="hasSearched && !error && filteredPoints.length === 0"
-        class="absolute bottom-40 left-1/2 -translate-x-1/2 z-[1000] w-80 max-w-[90vw]"
+        class="absolute bottom-40 left-1/2 -translate-x-1/2 z-[1000] w-64 sm:w-80 max-w-[90vw]"
       >
-        <div class="bg-white border border-gray-200 rounded-xl shadow-lg px-5 py-5 text-center">
-          <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
-            <MapPin class="w-5 h-5 text-gray-400" />
+        <div class="bg-white border border-gray-200 rounded-xl shadow-lg px-4 py-4 sm:px-5 sm:py-5 text-center">
+          <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-2 sm:mb-3">
+            <MapPin class="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
           </div>
-          <p class="text-sm font-medium text-gray-800">
+          <p class="text-xs sm:text-sm font-medium text-gray-800">
             Aún no hay puntos de reciclaje registrados en esta zona
           </p>
           <p class="text-xs text-gray-500 mt-1.5">
