@@ -4,6 +4,7 @@ import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { MapPin, Recycle, Navigation, Search, LogIn, Plus, Minus, RotateCcw, AlertCircle } from '@lucide/vue'
 import { PublicRepository, type PublicPoint } from '../repositories/PublicRepository'
+import { formatMaterials } from '@/shared/utils/formatters'
 
 // MapLibre usa orden [lng, lat] (inverso a Leaflet)
 const LIMA_CENTER: [number, number] = [-77.0428, -12.0464]
@@ -170,7 +171,7 @@ onMounted(() => {
       const coords = (f.geometry as { type: 'Point'; coordinates: [number, number] }).coordinates
       const p = f.properties ?? {}
       const mats: string[] = JSON.parse((p['materiales'] as string | null) ?? '[]')
-      const matsStr = mats.length ? mats.join(', ') : 'No especificado'
+      const matsStr = formatMaterials(mats.join(','))
       const rawDist = p['distancia'] as number | null
       const dist = rawDist === null
         ? 'distancia no disponible'

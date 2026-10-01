@@ -12,3 +12,13 @@ export function formatDistance(meters: number | null | undefined): string {
     ? `${(meters / 1000).toFixed(1)} km`
     : `${Math.round(meters)} m`
 }
+
+/** Normalizes a materials_accepted string to "Papel, Cartón, Plástico" format. */
+export function formatMaterials(raw: string | null | undefined): string {
+  if (!raw?.trim()) return 'No especificado'
+  return raw
+    .split(',')
+    .map(m => { const t = m.trim(); return t ? t.charAt(0).toUpperCase() + t.slice(1) : '' })
+    .filter(Boolean)
+    .join(', ')
+}

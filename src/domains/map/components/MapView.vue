@@ -8,6 +8,7 @@ import type { Recommendation } from '@/domains/recommendations/entities/Recommen
 import type { RecyclingPoint } from '../entities/RecyclingPoint'
 import { useRecommendationsStore } from '@/domains/recommendations/stores/useRecommendationsStore'
 import { useMapStore } from '../stores/useMapStore'
+import { formatMaterials } from '@/shared/utils/formatters'
 
 const recStore = useRecommendationsStore()
 const mapStore = useMapStore()
@@ -370,7 +371,7 @@ onMounted(() => {
       if (!f) return
       const coords = (f.geometry as GeoJSON.Point).coordinates as [number, number]
       const p = f.properties ?? {}
-      const mats = p['materials_accepted'] as string
+      const mats = formatMaterials(p['materials_accepted'] as string | null)
       new maplibregl.Popup({ minWidth: '200px' })
         .setLngLat(coords)
         .setHTML(`<div style="font-size:13px;min-width:190px">
