@@ -269,7 +269,7 @@ onUnmounted(() => {
 
       <!-- Filtro por material -->
       <div
-        class="absolute left-3 z-[1000] w-[calc(100%-8rem)]"
+        class="absolute left-3 z-[1000] w-[calc(100%-8rem)] sm:w-[calc(100%-9.5rem)]"
         :class="geoError ? 'top-14' : 'top-3'"
       >
         <div class="chip-scroll flex gap-1.5 overflow-x-auto pb-0.5">
@@ -355,7 +355,7 @@ onUnmounted(() => {
       </div>
 
       <!-- Botones de acción -->
-      <div class="absolute bottom-20 sm:bottom-8 left-1/2 -translate-x-1/2 z-[1000] flex flex-col items-center gap-2">
+      <div class="absolute bottom-20 sm:bottom-8 left-1/2 -translate-x-1/2 z-[1000] flex flex-col items-center gap-2 sm:flex-row sm:gap-3">
         <button
           :disabled="loading"
           class="flex items-center gap-2 px-5 py-3 bg-white border border-gray-300 rounded-full text-sm font-medium text-gray-700 shadow-md hover:shadow-lg hover:bg-gray-50 transition-all disabled:opacity-50"
