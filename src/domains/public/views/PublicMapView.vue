@@ -144,6 +144,8 @@ onMounted(() => {
     zoom: 13,
   })
 
+  map.on('movestart', () => { hasSearched.value = false })
+
   map.on('load', () => {
     mapStyleLoaded = true
 
