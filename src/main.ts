@@ -5,7 +5,6 @@ import router from '@/router'
 import { useAuthStore } from '@/domains/auth/stores/useAuthStore'
 import * as maplibregl from 'maplibre-gl'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
-import 'leaflet/dist/leaflet.css'
 import '@/styles/index.css'
 
 maplibregl.setWorkerUrl(workerUrl)
