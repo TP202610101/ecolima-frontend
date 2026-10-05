@@ -15,7 +15,7 @@ SPA de análisis geoespacial de residuos sólidos para Lima Metropolitana. Consu
 | Estado | Pinia |
 | Routing | Vue Router 4 |
 | HTTP | Axios (interceptors centralizados) |
-| Mapas | Leaflet 1.9 |
+| Mapas | MapLibre GL JS + OpenFreeMap |
 | Gráficos | Chart.js 4 |
 | Estilos | Tailwind CSS 3 |
 | Tests | Vitest + @vue/test-utils |
@@ -71,7 +71,7 @@ src/
 │   ├── admin/          # Gestión de usuarios (solo admin)
 │   ├── auth/           # Login, sesión, AuthStore
 │   ├── datasets/       # Carga, validación y commit de datasets CSV
-│   ├── map/            # Vista de análisis geoespacial con Leaflet
+│   ├── map/            # Vista de análisis geoespacial con MapLibre
 │   ├── ml-panel/       # Panel ML: inferencia, modelos, cobertura
 │   ├── public/         # Mapa público sin auth (/puntos)
 │   ├── recommendations/# Recomendaciones derivadas del análisis
