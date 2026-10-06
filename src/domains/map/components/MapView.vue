@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import * as maplibregl from 'maplibre-gl'
+import type * as GeoJSON from 'geojson'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { Plus, Minus, RotateCcw, AlertTriangle, Ruler } from '@lucide/vue'
 import type { Recommendation } from '@/domains/recommendations/entities/Recommendation'
 import type { RecyclingPoint } from '../entities/RecyclingPoint'
 import { useRecommendationsStore } from '@/domains/recommendations/stores/useRecommendationsStore'
 import { useMapStore } from '../stores/useMapStore'
+import { formatMaterials } from '@/shared/utils/formatters'
 
 const recStore = useRecommendationsStore()
 const mapStore = useMapStore()
@@ -369,11 +371,13 @@ onMounted(() => {
       if (!f) return
       const coords = (f.geometry as GeoJSON.Point).coordinates as [number, number]
       const p = f.properties ?? {}
-      const mats = p['materials_accepted'] as string
-      new maplibregl.Popup({ minWidth: '200px' })
+      const rawAddr = p['address'] as string
+      const addr = rawAddr.replace(/\s*\([^)]*no legible[^)]*\)/gi, '').trim()
+      const mats = formatMaterials(p['materials_accepted'] as string | null)
+      new maplibregl.Popup({ minWidth: '200px', offset: 12 })
         .setLngLat(coords)
-        .setHTML(`<div style="font-size:13px;min-width:190px">
-          <strong style="font-size:14px;display:block;margin-bottom:4px">${p['address'] as string}</strong>
+        .setHTML(`<div style="font-size:13px;min-width:190px;padding-top:2px">
+          <strong style="font-size:14px;display:block;margin-bottom:4px;padding-right:18px">${addr}</strong>
           ${p['point_type'] ? `<span style="color:#6b7280;font-size:12px;display:block;margin-bottom:4px">Tipo: ${p['point_type'] as string}</span>` : ''}
           <hr style="margin:6px 0;border-color:#e5e7eb">
           <span style="font-size:12px"><strong>Acepta:</strong> ${mats}</span>
@@ -532,3 +536,21 @@ defineExpose({ flyTo, invalidateSize })
     </div>
   </div>
 </template>
+
+<style>
+.maplibregl-popup-close-button {
+  right: 6px;
+  top: 6px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-size: 16px;
+  line-height: 1;
+}
+.maplibregl-popup-close-button:hover {
+  background-color: #f3f4f6;
+}
+</style>

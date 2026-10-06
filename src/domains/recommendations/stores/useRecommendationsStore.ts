@@ -59,6 +59,12 @@ export const useRecommendationsStore = defineStore('recommendations', () => {
     selectedNSE.value = nse
   }
 
+  function clearData() {
+    recommendations.value = []
+    selectedZone.value = null
+    error.value = null
+  }
+
   return {
     recommendations,
     selectedZone,
@@ -71,5 +77,6 @@ export const useRecommendationsStore = defineStore('recommendations', () => {
     fetchRecommendations,
     selectZone,
     setFilters,
+    clearData,
   }
 })

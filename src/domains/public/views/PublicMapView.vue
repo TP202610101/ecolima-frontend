@@ -4,6 +4,7 @@ import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { MapPin, Recycle, Navigation, Search, LogIn, Plus, Minus, RotateCcw, AlertCircle } from '@lucide/vue'
 import { PublicRepository, type PublicPoint } from '../repositories/PublicRepository'
+import { formatMaterials } from '@/shared/utils/formatters'
 
 // MapLibre usa orden [lng, lat] (inverso a Leaflet)
 const LIMA_CENTER: [number, number] = [-77.0428, -12.0464]
@@ -143,6 +144,8 @@ onMounted(() => {
     zoom: 13,
   })
 
+  map.on('movestart', () => { hasSearched.value = false })
+
   map.on('load', () => {
     mapStyleLoaded = true
 
@@ -170,7 +173,7 @@ onMounted(() => {
       const coords = (f.geometry as { type: 'Point'; coordinates: [number, number] }).coordinates
       const p = f.properties ?? {}
       const mats: string[] = JSON.parse((p['materiales'] as string | null) ?? '[]')
-      const matsStr = mats.length ? mats.join(', ') : 'No especificado'
+      const matsStr = formatMaterials(mats.join(','))
       const rawDist = p['distancia'] as number | null
       const dist = rawDist === null
         ? 'distancia no disponible'
@@ -208,6 +211,19 @@ onUnmounted(() => {
 
 <template>
   <div class="h-full flex flex-col">
+    <!-- Overlay portrait en teléfonos: pide rotar a landscape -->
+    <div
+      class="fixed inset-0 z-[9999] bg-white
+             hidden [@media(orientation:portrait)_and_(max-width:639px)]:block"
+    >
+      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-4">
+        <RotateCcw class="w-12 h-12 text-gray-300" />
+        <p class="text-sm font-medium text-gray-600 text-center px-8">
+          Gira el teléfono para ver el mapa
+        </p>
+      </div>
+    </div>
+
     <!-- Cabecera pública -->
     <header class="flex items-center justify-between px-4 py-2.5 bg-white border-b border-gray-200 flex-shrink-0">
       <div class="flex items-center gap-3 min-w-0">
@@ -255,7 +271,7 @@ onUnmounted(() => {
 
       <!-- Filtro por material -->
       <div
-        class="absolute left-3 z-[1000] w-[calc(100%-8rem)]"
+        class="absolute left-3 z-[1000] w-[calc(100%-8rem)] sm:w-[calc(100%-9.5rem)]"
         :class="geoError ? 'top-14' : 'top-3'"
       >
         <div class="chip-scroll flex gap-1.5 overflow-x-auto pb-0.5">
@@ -276,7 +292,7 @@ onUnmounted(() => {
       </div>
 
       <!-- Controles de zoom -->
-      <div class="absolute right-3 top-3 z-[1000] flex items-center gap-1">
+      <div class="absolute right-3 top-12 sm:top-3 z-[1000] flex items-center gap-1">
         <button
           class="w-8 h-8 bg-white border border-gray-200 rounded-md shadow text-gray-700 hover:bg-gray-50 flex items-center justify-center transition-colors"
           aria-label="Acercar"
@@ -325,23 +341,23 @@ onUnmounted(() => {
       <!-- Empty state -->
       <div
         v-else-if="hasSearched && !error && filteredPoints.length === 0"
-        class="absolute bottom-40 left-1/2 -translate-x-1/2 z-[1000] w-80 max-w-[90vw]"
+        class="absolute top-[35%] -translate-y-1/2 left-1/2 -translate-x-1/2 z-[1000] w-56 sm:w-80 max-w-[88vw]"
       >
-        <div class="bg-white border border-gray-200 rounded-xl shadow-lg px-5 py-5 text-center">
-          <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+        <div class="bg-white border border-gray-200 rounded-xl shadow-lg px-3 py-3 sm:px-5 sm:py-5 text-center">
+          <div class="hidden sm:flex w-10 h-10 rounded-full bg-gray-100 items-center justify-center mx-auto mb-3">
             <MapPin class="w-5 h-5 text-gray-400" />
           </div>
-          <p class="text-sm font-medium text-gray-800">
-            Aún no hay puntos de reciclaje registrados en esta zona
+          <p class="text-xs sm:text-sm font-medium text-gray-800 leading-snug">
+            Sin puntos de reciclaje en esta zona
           </p>
-          <p class="text-xs text-gray-500 mt-1.5">
-            Intenta mover el mapa o buscar en otra zona de Lima
+          <p class="text-xs text-gray-500 mt-1">
+            Mueve el mapa o busca en otra zona
           </p>
         </div>
       </div>
 
       <!-- Botones de acción -->
-      <div class="absolute bottom-20 sm:bottom-8 left-1/2 -translate-x-1/2 z-[1000] flex flex-col items-center gap-2">
+      <div class="absolute bottom-20 sm:bottom-8 left-1/2 -translate-x-1/2 z-[1000] flex flex-col items-center gap-2 sm:flex-row sm:gap-3">
         <button
           :disabled="loading"
           class="flex items-center gap-2 px-5 py-3 bg-white border border-gray-300 rounded-full text-sm font-medium text-gray-700 shadow-md hover:shadow-lg hover:bg-gray-50 transition-all disabled:opacity-50"

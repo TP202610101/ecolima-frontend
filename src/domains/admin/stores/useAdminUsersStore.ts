@@ -63,6 +63,12 @@ export const useAdminUsersStore = defineStore('admin-users', () => {
     }
   }
 
+  function clearData() {
+    users.value = []
+    actionError.value = null
+    createError.value = null
+  }
+
   return {
     users,
     loading,
@@ -74,5 +80,6 @@ export const useAdminUsersStore = defineStore('admin-users', () => {
     createUser,
     updateRole,
     updateStatus,
+    clearData,
   }
 })

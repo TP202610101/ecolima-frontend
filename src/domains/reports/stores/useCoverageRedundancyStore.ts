@@ -22,5 +22,10 @@ export const useCoverageRedundancyStore = defineStore('coverage-redundancy', () 
     }
   }
 
-  return { items, loading, error, fetchRedundancy }
+  function clearData() {
+    items.value = []
+    error.value = null
+  }
+
+  return { items, loading, error, fetchRedundancy, clearData }
 })

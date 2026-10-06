@@ -6,11 +6,12 @@ export interface ModelVersion {
   artifact_url?: string
   created_at?: string
   metrics: {
-    accuracy: number
-    f1: number
-    auc_pr: number
-    precision: number
-    recall: number
+    accuracy?: number
+    f1?: number
+    auc_roc?: number
+    auc_pr?: number
+    precision?: number
+    recall?: number
   }
 }
 

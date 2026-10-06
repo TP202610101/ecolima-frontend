@@ -113,9 +113,10 @@ function closeHistoryModal() {
 const selectedForCompare = ref<string[]>([])
 const showCompareModal = ref(false)
 
-const COMPARE_METRICS: Array<{ key: keyof { accuracy: number; f1: number; auc_pr: number; precision: number; recall: number }; label: string }> = [
+const COMPARE_METRICS: Array<{ key: keyof NonNullable<typeof mlStore.compareResult>['a']['metrics']; label: string }> = [
   { key: 'accuracy', label: 'Accuracy' },
   { key: 'f1', label: 'F1' },
+  { key: 'auc_roc', label: 'AUC-ROC' },
   { key: 'auc_pr', label: 'AUC-PR' },
   { key: 'precision', label: 'Precision' },
   { key: 'recall', label: 'Recall' },
@@ -382,7 +383,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  mlStore.stopPolling()
+  mlStore.abortInProgress()
 })
 </script>
 
@@ -910,26 +911,26 @@ onUnmounted(() => {
                       <td
                         class="px-4 py-3 text-center font-mono text-sm"
                         :class="{
-                          'bg-green-50 text-green-800': mlStore.compareResult.a.metrics?.[m.key] != null && mlStore.compareResult.b.metrics?.[m.key] != null && mlStore.compareResult.a.metrics[m.key] > mlStore.compareResult.b.metrics[m.key],
-                          'text-foreground': !(mlStore.compareResult.a.metrics?.[m.key] != null && mlStore.compareResult.b.metrics?.[m.key] != null && mlStore.compareResult.a.metrics[m.key] > mlStore.compareResult.b.metrics[m.key]),
+                          'bg-green-50 text-green-800': mlStore.compareResult.a.metrics?.[m.key] != null && mlStore.compareResult.b.metrics?.[m.key] != null && (mlStore.compareResult.a.metrics[m.key] as number) > (mlStore.compareResult.b.metrics[m.key] as number),
+                          'text-foreground': !(mlStore.compareResult.a.metrics?.[m.key] != null && mlStore.compareResult.b.metrics?.[m.key] != null && (mlStore.compareResult.a.metrics[m.key] as number) > (mlStore.compareResult.b.metrics[m.key] as number)),
                         }"
                       >
                         {{ fmtPct(mlStore.compareResult.a.metrics?.[m.key]) }}
                         <ArrowUp
-                          v-if="mlStore.compareResult.a.metrics?.[m.key] != null && mlStore.compareResult.b.metrics?.[m.key] != null && mlStore.compareResult.a.metrics[m.key] > mlStore.compareResult.b.metrics[m.key]"
+                          v-if="mlStore.compareResult.a.metrics?.[m.key] != null && mlStore.compareResult.b.metrics?.[m.key] != null && (mlStore.compareResult.a.metrics[m.key] as number) > (mlStore.compareResult.b.metrics[m.key] as number)"
                           class="inline w-3 h-3 text-green-600"
                         />
                       </td>
                       <td
                         class="px-4 py-3 text-center font-mono text-sm"
                         :class="{
-                          'bg-green-50 text-green-800': mlStore.compareResult.a.metrics?.[m.key] != null && mlStore.compareResult.b.metrics?.[m.key] != null && mlStore.compareResult.b.metrics[m.key] > mlStore.compareResult.a.metrics[m.key],
-                          'text-foreground': !(mlStore.compareResult.a.metrics?.[m.key] != null && mlStore.compareResult.b.metrics?.[m.key] != null && mlStore.compareResult.b.metrics[m.key] > mlStore.compareResult.a.metrics[m.key]),
+                          'bg-green-50 text-green-800': mlStore.compareResult.a.metrics?.[m.key] != null && mlStore.compareResult.b.metrics?.[m.key] != null && (mlStore.compareResult.b.metrics[m.key] as number) > (mlStore.compareResult.a.metrics[m.key] as number),
+                          'text-foreground': !(mlStore.compareResult.a.metrics?.[m.key] != null && mlStore.compareResult.b.metrics?.[m.key] != null && (mlStore.compareResult.b.metrics[m.key] as number) > (mlStore.compareResult.a.metrics[m.key] as number)),
                         }"
                       >
                         {{ fmtPct(mlStore.compareResult.b.metrics?.[m.key]) }}
                         <ArrowUp
-                          v-if="mlStore.compareResult.a.metrics?.[m.key] != null && mlStore.compareResult.b.metrics?.[m.key] != null && mlStore.compareResult.b.metrics[m.key] > mlStore.compareResult.a.metrics[m.key]"
+                          v-if="mlStore.compareResult.a.metrics?.[m.key] != null && mlStore.compareResult.b.metrics?.[m.key] != null && (mlStore.compareResult.b.metrics[m.key] as number) > (mlStore.compareResult.a.metrics[m.key] as number)"
                           class="inline w-3 h-3 text-green-600"
                         />
                       </td>
@@ -1418,7 +1419,7 @@ onUnmounted(() => {
                 </div>
                 <!-- Errores de tipo -->
                 <div
-                  v-if="datasetsStore.lastValidation.result.type_errors.length"
+                  v-if="datasetsStore.lastValidation.result.type_errors?.length"
                   class="space-y-1"
                 >
                   <p class="text-xs font-medium text-red-800">
@@ -1427,7 +1428,7 @@ onUnmounted(() => {
                   <!-- Admin + dataset no confirmado: checkboxes + edición inline -->
                   <template v-if="isAdmin && validationDataset && validationDataset.status !== 'committed'">
                     <div
-                      v-for="err in datasetsStore.lastValidation.result.type_errors"
+                      v-for="err in (datasetsStore.lastValidation.result.type_errors ?? [])"
                       :key="`${err.row_index}-${err.column}`"
                       class="space-y-1"
                     >
@@ -1546,17 +1547,17 @@ onUnmounted(() => {
                   <!-- Solo lectura (no admin o dataset confirmado) -->
                   <template v-else>
                     <p
-                      v-for="err in datasetsStore.lastValidation.result.type_errors.slice(0, 5)"
+                      v-for="err in (datasetsStore.lastValidation.result.type_errors?.slice(0, 5) ?? [])"
                       :key="`${err.row_index}-${err.column}`"
                       class="text-xs text-red-700"
                     >
                       Fila {{ err.row_index + 1 }} — <span class="font-mono">{{ err.column }}</span>: {{ err.error }}
                     </p>
                     <p
-                      v-if="datasetsStore.lastValidation.result.type_errors.length > 5"
+                      v-if="(datasetsStore.lastValidation.result.type_errors?.length ?? 0) > 5"
                       class="text-xs text-red-600 italic"
                     >
-                      y {{ datasetsStore.lastValidation.result.type_errors.length - 5 }} errores más…
+                      y {{ (datasetsStore.lastValidation.result.type_errors?.length ?? 0) - 5 }} errores más…
                     </p>
                   </template>
                 </div>

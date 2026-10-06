@@ -201,6 +201,23 @@ export const useDatasetsStore = defineStore('datasets', () => {
     uploadError.value = null
   }
 
+  function clearData() {
+    datasets.value = []
+    uploadResult.value = null
+    uploadError.value = null
+    isUploaderOpen.value = false
+    lastValidation.value = null
+    lastCommit.value = null
+    actionError.value = null
+    deleteRowsResult.value = null
+    deleteRowsError.value = null
+    editCellsResult.value = null
+    editCellsError.value = null
+    historyResult.value = null
+    historyError.value = null
+    deleteDatasetError.value = null
+  }
+
   function openUploader() {
     clearUploadState()
     isUploaderOpen.value = true
@@ -250,6 +267,7 @@ export const useDatasetsStore = defineStore('datasets', () => {
     clearHistory,
     clearLastResult,
     clearUploadState,
+    clearData,
     openUploader,
     closeUploader,
   }

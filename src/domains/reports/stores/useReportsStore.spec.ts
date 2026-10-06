@@ -34,6 +34,8 @@ const mockGeojson = (features = [mockFeature()]) => ({
   features,
 })
 
+const mockStats = { total_labeled: 100, positive_labels: 40, districts_covered: 12, features_available: ['density', 'gpc', 'dist_nearest', 'fuel'] }
+
 beforeEach(() => {
   setActivePinia(createPinia())
   vi.clearAllMocks()
@@ -50,23 +52,21 @@ describe('useReportsStore — estado inicial', () => {
 })
 
 describe('useReportsStore — fetchAll', () => {
-  it('carga recomendaciones y stats en paralelo', async () => {
-    const stats = { total_labeled: 100, positive_labels: 40, districts_covered: 12, features_available: ['density', 'gpc', 'dist_nearest', 'fuel'] }
+  it('carga recomendaciones sin tocar stats', async () => {
     vi.mocked(ReportsRepository.getRecommendationsList).mockResolvedValue(mockGeojson())
-    vi.mocked(ReportsRepository.getStats).mockResolvedValue(stats)
 
     const store = useReportsStore()
     await store.fetchAll()
 
     expect(store.recommendations).toHaveLength(1)
-    expect(store.stats).toEqual(stats)
+    expect(store.stats).toBeNull()
+    expect(ReportsRepository.getStats).not.toHaveBeenCalled()
     expect(store.loading).toBe(false)
     expect(store.error).toBeNull()
   })
 
   it('guarda error si falla getRecommendationsList', async () => {
     vi.mocked(ReportsRepository.getRecommendationsList).mockRejectedValue(new Error('Error del servidor'))
-    vi.mocked(ReportsRepository.getStats).mockResolvedValue({ total_labeled: 0, positive_labels: 0, districts_covered: 0, features_available: [] })
 
     const store = useReportsStore()
     await store.fetchAll()
@@ -74,15 +74,24 @@ describe('useReportsStore — fetchAll', () => {
     expect(store.error).toBe('Error del servidor')
     expect(store.loading).toBe(false)
   })
+})
 
-  it('no falla si getStats devuelve error (non-critical)', async () => {
-    vi.mocked(ReportsRepository.getRecommendationsList).mockResolvedValue(mockGeojson())
-    vi.mocked(ReportsRepository.getStats).mockRejectedValue(new Error('404'))
+describe('useReportsStore — fetchStats', () => {
+  it('carga stats cuando el rol tiene acceso', async () => {
+    vi.mocked(ReportsRepository.getStats).mockResolvedValue(mockStats)
 
     const store = useReportsStore()
-    await store.fetchAll()
+    await store.fetchStats()
 
-    expect(store.recommendations).toHaveLength(1)
+    expect(store.stats).toEqual(mockStats)
+  })
+
+  it('no falla si getStats devuelve error (endpoint admin-only)', async () => {
+    vi.mocked(ReportsRepository.getStats).mockRejectedValue(new Error('403'))
+
+    const store = useReportsStore()
+    await store.fetchStats()
+
     expect(store.stats).toBeNull()
     expect(store.error).toBeNull()
   })
