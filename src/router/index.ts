@@ -5,6 +5,8 @@ import ReportsView from '@/domains/reports/views/ReportsView.vue'
 import MLPanelView from '@/domains/ml-panel/views/MLPanelView.vue'
 import AdminUsersView from '@/domains/admin/views/AdminUsersView.vue'
 import PublicMapView from '@/domains/public/views/PublicMapView.vue'
+import AnalisisV1View from '@/domains/analisis-v1/views/AnalisisV1View.vue'
+import ReportesV1View from '@/domains/analisis-v1/views/ReportesV1View.vue'
 import { useAuthStore } from '@/domains/auth/stores/useAuthStore'
 
 function isTokenExpired(token: string): boolean {
@@ -22,6 +24,9 @@ const routes = [
   { path: '/puntos',   name: 'puntos',   component: PublicMapView, meta: { requiresAuth: false, hideNavbar: true } },
   { path: '/analisis', name: 'analisis', component: AnalysisView, meta: { requiresAuth: true } },
   { path: '/reportes', name: 'reportes', component: ReportsView,  meta: { requiresAuth: true } },
+  // Resultados V1 importados del paquete versionado (/api/v1/analisis/*); el backend exige admin o analista.
+  { path: '/analisis-v1', name: 'analisis-v1', component: AnalisisV1View, meta: { requiresAuth: true, roles: ['admin', 'analista'] } },
+  { path: '/reportes-v1', name: 'reportes-v1', component: ReportesV1View, meta: { requiresAuth: true, roles: ['admin', 'analista'] } },
   { path: '/panel-ml',        name: 'panel-ml',        component: MLPanelView,    meta: { requiresAuth: true, requiresAdmin: true } },
   { path: '/admin/usuarios',  name: 'admin-usuarios',  component: AdminUsersView, meta: { requiresAuth: true, requiresAdmin: true } },
   { path: '/:pathMatch(.*)*', redirect: { name: 'puntos' } },
@@ -44,6 +49,8 @@ router.beforeEach((to, from, next) => {
   if (to.name === 'login' && auth.isAuthenticated) return next({ name: 'analisis' })
   if ((to.meta as any).requiresAuth && !auth.isAuthenticated) return next({ name: 'login' })
   if ((to.meta as any).requiresAdmin && auth.user?.role !== 'admin') return next({ name: 'analisis' })
+  const roles = to.meta.roles as string[] | undefined
+  if (roles && !roles.includes(auth.user?.role ?? '')) return next({ name: 'analisis' })
   next()
 })
 

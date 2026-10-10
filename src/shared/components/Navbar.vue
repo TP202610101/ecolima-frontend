@@ -33,6 +33,20 @@
         Reportes
       </router-link>
       <router-link
+        v-if="puedeVerV1"
+        :class="linkClass('/analisis-v1')"
+        to="/analisis-v1"
+      >
+        Análisis V1
+      </router-link>
+      <router-link
+        v-if="puedeVerV1"
+        :class="linkClass('/reportes-v1')"
+        to="/reportes-v1"
+      >
+        Reportes V1
+      </router-link>
+      <router-link
         v-if="auth.isAdmin"
         :class="linkClass('/panel-ml')"
         to="/panel-ml"
@@ -127,6 +141,24 @@
           Reportes
         </router-link>
         <router-link
+          v-if="puedeVerV1"
+          to="/analisis-v1"
+          class="flex items-center px-4 py-3 text-sm hover:bg-secondary transition-colors"
+          :class="route.path === '/analisis-v1' ? 'text-primary font-medium bg-accent' : 'text-foreground'"
+          @click="closeMenu"
+        >
+          Análisis V1
+        </router-link>
+        <router-link
+          v-if="puedeVerV1"
+          to="/reportes-v1"
+          class="flex items-center px-4 py-3 text-sm hover:bg-secondary transition-colors"
+          :class="route.path === '/reportes-v1' ? 'text-primary font-medium bg-accent' : 'text-foreground'"
+          @click="closeMenu"
+        >
+          Reportes V1
+        </router-link>
+        <router-link
           v-if="auth.isAdmin"
           to="/panel-ml"
           class="flex items-center px-4 py-3 text-sm hover:bg-secondary transition-colors"
@@ -172,6 +204,8 @@ const router = useRouter()
 const route = useRoute()
 
 const menuOpen = ref(false)
+
+const puedeVerV1 = computed(() => auth.user?.role === 'admin' || auth.user?.role === 'analista')
 
 const initials = computed(() => {
   const name = auth.user?.full_name || auth.user?.email || ''
