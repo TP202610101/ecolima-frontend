@@ -8,6 +8,8 @@ import { useDatasetsStore } from '@/domains/datasets/stores/useDatasetsStore'
 import { useMapStore } from '@/domains/map/stores/useMapStore'
 import { useReportsStore } from '@/domains/reports/stores/useReportsStore'
 import { useCoverageRedundancyStore } from '@/domains/reports/stores/useCoverageRedundancyStore'
+import { useExploracionV1Store } from '@/domains/analisis-v1/stores/useExploracionV1Store'
+import type { Fuente } from '@/domains/analisis-v1/entities/AnalisisV1'
 import type { ModelVersionMetrics } from '@/domains/ml-panel/entities/ModelVersion'
 import type { Recommendation } from '@/domains/recommendations/entities/Recommendation'
 import type { AdminUser } from '@/domains/admin/entities/AdminUser'
@@ -192,5 +194,25 @@ describe('LogoutUseCase — limpieza de stores', () => {
     // useCoverageRedundancyStore
     expect(coverageStore.items).toHaveLength(0)
     expect(coverageStore.error).toBeNull()
+  })
+
+  it('limpia los resultados V1 para que no los vea la siguiente cuenta', async () => {
+    const v1 = useExploracionV1Store()
+    v1.cargado = true
+    v1.usuario = '7'
+    v1.ambito = '150131'
+    v1.selId = 'S1'
+    v1.error = 'error v1'
+    v1.fuentes = [{ codigo: 'OSM' } as Fuente]
+
+    await LogoutUseCase()
+
+    expect(v1.cargado).toBe(false)
+    expect(v1.usuario).toBe('')
+    expect(v1.ambito).toBe('lima')
+    expect(v1.selId).toBeNull()
+    expect(v1.error).toBeNull()
+    expect(v1.fuentes).toHaveLength(0)
+    expect(v1.lugares).toHaveLength(0)
   })
 })

@@ -64,6 +64,8 @@ export const useExploracionV1Store = defineStore('exploracionV1', () => {
   const fuentes = ref<Fuente[]>([])
   const errorFuentes = ref<string | null>(null)
   let reqDetalle = 0
+  // Sube en clearData: una carga en curso al cerrar sesión no escribe datos en la sesión siguiente.
+  let genCarga = 0
 
   // ── Derivados ────────────────────────────────────────────────────────────────────────────────────
   const topK = computed(() => version.value?.mcda.top_k ?? 110)
@@ -106,11 +108,13 @@ export const useExploracionV1Store = defineStore('exploracionV1', () => {
     usuario.value = usuarioId
     miDistrito.value = leerMiDistrito(usuarioId)
     if (cargado.value || cargando.value) return
+    const g = genCarga
     cargando.value = true
     error.value = null
     sinVersion.value = false
     try {
       const v = await AnalisisV1Repository.getVersionActiva()
+      if (g !== genCarga) return
       if (!v) { sinVersion.value = true; return }
       version.value = v
       const [d, s, t] = await Promise.all([
@@ -118,6 +122,7 @@ export const useExploracionV1Store = defineStore('exploracionV1', () => {
         AnalisisV1Repository.getTodosLosSitios(),
         AnalisisV1Repository.getTamizaje(),
       ])
+      if (g !== genCarga) return
       distritos.value = d
       lugares.value = construirLugares(s.items)
       tamizaje.value = t
@@ -125,9 +130,9 @@ export const useExploracionV1Store = defineStore('exploracionV1', () => {
       ambito.value = miDistrito.value ?? PROVINCIA
       cargado.value = true
     } catch (e) {
-      error.value = mensaje(e, 'No se pudieron cargar los resultados V1. Intenta de nuevo.')
+      if (g === genCarga) error.value = mensaje(e, 'No se pudieron cargar los resultados V1. Intenta de nuevo.')
     } finally {
-      cargando.value = false
+      if (g === genCarga) cargando.value = false
     }
   }
 
@@ -211,6 +216,40 @@ export const useExploracionV1Store = defineStore('exploracionV1', () => {
     return 'ver detalle del lugar'
   }
 
+  /** Al cerrar sesión: deja el store como recién creado para que la siguiente cuenta vuelva a cargar. */
+  function clearData() {
+    genCarga++
+    reqDetalle++
+    version.value = null
+    sinVersion.value = false
+    distritos.value = null
+    lugares.value = []
+    tamizaje.value = null
+    cargando.value = false
+    error.value = null
+    cargado.value = false
+    usuario.value = ''
+    miDistrito.value = null
+    ambito.value = PROVINCIA
+    filtros.value = filtrosIniciales()
+    capaExistentes.value = true
+    avisoCerrado.value = false
+    pag.value = 1
+    porPag.value = 10
+    selId.value = null
+    masDetalles.value = false
+    detalle.value = null
+    cargandoDetalle.value = false
+    errorDetalle.value = null
+    repPag.value = 1
+    repPorPag.value = 10
+    repOrden.value = { ...ORDEN_INICIAL }
+    distPag.value = null
+    distPorPag.value = 10
+    fuentes.value = []
+    errorFuentes.value = null
+  }
+
   return {
     version, sinVersion, distritos, lugares, tamizaje, cargando, error, cargado,
     usuario, miDistrito, ambito, filtros, capaExistentes, avisoCerrado, pag, porPag, selId, masDetalles,
@@ -219,7 +258,7 @@ export const useExploracionV1Store = defineStore('exploracionV1', () => {
     seleccion, existentesAmbito, lugaresAmbito, textoFiltros, hayFiltros, paginaLista, seleccionado,
     cifrasAmbito, cifrasSeleccion, aptosDistrito,
     inicializar, ambitoValido, cambiarAmbito, fijarMiDistrito, setFiltros, restablecerFiltros, elegir,
-    cambiarPagina, cambiarPorPagina, cargarFuentes, verificacionCampo, irAPaginaDe,
+    cambiarPagina, cambiarPorPagina, cargarFuentes, verificacionCampo, irAPaginaDe, clearData,
     nombreAmbitoActual: computed(() => nombreAmbito(ambito.value)),
   }
 })

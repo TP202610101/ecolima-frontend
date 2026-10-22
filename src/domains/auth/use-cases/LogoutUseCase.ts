@@ -7,6 +7,7 @@ import { useDatasetsStore } from '@/domains/datasets/stores/useDatasetsStore'
 import { useMapStore } from '@/domains/map/stores/useMapStore'
 import { useReportsStore } from '@/domains/reports/stores/useReportsStore'
 import { useCoverageRedundancyStore } from '@/domains/reports/stores/useCoverageRedundancyStore'
+import { useExploracionV1Store } from '@/domains/analisis-v1/stores/useExploracionV1Store'
 
 export async function LogoutUseCase() {
   const auth = useAuthStore()
@@ -19,4 +20,5 @@ export async function LogoutUseCase() {
   useMapStore().clearData()
   useReportsStore().clearData()
   useCoverageRedundancyStore().clearData()
+  useExploracionV1Store().clearData()
 }

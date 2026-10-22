@@ -8,6 +8,7 @@ import PublicMapView from '@/domains/public/views/PublicMapView.vue'
 import AnalisisV1View from '@/domains/analisis-v1/views/AnalisisV1View.vue'
 import ReportesV1View from '@/domains/analisis-v1/views/ReportesV1View.vue'
 import { useAuthStore } from '@/domains/auth/stores/useAuthStore'
+import { rutaInicio } from '@/domains/auth/utils/rutaInicio'
 
 function isTokenExpired(token: string): boolean {
   try {
@@ -46,11 +47,12 @@ router.beforeEach((to, from, next) => {
     return next({ name: 'login', query: { expired: 'true' } })
   }
 
-  if (to.name === 'login' && auth.isAuthenticated) return next({ name: 'analisis' })
+  const inicio = rutaInicio(auth.user?.role)
+  if (to.name === 'login' && auth.isAuthenticated) return next({ name: inicio })
   if ((to.meta as any).requiresAuth && !auth.isAuthenticated) return next({ name: 'login' })
-  if ((to.meta as any).requiresAdmin && auth.user?.role !== 'admin') return next({ name: 'analisis' })
+  if ((to.meta as any).requiresAdmin && auth.user?.role !== 'admin') return next({ name: inicio })
   const roles = to.meta.roles as string[] | undefined
-  if (roles && !roles.includes(auth.user?.role ?? '')) return next({ name: 'analisis' })
+  if (roles && !roles.includes(auth.user?.role ?? '')) return next({ name: inicio })
   next()
 })
 
