@@ -43,6 +43,21 @@ const percentil = computed(() => {
   const x = p * 100
   return x < 1 ? 'menos de 1' : fmtEntero(Math.round(x))
 })
+// Contribuciones al logit por grupo de variables (propension.contribuciones_logit), de mayor a menor magnitud.
+// El ancho de cada barra es relativo a la mayor del lugar; el signo dice hacia qué lado empuja.
+const GRUPO: Record<string, string> = {
+  clase: 'Tipo de lugar', poblacion: 'Población', vias: 'Vías', pois: 'Comercios y servicios (POIs)',
+  construido: 'Superficie construida', pendiente: 'Pendiente', sigersol: 'Residuos por persona (SIGERSOL)',
+}
+const contribuciones = computed(() => {
+  const c = d.value?.propension?.contribuciones_logit
+  const filas = Object.entries(c ?? {}).filter(([, v]) => typeof v === 'number' && Number.isFinite(v))
+  if (!filas.length) return []
+  const max = Math.max(...filas.map(([, v]) => Math.abs(v))) || 1
+  return filas
+    .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+    .map(([k, v]) => ({ k, nombre: GRUPO[k] ?? k, v, ancho: (Math.abs(v) / max) * 50, texto: `${v >= 0 ? '+' : '−'}${fmtDec(Math.abs(v), 2)}` }))
+})
 const ICONO: Record<Factor, unknown> = { k1: Users, k2: Trash2, k3: Navigation, k4: Route }
 const vacioK = { k1: 0, k2: 0, k3: 0, k4: 0 }
 </script>
@@ -363,6 +378,41 @@ const vacioK = { k1: 0, k2: 0, k3: 0, k4: 0 }
                   Acerca del modelo
                 </button>
               </p>
+            </section>
+
+            <section
+              v-if="contribuciones.length"
+              data-prueba="contribuciones"
+            >
+              <h3 class="text-sm font-semibold text-green-900 mb-1">
+                Qué más pesa en el parecido con los puntos ya registrados
+              </h3>
+              <p class="text-xs text-muted-foreground mb-2">
+                Hacia la derecha acerca el lugar al patrón de los puntos registrados; hacia la izquierda lo aleja. No mide si conviene instalar.
+              </p>
+              <ul class="flex flex-col gap-1">
+                <li
+                  v-for="c in contribuciones"
+                  :key="c.k"
+                  class="grid grid-cols-[minmax(0,9rem)_1fr_3rem] items-center gap-2 text-[12px]"
+                  :data-grupo="c.k"
+                >
+                  <span class="truncate text-neutral-700">{{ c.nombre }}</span>
+                  <span
+                    class="relative h-3 bg-gray-100 rounded"
+                    role="img"
+                    :aria-label="`${c.nombre}: ${c.texto}`"
+                  >
+                    <span class="absolute left-1/2 top-0 bottom-0 w-px bg-gray-400" />
+                    <span
+                      class="absolute top-0 bottom-0 rounded"
+                      :class="c.v >= 0 ? 'bg-green-600' : 'bg-gray-400'"
+                      :style="c.v >= 0 ? { left: '50%', width: `${c.ancho}%` } : { right: '50%', width: `${c.ancho}%` }"
+                    />
+                  </span>
+                  <span class="text-right tabular-nums text-neutral-700">{{ c.texto }}</span>
+                </li>
+              </ul>
             </section>
 
             <section

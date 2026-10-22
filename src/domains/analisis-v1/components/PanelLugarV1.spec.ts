@@ -69,6 +69,46 @@ describe('PanelLugarV1', () => {
     expect(w.emitted('ayuda')?.[0]).toEqual(['modelo'])
   })
 
+  // contribuciones_logit reales del paquete V1.0.0 (backend local, redondeadas a 4 decimales).
+  const REALES = {
+    paradero: { clase: 0.1997, poblacion: -0.7328, vias: -2.1481, pois: 0.6686, construido: 0.8328, pendiente: -0.0109, sigersol: 0.1659 },
+    parque: { clase: -2.6662, poblacion: -0.4232, vias: -0.6934, pois: 0.9874, construido: -0.5227, pendiente: -0.0364, sigersol: 0.4336 },
+    mercado: { clase: -3.4677, poblacion: -0.6296, vias: -1.2591, pois: -0.2401, construido: 0.545, pendiente: -0.0415, sigersol: 0.1659 },
+  }
+  async function conContribuciones(c: Record<string, number> | undefined, propension = true) {
+    const m = montar()
+    m.st.detalle = { ...detalle, ...(propension ? { propension: { percentil_oof: 0.5, contribuciones_logit: c } } : {}) } as unknown as DetalleSitio
+    await m.w.vm.$nextTick()
+    return m.w
+  }
+
+  it.each(Object.entries(REALES))('contribuciones de un %s: ordenadas por magnitud, con signo y escala relativa', async (_, c) => {
+    const w = await conContribuciones(c)
+    const sec = w.find('[data-prueba="contribuciones"]')
+    expect(sec.find('h3').text()).toBe('Qué más pesa en el parecido con los puntos ya registrados')
+    expect(sec.text()).toContain('Hacia la derecha acerca el lugar al patrón de los puntos registrados; hacia la izquierda lo aleja. No mide si conviene instalar.')
+    const filas = sec.findAll('li')
+    const esperado = Object.entries(c).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+    expect(filas.map(f => f.attributes('data-grupo'))).toEqual(esperado.map(([k]) => k))
+    const barra = (i: number) => filas[i].find('span.absolute.rounded').attributes('style') ?? ''
+    expect(barra(0)).toContain('width: 50%')
+    for (const [i, [, v]] of esperado.entries()) expect(barra(i)).toContain(v >= 0 ? 'left: 50%' : 'right: 50%')
+    expect(filas[0].text()).toContain(esperado[0][1] >= 0 ? '+' : '−')
+    expect(sec.text()).not.toMatch(/recomend|probabilidad|idone|\bAlta\b|\bMedia\b|\bBaja\b/i)
+  })
+
+  it('sin contribuciones en el detalle no muestra el bloque ni falla', async () => {
+    for (const w of [await conContribuciones(undefined), await conContribuciones({}), await conContribuciones(undefined, false)]) {
+      expect(w.find('[data-prueba="contribuciones"]').exists()).toBe(false)
+      expect(w.text()).toContain('Ver más detalles')
+    }
+  })
+
+  it('ignora valores no numéricos en las contribuciones', async () => {
+    const w = await conContribuciones({ clase: 0.5, vias: Number.NaN, pois: null as unknown as number })
+    expect(w.findAll('[data-prueba="contribuciones"] li').map(f => f.attributes('data-grupo'))).toEqual(['clase'])
+  })
+
   it('un percentil por debajo de 1 se lee como «menos de 1»', async () => {
     const { w, st } = montar()
     st.detalle = { ...detalle, propension: { percentil_oof: 0.0004 } } as unknown as DetalleSitio
