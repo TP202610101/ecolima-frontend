@@ -8,7 +8,7 @@ import { PROVINCIA } from '../utils/lecturaV1'
 vi.mock('../repositories/AnalisisV1Repository', () => ({
   AnalisisV1Repository: {
     getVersionActiva: vi.fn(), getDistritos: vi.fn(), getTodosLosSitios: vi.fn(), getTamizaje: vi.fn(),
-    getSitio: vi.fn(), getFuentes: vi.fn(),
+    getSitio: vi.fn(), getFuentes: vi.fn(), getModelo: vi.fn(),
   },
 }))
 const repo = vi.mocked(AnalisisV1Repository)
@@ -125,6 +125,17 @@ describe('useExploracionV1Store', () => {
     expect(s.miDistrito).toBeNull()
     s.cambiarAmbito(SI)
     expect(s.ambitoSinLugares).toBe(false)
+  })
+
+  it('carga la ficha del modelo una sola vez y la borra al cerrar sesión', async () => {
+    repo.getModelo.mockResolvedValue({ modelo_version: 'propension-1.0.0' } as never)
+    const s = useExploracionV1Store()
+    await s.cargarModelo()
+    await s.cargarModelo()
+    expect(repo.getModelo).toHaveBeenCalledTimes(1)
+    expect(s.modelo?.modelo_version).toBe('propension-1.0.0')
+    s.clearData()
+    expect(s.modelo).toBeNull()
   })
 
   it('clearData deja el store vacío y la siguiente cuenta vuelve a cargar', async () => {

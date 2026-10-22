@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { MapPin, X, CheckCircle2, MinusCircle, CircleDot, XCircle, Info, ListOrdered, ChevronDown, Users, Trash2, Navigation, Route } from '@lucide/vue'
 import { useExploracionV1Store } from '../stores/useExploracionV1Store'
 import {
-  CLASE_LARGA, CONTROLES_CAMPO, FACTOR_INFO, FACTORES, PROVINCIA, REGLAS_REVISION, RESULTADO_REGLA, T, codigoCorto, nombreLugar,
+  CONTROLES_CAMPO, FACTOR_INFO, FACTORES, PROVINCIA, REGLAS_REVISION, RESULTADO_REGLA, T, codigoCorto, nombreLugar,
   distanciaM, explicacionBreve, fmtDec, fmtDist, fmtEntero, fuenteExistente, nivelesFactores, nombreDistrito,
   nombreExistente, ord, valorFactor, type Factor,
 } from '../utils/lecturaV1'
@@ -11,9 +11,10 @@ import {
 // Columna derecha (como ZoneDetailPanel del original). Resumen inicial: nombre (si existe en el paquete),
 // tipo y distrito, estado de la revisión preliminar, orden en el distrito, si está entre los primeros de Lima,
 // por qué ocupa esa posición, distancia al punto existente más cercano y verificaciones pendientes.
-// Todo lo demás va en «Ver más detalles». Nada de puntajes, propensión ni métricas del modelo.
+// Todo lo demás va en «Ver más detalles», incluido el percentil de parecido con los puntos registrados
+// (propension.percentil_oof: más alto = más parecido). Sin puntajes MCDA ni métricas del modelo.
 const store = useExploracionV1Store()
-const emit = defineEmits<{ ayuda: [seccion: 'orden' | 'fuentes'] }>()
+const emit = defineEmits<{ ayuda: [seccion: 'orden' | 'fuentes' | 'modelo'] }>()
 
 const l = computed(() => store.seleccionado)
 const d = computed(() => (store.detalle && store.detalle.sitio_id === l.value?.id ? store.detalle : null))
@@ -34,6 +35,13 @@ const comparaDistrito = computed(() => niveles.value?.usarDistrito ?? true)
 const primeroDelAmbito = computed(() => {
   const s = store.seleccion.find(x => x.rango != null)
   return s ?? null
+})
+// percentil_oof va de 1/n a 1 y crece con la propensión (verificado con el paquete V1.0.0).
+const percentil = computed(() => {
+  const p = d.value?.propension?.percentil_oof
+  if (p == null) return null
+  const x = p * 100
+  return x < 1 ? 'menos de 1' : fmtEntero(Math.round(x))
 })
 const ICONO: Record<Factor, unknown> = { k1: Users, k2: Trash2, k3: Navigation, k4: Route }
 const vacioK = { k1: 0, k2: 0, k3: 0, k4: 0 }
@@ -329,6 +337,31 @@ const vacioK = { k1: 0, k2: 0, k3: 0, k4: 0 }
               </ul>
               <p class="text-xs text-muted-foreground mt-2">
                 Se combinan cuatro factores con el mismo peso, medidos a 500 m del lugar.
+              </p>
+            </section>
+
+            <section
+              v-if="percentil"
+              data-prueba="parecido"
+            >
+              <h3 class="text-sm font-semibold text-green-900 mb-1">
+                Parecido con los puntos ya registrados
+              </h3>
+              <p class="text-[13px]">
+                Percentil <strong class="tabular-nums">{{ percentil }}</strong> de 100
+                <span class="text-muted-foreground">(100 = el más parecido de los {{ fmtEntero(store.lugares.length) }} lugares)</span>
+              </p>
+              <p class="text-xs text-muted-foreground mt-1">
+                Ordena los lugares por su parecido con los sitios donde ya hay puntos de reciclaje registrados.
+                Refleja dónde se instaló antes: no mide si conviene instalar aquí, no es una probabilidad y no cambia el orden de revisión.
+                <button
+                  type="button"
+                  class="text-primary underline underline-offset-2"
+                  data-prueba="ir-modelo"
+                  @click="emit('ayuda', 'modelo')"
+                >
+                  Acerca del modelo
+                </button>
               </p>
             </section>
 

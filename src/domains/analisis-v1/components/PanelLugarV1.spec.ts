@@ -55,6 +55,27 @@ describe('PanelLugarV1', () => {
     expect(t).not.toMatch(/ROC|AUC|propensi|puntaje|Monte Carlo|MCDA|\bAlta\b|\bMedia\b|\bBaja\b/)
   })
 
+  it('muestra el percentil de parecido sin presentarlo como probabilidad ni como conveniencia', async () => {
+    const { w, st } = montar()
+    st.detalle = { ...detalle, propension: { percentil_oof: 0.806, propension_oof: 0.41 } } as unknown as DetalleSitio
+    await w.vm.$nextTick()
+    const sec = w.find('[data-prueba="parecido"]')
+    expect(sec.exists()).toBe(true)
+    expect(sec.text()).toContain('Percentil 81 de 100')
+    expect(sec.text()).toContain('100 = el más parecido de los 7 lugares')
+    expect(sec.text()).toContain('no mide si conviene instalar aquí, no es una probabilidad')
+    expect(sec.text()).not.toMatch(/recomend|idóne|\bAlta\b|\bMedia\b|\bBaja\b/i)
+    await w.find('[data-prueba="ir-modelo"]').trigger('click')
+    expect(w.emitted('ayuda')?.[0]).toEqual(['modelo'])
+  })
+
+  it('un percentil por debajo de 1 se lee como «menos de 1»', async () => {
+    const { w, st } = montar()
+    st.detalle = { ...detalle, propension: { percentil_oof: 0.0004 } } as unknown as DetalleSitio
+    await w.vm.$nextTick()
+    expect(w.find('[data-prueba="parecido"]').text()).toContain('Percentil menos de 1 de 100')
+  })
+
   it('«Ver más detalles» está plegado al inicio y despliega el resto', async () => {
     const { w, st } = montar()
     const det = w.find('[data-prueba="detalles"]')

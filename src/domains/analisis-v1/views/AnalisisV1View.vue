@@ -15,7 +15,7 @@ import { useAuthStore } from '@/domains/auth/stores/useAuthStore'
 const store = useExploracionV1Store()
 const auth = useAuthStore()
 const mapa = ref<InstanceType<typeof MapaExploracionV1>>()
-const ayuda = ref<'orden' | 'fuentes' | null>(null)
+const ayuda = ref<'orden' | 'fuentes' | 'modelo' | null>(null)
 // En pantallas angostas se muestra un panel a la vez (como las pestañas móviles del original).
 const panel = ref<'filtros' | 'mapa' | 'detalle'>('mapa')
 

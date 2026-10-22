@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { DetalleSitio, DistritosGeoJSON, Fuente, ResumenTamizaje, VersionActiva } from '../entities/AnalisisV1'
+import type { DetalleSitio, DistritosGeoJSON, Fuente, ModeloV1, ResumenTamizaje, VersionActiva } from '../entities/AnalisisV1'
 import { AnalisisV1Repository } from '../repositories/AnalisisV1Repository'
 import {
   PROVINCIA, construirLugares, enAmbito, filtrosActivos, filtrosIniciales, nombreAmbito, ORDEN_INICIAL,
@@ -63,6 +63,8 @@ export const useExploracionV1Store = defineStore('exploracionV1', () => {
   const distPorPag = ref(10)
   const fuentes = ref<Fuente[]>([])
   const errorFuentes = ref<string | null>(null)
+  const modelo = ref<ModeloV1 | null>(null)
+  const errorModelo = ref<string | null>(null)
   let reqDetalle = 0
   // Sube en clearData: una carga en curso al cerrar sesión no escribe datos en la sesión siguiente.
   let genCarga = 0
@@ -212,6 +214,18 @@ export const useExploracionV1Store = defineStore('exploracionV1', () => {
     try { fuentes.value = await AnalisisV1Repository.getFuentes() } catch (e) { errorFuentes.value = mensaje(e, 'No se pudieron cargar las fuentes.') }
   }
 
+  async function cargarModelo() {
+    if (modelo.value) return
+    const g = genCarga
+    errorModelo.value = null
+    try {
+      const m = await AnalisisV1Repository.getModelo()
+      if (g === genCarga) modelo.value = m
+    } catch (e) {
+      if (g === genCarga) errorModelo.value = mensaje(e, 'No se pudo cargar la ficha del modelo.')
+    }
+  }
+
   /** Verificación en campo de un lugar según el resumen de tamizaje de la API (en V1 todo está pendiente). */
   function verificacionCampo(l: Lugar): string {
     const v = tamizaje.value?.estado_verificacion_campo ?? {}
@@ -252,12 +266,15 @@ export const useExploracionV1Store = defineStore('exploracionV1', () => {
     distPorPag.value = 10
     fuentes.value = []
     errorFuentes.value = null
+    modelo.value = null
+    errorModelo.value = null
   }
 
   return {
     version, sinVersion, distritos, lugares, tamizaje, cargando, error, cargado,
     usuario, miDistrito, ambito, filtros, capaExistentes, avisoCerrado, pag, porPag, selId, masDetalles,
     detalle, cargandoDetalle, errorDetalle, repPag, repPorPag, repOrden, distPag, distPorPag, fuentes, errorFuentes,
+    modelo, errorModelo, cargarModelo,
     topK, porId, existentes, conteosDistrito, distritosConDatos, distritosSinLugares, ambitoSinLugares, nAptos, esMiDistrito,
     seleccion, existentesAmbito, lugaresAmbito, textoFiltros, hayFiltros, paginaLista, seleccionado,
     cifrasAmbito, cifrasSeleccion, aptosDistrito,

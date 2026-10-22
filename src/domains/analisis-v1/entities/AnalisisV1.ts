@@ -208,13 +208,31 @@ export interface Estadistico {
   'p97.5'?: number
 }
 
+export type MetricaModelo = 'roc_auc' | 'pr_auc' | 'boyce' | 'prevalencia' | 'recall_top5' | 'recall_top10' | 'recall_top20'
+
+export interface MetricaSemilla extends Record<MetricaModelo, number> {
+  semilla: number
+}
+
+// Ficha del modelo (model_card.json del paquete, sin el responsable). Solo se tipan los campos que se muestran.
+export interface ModelCard {
+  salida?: string
+  interpretacion?: string
+  limitaciones?: string[]
+  validacion?: { cv?: string; semillas?: number[]; prediccion?: string }
+  [clave: string]: unknown
+}
+
 export interface ModeloV1 {
   modelo_version: string
   algoritmo: string
   rol: string
-  metricas_resumen: Record<string, Estadistico>
-  model_card: Record<string, unknown>
+  metricas_resumen: Partial<Record<MetricaModelo, Estadistico>>
+  metricas_por_semilla: MetricaSemilla[]
+  model_card: ModelCard
+  parametros: Record<string, unknown>
   aviso: string
+  paquete_version: string
 }
 
 export interface ResumenMcda {

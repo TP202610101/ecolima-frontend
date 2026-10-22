@@ -21,7 +21,7 @@ import {
 const store = useExploracionV1Store()
 const auth = useAuthStore()
 const router = useRouter()
-const ayuda = ref<'orden' | 'fuentes' | null>(null)
+const ayuda = ref<'orden' | 'fuentes' | 'modelo' | null>(null)
 const imprimiendo = ref(false)
 const aviso = ref<string | null>(null)
 let temporizador: ReturnType<typeof setTimeout> | null = null

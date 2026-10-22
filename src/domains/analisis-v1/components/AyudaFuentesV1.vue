@@ -1,15 +1,45 @@
 <script setup lang="ts">
-import { onMounted, computed } from 'vue'
+import { onMounted, computed, watch } from 'vue'
 import { X } from '@lucide/vue'
 import { useExploracionV1Store } from '../stores/useExploracionV1Store'
-import { CONTROLES_CAMPO, REGLAS_REVISION, fechaLarga, fmtEntero, nombreDistrito } from '../utils/lecturaV1'
+import { CONTROLES_CAMPO, REGLAS_REVISION, fechaLarga, fmtDec, fmtEntero, nombreDistrito } from '../utils/lecturaV1'
+import type { MetricaModelo } from '../entities/AnalisisV1'
 
-// «Cómo se ordenan» y «Fuentes y limitaciones» en un mismo diálogo. Las fuentes vienen de /analisis/fuentes.
-const props = defineProps<{ seccion: 'orden' | 'fuentes' }>()
-const emit = defineEmits<{ cerrar: []; cambiar: [seccion: 'orden' | 'fuentes'] }>()
+// «Cómo se ordenan», «Fuentes y limitaciones» y «Acerca del modelo» en un mismo diálogo.
+// Las fuentes vienen de /analisis/fuentes y la ficha del modelo de /analisis/modelo.
+type Seccion = 'orden' | 'fuentes' | 'modelo'
+const props = defineProps<{ seccion: Seccion }>()
+const emit = defineEmits<{ cerrar: []; cambiar: [seccion: Seccion] }>()
 const store = useExploracionV1Store()
 
 onMounted(() => store.cargarFuentes())
+watch(() => props.seccion, s => { if (s === 'modelo') store.cargarModelo() }, { immediate: true })
+
+const METRICAS: Array<{ k: MetricaModelo; nombre: string; que: string }> = [
+  { k: 'roc_auc', nombre: 'ROC-AUC', que: 'Qué tan bien separa los lugares con punto registrado del resto (0,5 = al azar; 1 = perfecto).' },
+  { k: 'pr_auc', nombre: 'PR-AUC', que: 'Precisión promedio al recorrer el orden; se compara con la proporción de lugares con punto registrado.' },
+  { k: 'boyce', nombre: 'Índice de Boyce', que: 'Si los lugares más parecidos concentran más puntos registrados de lo esperado (de −1 a 1).' },
+  { k: 'recall_top10', nombre: 'Recall del 10 % superior', que: 'Parte de los puntos registrados que quedan en el 10 % de lugares más parecidos.' },
+]
+const modelo = computed(() => store.modelo)
+const metricas = computed(() => METRICAS.flatMap(m => {
+  const e = modelo.value?.metricas_resumen[m.k]
+  return e ? [{ ...m, media: e.media, de: e.de }] : []
+}))
+const prevalencia = computed(() => modelo.value?.metricas_resumen.prevalencia?.media ?? null)
+const nombreAlgoritmo = computed(() => (modelo.value?.algoritmo.startsWith('LogisticRegression') ? 'Regresión logística' : modelo.value?.algoritmo ?? ''))
+const validacion = computed(() => {
+  const v = modelo.value?.model_card.validacion
+  if (!v) return null
+  const k = /n_splits=(\d+)/.exec(v.cv ?? '')?.[1]
+  const porDistrito = /grupos=ubigeo/.test(v.cv ?? '')
+  const semillas = v.semillas?.length
+  return [
+    k ? `validación cruzada en ${k} partes${porDistrito ? ', separando los distritos entre entrenamiento y prueba' : ''}` : v.cv,
+    semillas ? `repetida con ${semillas} semillas` : null,
+    v.prediccion ? `predicción ${v.prediccion}` : null,
+  ].filter(Boolean).join('; ')
+})
 
 // Uso de cada fuente en palabras del analista (el campo uso_en_v1 del paquete trae nombres de variables).
 const USO: Record<string, string> = {
@@ -26,7 +56,7 @@ const fuentesVisibles = computed(() => {
 })
 const sinLugares = computed(() => store.distritosSinLugares.map(u => nombreDistrito(u)).join(', '))
 const distritosConExistentes = computed(() => new Set(store.existentes.map(e => e.ubigeo)).size)
-const tab = (s: 'orden' | 'fuentes') => props.seccion === s
+const tab = (s: Seccion) => props.seccion === s
   ? 'px-3 py-1.5 text-sm rounded-md bg-primary text-white font-medium'
   : 'px-3 py-1.5 text-sm rounded-md hover:bg-secondary'
 </script>
@@ -41,7 +71,7 @@ const tab = (s: 'orden' | 'fuentes') => props.seccion === s
       class="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col"
       role="dialog"
       aria-modal="true"
-      :aria-label="props.seccion === 'orden' ? 'Cómo se ordenan los lugares' : 'Fuentes y limitaciones'"
+      :aria-label="props.seccion === 'orden' ? 'Cómo se ordenan los lugares' : props.seccion === 'fuentes' ? 'Fuentes y limitaciones' : 'Acerca del modelo'"
       data-prueba="ayuda-fuentes"
     >
       <div class="px-5 py-3 border-b border-border flex items-center gap-2">
@@ -58,6 +88,14 @@ const tab = (s: 'orden' | 'fuentes') => props.seccion === s
           @click="emit('cambiar', 'fuentes')"
         >
           Fuentes y limitaciones
+        </button>
+        <button
+          type="button"
+          :class="tab('modelo')"
+          data-prueba="tab-modelo"
+          @click="emit('cambiar', 'modelo')"
+        >
+          Acerca del modelo
         </button>
         <button
           type="button"
@@ -117,6 +155,112 @@ const tab = (s: 'orden' | 'fuentes') => props.seccion === s
             {{ t }}
           </li>
         </ul>
+      </div>
+
+      <div
+        v-else-if="props.seccion === 'modelo'"
+        class="flex-1 overflow-y-auto px-5 py-4 text-sm text-neutral-700 space-y-3"
+        data-prueba="acerca-modelo"
+      >
+        <h2 class="text-lg font-bold text-foreground">
+          Acerca del modelo
+        </h2>
+        <p>
+          El modelo mide el <strong>parecido</strong> de cada lugar con los sitios donde ya hay puntos de reciclaje registrados,
+          es decir, con el patrón histórico de instalación. En el detalle de cada lugar se muestra como percentil (100 = el más parecido).
+        </p>
+        <p class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
+          La propensión no es una probabilidad calibrada ni una medida de idoneidad: no dice si conviene instalar un punto en un lugar.
+          Tampoco interviene en el orden de revisión, que sale solo de los cuatro factores.
+        </p>
+        <p
+          v-if="store.errorModelo"
+          class="text-red-700"
+        >
+          {{ store.errorModelo }}
+        </p>
+        <p
+          v-else-if="!modelo"
+          class="text-muted-foreground"
+        >
+          Cargando la ficha del modelo…
+        </p>
+        <template v-else>
+          <h3 class="font-semibold text-foreground">
+            Algoritmo
+          </h3>
+          <p>
+            {{ nombreAlgoritmo }} (versión {{ modelo.modelo_version }}){{ validacion ? `; ${validacion}` : '' }}.
+            <span class="block text-xs text-muted-foreground break-all">{{ modelo.algoritmo }}</span>
+          </p>
+          <h3 class="font-semibold text-foreground">
+            Métricas de validación
+          </h3>
+          <div class="overflow-x-auto">
+            <table
+              class="w-full text-[13px]"
+              data-prueba="metricas-modelo"
+            >
+              <thead class="text-xs text-muted-foreground">
+                <tr class="border-b border-border">
+                  <th class="py-1.5 pr-3 text-left font-medium">
+                    Métrica
+                  </th>
+                  <th class="py-1.5 px-2 text-right font-medium">
+                    Promedio
+                  </th>
+                  <th class="py-1.5 pl-2 text-right font-medium">
+                    Desviación
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="m in metricas"
+                  :key="m.k"
+                  class="border-b border-border align-top"
+                >
+                  <td class="py-1.5 pr-3">
+                    <span class="font-medium text-foreground">{{ m.nombre }}</span>
+                    <span class="block text-xs text-muted-foreground">{{ m.que }}</span>
+                  </td>
+                  <td class="py-1.5 px-2 text-right tabular-nums">
+                    {{ fmtDec(m.media, 3) }}
+                  </td>
+                  <td class="py-1.5 pl-2 text-right tabular-nums">
+                    {{ m.de == null ? '—' : fmtDec(m.de, 3) }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p
+            v-if="prevalencia != null"
+            class="text-xs text-muted-foreground"
+          >
+            Proporción de lugares con punto registrado: {{ fmtDec(prevalencia, 3) }}. Una PR-AUC por encima de ese valor indica que el orden por parecido es mejor que el azar.
+          </p>
+          <h3 class="font-semibold text-foreground">
+            Limitaciones
+          </h3>
+          <ul
+            class="list-disc pl-5 space-y-1"
+            data-prueba="limitaciones-modelo"
+          >
+            <li
+              v-for="(t, i) in modelo.model_card.limitaciones ?? []"
+              :key="i"
+            >
+              {{ t }}
+            </li>
+          </ul>
+          <p
+            v-if="modelo.model_card.salida"
+            class="text-xs text-muted-foreground"
+          >
+            Salida del modelo según su ficha: {{ modelo.model_card.salida }}.
+          </p>
+        </template>
       </div>
 
       <div
