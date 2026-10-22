@@ -21,30 +21,18 @@
       class="hidden sm:flex items-center gap-1"
     >
       <router-link
-        :class="linkClass('/analisis')"
-        to="/analisis"
-      >
-        Análisis
-      </router-link>
-      <router-link
-        :class="linkClass('/reportes')"
-        to="/reportes"
-      >
-        Reportes
-      </router-link>
-      <router-link
         v-if="puedeVerV1"
         :class="linkClass('/analisis-v1')"
         to="/analisis-v1"
       >
-        Análisis V1
+        Análisis
       </router-link>
       <router-link
         v-if="puedeVerV1"
         :class="linkClass('/reportes-v1')"
         to="/reportes-v1"
       >
-        Reportes V1
+        Reportes
       </router-link>
       <router-link
         v-if="auth.isAdmin"
@@ -125,29 +113,13 @@
       <!-- Links de navegación -->
       <div class="py-1">
         <router-link
-          to="/analisis"
-          class="flex items-center px-4 py-3 text-sm hover:bg-secondary transition-colors"
-          :class="route.path === '/analisis' ? 'text-primary font-medium bg-accent' : 'text-foreground'"
-          @click="closeMenu"
-        >
-          Análisis
-        </router-link>
-        <router-link
-          to="/reportes"
-          class="flex items-center px-4 py-3 text-sm hover:bg-secondary transition-colors"
-          :class="route.path === '/reportes' ? 'text-primary font-medium bg-accent' : 'text-foreground'"
-          @click="closeMenu"
-        >
-          Reportes
-        </router-link>
-        <router-link
           v-if="puedeVerV1"
           to="/analisis-v1"
           class="flex items-center px-4 py-3 text-sm hover:bg-secondary transition-colors"
           :class="route.path === '/analisis-v1' ? 'text-primary font-medium bg-accent' : 'text-foreground'"
           @click="closeMenu"
         >
-          Análisis V1
+          Análisis
         </router-link>
         <router-link
           v-if="puedeVerV1"
@@ -156,7 +128,7 @@
           :class="route.path === '/reportes-v1' ? 'text-primary font-medium bg-accent' : 'text-foreground'"
           @click="closeMenu"
         >
-          Reportes V1
+          Reportes
         </router-link>
         <router-link
           v-if="auth.isAdmin"

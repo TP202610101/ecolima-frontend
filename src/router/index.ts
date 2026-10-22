@@ -1,7 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '@/domains/auth/views/LoginView.vue'
-import AnalysisView from '@/domains/map/views/AnalysisView.vue'
-import ReportsView from '@/domains/reports/views/ReportsView.vue'
 import MLPanelView from '@/domains/ml-panel/views/MLPanelView.vue'
 import AdminUsersView from '@/domains/admin/views/AdminUsersView.vue'
 import PublicMapView from '@/domains/public/views/PublicMapView.vue'
@@ -23,11 +21,12 @@ const routes = [
   { path: '/',         name: 'login',    component: LoginView,    meta: { requiresAuth: false, hideNavbar: true } },
   // Ruta pública sin auth — no redirige al login, no muestra el navbar interno.
   { path: '/puntos',   name: 'puntos',   component: PublicMapView, meta: { requiresAuth: false, hideNavbar: true } },
-  { path: '/analisis', name: 'analisis', component: AnalysisView, meta: { requiresAuth: true } },
-  { path: '/reportes', name: 'reportes', component: ReportsView,  meta: { requiresAuth: true } },
   // Resultados V1 importados del paquete versionado (/api/v1/analisis/*); el backend exige admin o analista.
   { path: '/analisis-v1', name: 'analisis-v1', component: AnalisisV1View, meta: { requiresAuth: true, roles: ['admin', 'analista'] } },
   { path: '/reportes-v1', name: 'reportes-v1', component: ReportesV1View, meta: { requiresAuth: true, roles: ['admin', 'analista'] } },
+  // Vistas de Análisis y Reportes del prototipo LightGBM (etiqueta prototipo-lightgbm): llevan a las vistas V1.
+  { path: '/analisis', redirect: { name: 'analisis-v1' } },
+  { path: '/reportes', redirect: { name: 'reportes-v1' } },
   { path: '/panel-ml',        name: 'panel-ml',        component: MLPanelView,    meta: { requiresAuth: true, requiresAdmin: true } },
   { path: '/admin/usuarios',  name: 'admin-usuarios',  component: AdminUsersView, meta: { requiresAuth: true, requiresAdmin: true } },
   { path: '/:pathMatch(.*)*', redirect: { name: 'puntos' } },
