@@ -6,7 +6,7 @@ import { useAdminUsersStore } from '@/domains/admin/stores/useAdminUsersStore'
 import { useDatasetsStore } from '@/domains/datasets/stores/useDatasetsStore'
 import { useExploracionV1Store } from '@/domains/analisis-v1/stores/useExploracionV1Store'
 import type { Fuente } from '@/domains/analisis-v1/entities/AnalisisV1'
-import type { ModelVersionMetrics } from '@/domains/ml-panel/entities/ModelVersion'
+import type { ModeloV1, VersionActiva } from '@/domains/analisis-v1/entities/AnalisisV1'
 import type { AdminUser } from '@/domains/admin/entities/AdminUser'
 import type { Dataset } from '@/domains/datasets/entities/Dataset'
 
@@ -15,15 +15,6 @@ vi.mock('../repositories/AuthRepository', () => ({
     logout: vi.fn().mockResolvedValue(undefined),
   },
 }))
-
-const stubMetrics: ModelVersionMetrics = {
-  version_name: 'v1.0',
-  training_date: '2026-01-01T00:00:00Z',
-  is_active: true,
-  metrics: {},
-  features_used: ['density', 'gpc'],
-  comparison_with_previous: null,
-}
 
 const stubUser: AdminUser = {
   user_id: 1,
@@ -56,12 +47,11 @@ describe('LogoutUseCase — limpieza de stores', () => {
     const datasetsStore = useDatasetsStore()
 
     // Poblar con datos de prueba
-    mlStore.models = [stubMetrics]
+    mlStore.activa = { paquete_version: '1.0.0' } as VersionActiva
+    mlStore.modelo = { modelo_version: 'propension-1.0.0' } as ModeloV1
     mlStore.error = 'error ml'
-    mlStore.inferring = true
-    mlStore.inferenceTaskId = 'task-xyz'
-    mlStore.updating = true
-    mlStore.compareResult = { a: stubMetrics, b: stubMetrics }
+    mlStore.errores = { mcda: 'error mcda' }
+    mlStore.compareResult = { a: { version: mlStore.activa, modelo: null }, b: { version: mlStore.activa, modelo: null } }
 
     adminStore.users = [stubUser]
     adminStore.actionError = 'error admin'
@@ -79,11 +69,10 @@ describe('LogoutUseCase — limpieza de stores', () => {
     await LogoutUseCase()
 
     // useMLStore
-    expect(mlStore.models).toHaveLength(0)
+    expect(mlStore.activa).toBeNull()
+    expect(mlStore.modelo).toBeNull()
     expect(mlStore.error).toBeNull()
-    expect(mlStore.inferring).toBe(false)
-    expect(mlStore.inferenceTaskId).toBeNull()
-    expect(mlStore.updating).toBe(false)
+    expect(mlStore.errores).toEqual({})
     expect(mlStore.compareResult).toBeNull()
 
     // useAdminUsersStore

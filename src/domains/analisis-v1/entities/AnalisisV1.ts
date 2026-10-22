@@ -44,6 +44,8 @@ export interface VersionActiva {
   }
   dataset: {
     version: string
+    archivo?: string
+    sha256?: string
     filas: number
     positivos: number
     fondo: number
@@ -51,6 +53,9 @@ export interface VersionActiva {
     distritos_con_positivos: number
     unidades: Record<string, string>
   }
+  // Integridad del paquete (manifest.json): versiones de librerías y archivos con su hash.
+  entorno?: Record<string, string> | null
+  archivos?: Array<{ ruta: string; sha256: string; bytes: number | null; filas: number | null }>
   modelo: { version: string; algoritmo: string; cv: string; semillas: number[]; features: string[] }
   mcda: {
     version: string
@@ -235,6 +240,15 @@ export interface ModeloV1 {
   paquete_version: string
 }
 
+export type PesosMcda = { esquema: string } & Record<CriterioK, number>
+
+export interface ConcordanciaMcda {
+  comparacion: string
+  spearman: number
+  kendall_tau_b: number
+  solapamiento_top110: number
+}
+
 export interface ResumenMcda {
   mcda_version: string
   metodo: string
@@ -244,6 +258,11 @@ export interface ResumenMcda {
   top_k_fraccion: number
   esquema_principal: string
   aviso: string
+  pesos?: PesosMcda[]
+  // Sensibilidad del orden entre esquemas y variantes; informativa, no se usa para priorizar.
+  concordancia?: ConcordanciaMcda[]
+  montecarlo?: { n: number | null; semilla: number | null }
+  historial?: Record<string, string> | null
 }
 
 export interface ResumenTamizaje {
