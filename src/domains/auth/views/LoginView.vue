@@ -9,7 +9,7 @@
           EcoLima ML
         </h1>
         <p class="text-sm text-muted-foreground text-center mt-1">
-          Sistema de Recomendación de Ubicaciones<br>Municipalidad de Lima
+          Análisis de ubicaciones para puntos de reciclaje<br>Municipalidad de Lima
         </p>
       </div>
 
