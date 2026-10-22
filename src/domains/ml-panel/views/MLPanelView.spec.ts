@@ -61,6 +61,20 @@ describe('PanelDatos', () => {
     expect(revisarLenguaje(w.text())).toEqual([])
   })
 
+  it('lista los datasets cargados con acciones en grilla: principal primero y Eliminar al final, aparte', async () => {
+    const w = mount(PanelDatos, { global: { stubs: { teleport: true } } })
+    await flushPromises()
+    expect(w.text()).toContain('Datasets cargados (últimos 5)')
+    expect(w.text()).not.toMatch(/Preview del dataset|Distritos cubiertos|dataset activo/)
+    const acciones = w.find('[data-prueba="acciones-dataset"]')
+    expect(acciones.classes()).toEqual(expect.arrayContaining(['grid', 'grid-cols-2', 'md:flex']))
+    const botones = acciones.findAll('button')
+    expect(botones.map(b => b.attributes('data-accion'))).toEqual(['confirmar', 'limpiar', 'historial', 'eliminar'])
+    expect(botones[0].classes()).toContain('max-md:col-span-2')
+    expect(botones[3].classes()).toEqual(expect.arrayContaining(['max-md:col-span-2', 'bg-red-50', 'md:bg-red-600']))
+    for (const b of botones) expect(b.classes()).toContain('min-h-10')
+  })
+
   it('confirmar un dataset pide confirmación antes de insertar puntos', async () => {
     const w = mount(PanelDatos, { global: { stubs: { teleport: true } } })
     await flushPromises()

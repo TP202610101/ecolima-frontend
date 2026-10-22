@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed, ref, watch, nextTick } from 'vue'
-import { Filter, MapPin, Search, X } from '@lucide/vue'
+import { ChevronDown, Filter, MapPin, Search, X } from '@lucide/vue'
 import { useExploracionV1Store } from '../stores/useExploracionV1Store'
 import PaginadorV1 from './PaginadorV1.vue'
 import AvisoSinLugaresV1 from './AvisoSinLugaresV1.vue'
+import SelectorAmbitoV1 from './SelectorAmbitoV1.vue'
+import { useCambioAmbito } from '../composables/useCambioAmbito'
 import {
   CLASES, CLASE_CORTA, CLASE_LARGA, CLASE_PLURAL, PROVINCIA, T, enAmbito, fmtDist, fmtEntero, nombreDistrito,
   numeroDe, ord, type Grupo,
@@ -15,10 +17,9 @@ import type { ClaseOportunidad } from '../entities/AnalisisV1'
 const emit = defineEmits<{ ayuda: [seccion: 'fuentes'] }>()
 const store = useExploracionV1Store()
 const lista = ref<HTMLElement>()
+// Pantallas angostas: «Mostrar» y «Tipo de lugar» van plegados tras el botón «Filtros» (en escritorio, siempre abiertos).
+const filtrosAbiertos = ref(false)
 
-const otrosDistritos = computed(() => store.distritosConDatos
-  .filter(u => u !== store.miDistrito)
-  .sort((a, b) => nombreDistrito(a).localeCompare(nombreDistrito(b), 'es')))
 const enLima = computed(() => store.ambito === PROVINCIA)
 const delAmbito = computed(() => store.lugaresAmbito)
 const cuentaGrupo = (g: Grupo) => delAmbito.value.filter(l => l.grupo === g).length
@@ -37,7 +38,8 @@ function alternarTipo(c: ClaseOportunidad) {
 }
 function alternarGrupo(k: 'top' | 'cand' | 'excl', v: boolean) { store.setFiltros({ grupos: { ...store.filtros.grupos, [k]: v } }) }
 function buscar(ev: Event) { store.setFiltros({ buscar: (ev.target as HTMLInputElement).value }) }
-function cambiarDistrito(ev: Event) { store.cambiarAmbito((ev.target as HTMLSelectElement).value) }
+// El selector de ámbito (SelectorAmbitoV1) aplica la elección un cuadro después; mientras tanto, «Actualizando…».
+const { elegir: elegirAmbito, actualizando } = useCambioAmbito()
 
 async function mover(delta: number) {
   store.cambiarPagina(delta)
@@ -58,14 +60,15 @@ watch(() => store.selId, async id => {
     aria-label="Filtros y lista de lugares"
     data-prueba="columna-izquierda"
   >
-    <div class="flex items-center gap-2 px-4 py-3 border-b border-border">
+    <!-- En pantallas angostas el título lo da el botón «Filtros» plegable; «Restablecer» va dentro del panel. -->
+    <div class="hidden lg:flex items-center gap-2 px-4 py-3 border-b border-border">
       <Filter class="w-4 h-4 text-muted-foreground" />
       <h2 class="text-sm font-semibold flex-1">
         Filtros
       </h2>
       <button
         type="button"
-        class="text-xs text-primary underline underline-offset-2 disabled:text-muted-foreground disabled:no-underline disabled:cursor-default"
+        class="min-h-10 lg:min-h-0 text-xs text-primary underline underline-offset-2 disabled:text-muted-foreground disabled:no-underline disabled:cursor-default"
         :disabled="!store.hayFiltros && store.capaExistentes"
         data-prueba="restablecer"
         @click="store.restablecerFiltros()"
@@ -82,6 +85,15 @@ watch(() => store.selId, async id => {
             class="text-xs font-medium text-muted-foreground"
           >Distrito</label>
           <span
+            class="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"
+            aria-live="polite"
+            data-prueba="actualizando"
+          >
+            <template v-if="actualizando">
+              <span class="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />Actualizando la lista…
+            </template>
+          </span>
+          <span
             v-if="store.esMiDistrito"
             class="inline-flex items-center gap-1 text-[11px] font-medium rounded-full px-2 py-0.5 bg-green-100 text-green-800"
             data-prueba="insignia"
@@ -92,46 +104,10 @@ watch(() => store.selId, async id => {
             data-prueba="insignia"
           ><span class="w-1.5 h-1.5 rounded-full bg-current" />Explorando</span>
         </div>
-        <select
+        <SelectorAmbitoV1
           id="v1-distrito"
-          :value="store.ambito"
-          class="w-full border border-border rounded-md px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
           data-prueba="selector-distrito"
-          @change="cambiarDistrito"
-        >
-          <option
-            v-if="store.miDistrito"
-            :value="store.miDistrito"
-          >
-            {{ nombreDistrito(store.miDistrito) }} (mi distrito)
-          </option>
-          <optgroup :label="`${store.miDistrito ? 'Otros distritos' : 'Distritos'} con lugares evaluados (${otrosDistritos.length})`">
-            <option
-              v-for="u in otrosDistritos"
-              :key="u"
-              :value="u"
-            >
-              {{ nombreDistrito(u) }}
-            </option>
-          </optgroup>
-          <optgroup
-            v-if="store.distritosSinLugares.length"
-            :label="`Sin lugares evaluados (${store.distritosSinLugares.length})`"
-          >
-            <option
-              v-for="u in store.distritosSinLugares"
-              :key="u"
-              :value="u"
-            >
-              {{ nombreDistrito(u) }}
-            </option>
-          </optgroup>
-          <optgroup label="Vista general">
-            <option :value="PROVINCIA">
-              Provincia de Lima (43 distritos)
-            </option>
-          </optgroup>
-        </select>
+        />
         <AvisoSinLugaresV1
           v-if="store.ambitoSinLugares"
           @fuentes="emit('ayuda', 'fuentes')"
@@ -145,7 +121,7 @@ watch(() => store.selId, async id => {
           <button
             v-if="!enLima"
             type="button"
-            class="text-primary underline underline-offset-2"
+            class="inline-flex items-center min-h-10 lg:min-h-0 text-primary underline underline-offset-2"
             data-prueba="fijar-mi-distrito"
             @click="store.fijarMiDistrito(store.ambito)"
           >
@@ -160,75 +136,110 @@ watch(() => store.selId, async id => {
           Tu distrito: {{ nombreDistrito(store.miDistrito) }}.
           <button
             type="button"
-            class="text-primary underline underline-offset-2"
+            class="inline-flex items-center min-h-10 lg:min-h-0 text-primary underline underline-offset-2"
             data-prueba="volver-mi-distrito"
-            @click="store.cambiarAmbito(store.miDistrito!)"
+            @click="elegirAmbito(store.miDistrito!)"
           >
             Volver a mi distrito
           </button>
         </p>
       </div>
 
-      <fieldset class="flex flex-col gap-1.5">
-        <legend class="text-xs font-medium text-muted-foreground mb-1.5">
-          Mostrar
-        </legend>
-        <label
-          v-for="g in grupos"
-          :key="g.k"
-          class="flex items-center gap-2 text-[13px] cursor-pointer"
-        >
-          <input
-            type="checkbox"
-            class="accent-primary w-3.5 h-3.5"
-            :checked="store.filtros.grupos[g.k]"
-            :data-grupo="g.k"
-            @change="alternarGrupo(g.k, ($event.target as HTMLInputElement).checked)"
-          >
+      <button
+        type="button"
+        class="lg:hidden flex items-center justify-between gap-2 min-h-10 px-3 rounded-md border border-border text-sm font-medium"
+        :aria-expanded="filtrosAbiertos"
+        aria-controls="v1-filtros-plegables"
+        data-prueba="alternar-filtros"
+        @click="filtrosAbiertos = !filtrosAbiertos"
+      >
+        <span class="flex items-center gap-2"><Filter class="w-4 h-4 text-muted-foreground" />Filtros
           <span
-            class="w-2.5 h-2.5 rounded-full flex-shrink-0"
-            :class="{
-              'bg-primary ring-1 ring-offset-1 ring-primary': g.k === 'top',
-              'bg-white border-2 border-gray-500': g.k === 'cand',
-              'bg-gray-300 border border-gray-500': g.k === 'excl',
-            }"
-          />
-          <span class="flex-1">{{ g.t }} <span class="text-xs text-muted-foreground tabular-nums">{{ fmtEntero(cuentaGrupo(g.k)) }}</span></span>
-        </label>
-        <label
-          class="flex items-center gap-2 text-[13px] cursor-pointer mt-1 pt-1.5 border-t border-dashed border-border"
-          title="Capa del mapa: no cambia la lista"
-        >
-          <input
-            v-model="store.capaExistentes"
-            type="checkbox"
-            class="accent-primary w-3.5 h-3.5"
-            data-capa="existentes"
-          >
-          <span class="w-2.5 h-2.5 rounded-full flex-shrink-0 bg-blue-500 ring-1 ring-white" />
-          <span class="flex-1">Puntos existentes registrados <span class="text-xs text-muted-foreground tabular-nums">{{ fmtEntero(store.existentesAmbito.length) }}</span></span>
-        </label>
-      </fieldset>
+            v-if="store.textoFiltros.length"
+            class="rounded-full bg-primary text-white text-[11px] px-1.5 min-w-5 text-center"
+            data-prueba="contador-filtros"
+          >{{ store.textoFiltros.length }}</span>
+        </span>
+        <ChevronDown
+          class="w-4 h-4 transition-transform"
+          :class="filtrosAbiertos ? 'rotate-180' : ''"
+        />
+      </button>
 
-      <fieldset>
-        <legend class="text-xs font-medium text-muted-foreground mb-1.5">
-          Tipo de lugar
-        </legend>
-        <div class="flex flex-wrap gap-1.5">
-          <button
-            v-for="c in CLASES"
-            :key="c"
-            type="button"
-            :aria-pressed="store.filtros.tipos.includes(c)"
-            :data-tipo="c"
-            class="rounded-full border px-2.5 py-0.5 text-xs"
-            :class="store.filtros.tipos.includes(c) ? 'bg-accent border-green-200 text-green-800 font-medium' : 'border-border text-muted-foreground line-through'"
-            @click="alternarTipo(c)"
+      <div
+        id="v1-filtros-plegables"
+        class="flex-col gap-3"
+        :class="filtrosAbiertos ? 'flex' : 'hidden lg:flex'"
+      >
+        <fieldset class="flex flex-col gap-1.5">
+          <legend class="text-xs font-medium text-muted-foreground mb-1.5">
+            Mostrar
+          </legend>
+          <label
+            v-for="g in grupos"
+            :key="g.k"
+            class="flex items-center gap-2 min-h-10 lg:min-h-0 text-[13px] cursor-pointer"
           >
-            {{ CLASE_PLURAL[c] }} <span class="tabular-nums opacity-80">{{ fmtEntero(cuentaTipo(c)) }}</span>
-          </button>
-        </div>
-      </fieldset>
+            <input
+              type="checkbox"
+              class="accent-primary w-3.5 h-3.5"
+              :checked="store.filtros.grupos[g.k]"
+              :data-grupo="g.k"
+              @change="alternarGrupo(g.k, ($event.target as HTMLInputElement).checked)"
+            >
+            <span
+              class="w-2.5 h-2.5 rounded-full flex-shrink-0"
+              :class="{
+                'bg-primary ring-1 ring-offset-1 ring-primary': g.k === 'top',
+                'bg-white border-2 border-gray-500': g.k === 'cand',
+                'bg-gray-300 border border-gray-500': g.k === 'excl',
+              }"
+            />
+            <span class="flex-1">{{ g.t }} <span class="text-xs text-muted-foreground tabular-nums">{{ fmtEntero(cuentaGrupo(g.k)) }}</span></span>
+          </label>
+          <label
+            class="flex items-center gap-2 min-h-10 lg:min-h-0 text-[13px] cursor-pointer mt-1 pt-1.5 border-t border-dashed border-border"
+            title="Capa del mapa: no cambia la lista"
+          >
+            <input
+              v-model="store.capaExistentes"
+              type="checkbox"
+              class="accent-primary w-3.5 h-3.5"
+              data-capa="existentes"
+            >
+            <span class="w-2.5 h-2.5 rounded-full flex-shrink-0 bg-blue-500 ring-1 ring-white" />
+            <span class="flex-1">Puntos existentes registrados <span class="text-xs text-muted-foreground tabular-nums">{{ fmtEntero(store.existentesAmbito.length) }}</span></span>
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend class="text-xs font-medium text-muted-foreground mb-1.5">
+            Tipo de lugar
+          </legend>
+          <div class="flex flex-wrap gap-1.5">
+            <button
+              v-for="c in CLASES"
+              :key="c"
+              type="button"
+              :aria-pressed="store.filtros.tipos.includes(c)"
+              :data-tipo="c"
+              class="min-h-10 lg:min-h-0 rounded-full border px-3 lg:px-2.5 py-0.5 text-xs"
+              :class="store.filtros.tipos.includes(c) ? 'bg-accent border-green-200 text-green-800 font-medium' : 'border-border text-muted-foreground line-through'"
+              @click="alternarTipo(c)"
+            >
+              {{ CLASE_PLURAL[c] }} <span class="tabular-nums opacity-80">{{ fmtEntero(cuentaTipo(c)) }}</span>
+            </button>
+          </div>
+        </fieldset>
+        <button
+          type="button"
+          class="lg:hidden self-start min-h-10 text-xs text-primary underline underline-offset-2 disabled:text-muted-foreground disabled:no-underline disabled:cursor-default"
+          :disabled="!store.hayFiltros && store.capaExistentes"
+          @click="store.restablecerFiltros()"
+        >
+          Restablecer filtros
+        </button>
+      </div>
     </div>
 
     <div class="px-4 py-2 border-b border-border flex flex-col gap-2 sticky top-0 bg-white z-10">
@@ -248,7 +259,7 @@ watch(() => store.selId, async id => {
       <p class="text-[11.5px] leading-snug text-muted-foreground">
         <b class="text-foreground font-semibold">1.º = revisar primero</b>{{ enLima ? ' (puesto en toda Lima)' : ` en ${nombreDistrito(store.ambito)}` }}. El verde marca ubicaciones, no aprobación.
       </p>
-      <label class="flex items-center gap-1.5 border border-border rounded-md px-2 text-muted-foreground focus-within:border-primary">
+      <label class="flex items-center gap-1.5 min-h-10 lg:min-h-0 border border-border rounded-md px-2 text-muted-foreground focus-within:border-primary">
         <span class="sr-only">Buscar por tipo de lugar o código</span>
         <Search class="w-3.5 h-3.5" />
         <input
@@ -256,7 +267,7 @@ watch(() => store.selId, async id => {
           :value="store.filtros.buscar"
           placeholder="Buscar por tipo o código"
           autocomplete="off"
-          class="w-full border-0 outline-none py-1.5 text-[13px] bg-transparent text-foreground"
+          class="w-full min-h-10 lg:min-h-0 border-0 outline-none py-1.5 text-[13px] bg-transparent text-foreground"
           data-prueba="buscar"
           @input="buscar"
         >
@@ -285,7 +296,7 @@ watch(() => store.selId, async id => {
         <span>{{ nada ? 'No hay ningún tipo de lugar o grupo marcado.' : `Filtros activos: ${store.textoFiltros.join('; ')}.` }}</span>
         <button
           type="button"
-          class="inline-flex items-center gap-1.5 border border-border rounded-md px-3 py-1 text-[13px] text-foreground hover:bg-secondary"
+          class="inline-flex items-center gap-1.5 min-h-10 lg:min-h-0 border border-border rounded-md px-3 py-1 text-[13px] text-foreground hover:bg-secondary"
           @click="store.restablecerFiltros()"
         >
           <X class="w-3.5 h-3.5" />Restablecer filtros

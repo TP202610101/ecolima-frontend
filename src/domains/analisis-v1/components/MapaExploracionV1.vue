@@ -15,7 +15,8 @@ import {
 const store = useExploracionV1Store()
 const contenedor = ref<HTMLElement>()
 const sinMapaBase = ref(false)
-const leyendaPlegada = ref(false)
+// En pantallas angostas la leyenda arranca plegada para no tapar el mapa.
+const leyendaPlegada = ref(typeof window !== 'undefined' && window.innerWidth < 1024)
 
 const ESTILO_BASE = 'https://tiles.openfreemap.org/styles/liberty'
 const ESTILO_SIN_FONDO: maplibregl.StyleSpecification = {
@@ -218,9 +219,9 @@ defineExpose({ redimensionar: () => map?.resize(), encuadrar })
       role="application"
       aria-label="Mapa de los lugares"
     />
-    <div class="absolute right-3 top-3 z-10 flex flex-col gap-1.5">
+    <div class="absolute right-3 top-3 z-10 flex flex-col gap-1.5 print:hidden">
       <button
-        class="w-8 h-8 bg-white border border-border rounded-md shadow flex items-center justify-center hover:bg-secondary"
+        class="w-10 h-10 lg:w-8 lg:h-8 bg-white border border-border rounded-md shadow flex items-center justify-center hover:bg-secondary"
         aria-label="Acercar"
         title="Acercar"
         @click="map?.zoomIn()"
@@ -228,7 +229,7 @@ defineExpose({ redimensionar: () => map?.resize(), encuadrar })
         <Plus class="w-4 h-4" />
       </button>
       <button
-        class="w-8 h-8 bg-white border border-border rounded-md shadow flex items-center justify-center hover:bg-secondary"
+        class="w-10 h-10 lg:w-8 lg:h-8 bg-white border border-border rounded-md shadow flex items-center justify-center hover:bg-secondary"
         aria-label="Alejar"
         title="Alejar"
         @click="map?.zoomOut()"
@@ -236,7 +237,7 @@ defineExpose({ redimensionar: () => map?.resize(), encuadrar })
         <Minus class="w-4 h-4" />
       </button>
       <button
-        class="w-8 h-8 bg-white border border-border rounded-md shadow flex items-center justify-center hover:bg-secondary"
+        class="w-10 h-10 lg:w-8 lg:h-8 bg-white border border-border rounded-md shadow flex items-center justify-center hover:bg-secondary"
         :aria-label="enLima ? 'Recentrar en la provincia' : 'Recentrar en el distrito'"
         title="Recentrar"
         @click="encuadrar()"
@@ -246,14 +247,14 @@ defineExpose({ redimensionar: () => map?.resize(), encuadrar })
     </div>
 
     <div
-      class="absolute right-3 bottom-7 z-10 bg-white border border-border rounded-lg shadow px-3 py-2.5 text-xs max-w-[280px] flex flex-col gap-1"
+      class="absolute right-3 bottom-7 z-10 bg-white border border-border rounded-lg shadow px-3 py-1 lg:py-2.5 text-xs max-w-[calc(100%-1.5rem)] sm:max-w-[280px] flex flex-col gap-1 print:hidden"
       data-prueba="leyenda"
     >
       <div class="flex items-center justify-between gap-3">
         <strong class="font-semibold">Leyenda</strong>
         <button
           type="button"
-          class="text-[11px] text-muted-foreground underline"
+          class="min-h-10 lg:min-h-0 px-1 text-[11px] text-muted-foreground underline"
           :aria-expanded="!leyendaPlegada"
           @click="leyendaPlegada = !leyendaPlegada"
         >

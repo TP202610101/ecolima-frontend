@@ -33,7 +33,7 @@ onMounted(() => mlStore.fetchPanel())
         <button
           v-if="pestana === 'modelo'"
           :disabled="mlStore.loading"
-          class="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 border border-border text-sm font-medium rounded-md hover:bg-secondary transition-colors disabled:opacity-60"
+          class="flex items-center justify-center gap-2 w-full sm:w-auto min-h-10 px-4 py-2 border border-border text-sm font-medium rounded-md hover:bg-secondary transition-colors disabled:opacity-60"
           @click="mlStore.fetchPanel()"
         >
           <RefreshCw
@@ -45,7 +45,7 @@ onMounted(() => mlStore.fetchPanel())
       </div>
 
       <div
-        class="flex gap-1 border-b border-border"
+        class="flex gap-1 border-b border-border overflow-x-auto"
         role="tablist"
         aria-label="Secciones del Panel ML"
       >
@@ -56,7 +56,7 @@ onMounted(() => mlStore.fetchPanel())
           role="tab"
           :aria-selected="pestana === p.k"
           :data-pestana="p.k"
-          class="px-4 py-2 text-sm -mb-px border-b-2 transition-colors"
+          class="flex-shrink-0 min-h-11 px-4 py-2 text-sm -mb-px border-b-2 transition-colors"
           :class="pestana === p.k ? 'border-primary text-primary font-medium' : 'border-transparent text-muted-foreground hover:text-foreground'"
           @click="pestana = p.k"
         >

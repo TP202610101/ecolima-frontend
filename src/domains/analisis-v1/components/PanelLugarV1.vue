@@ -123,7 +123,7 @@ const vacioK = { k1: 0, k2: 0, k3: 0, k4: 0 }
         </div>
         <button
           type="button"
-          class="p-1 -mt-0.5 rounded text-muted-foreground hover:bg-secondary hover:text-foreground"
+          class="w-10 h-10 -m-2 lg:w-auto lg:h-auto lg:m-0 lg:p-1 lg:-mt-0.5 flex items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground"
           aria-label="Cerrar detalle"
           data-prueba="cerrar-detalle"
           @click="store.elegir(null)"
@@ -371,7 +371,7 @@ const vacioK = { k1: 0, k2: 0, k3: 0, k4: 0 }
                 Refleja dónde se instaló antes: no mide si conviene instalar aquí, no es una probabilidad y no cambia el orden de revisión.
                 <button
                   type="button"
-                  class="text-primary underline underline-offset-2"
+                  class="inline-flex items-center min-h-10 lg:min-h-0 text-primary underline underline-offset-2"
                   data-prueba="ir-modelo"
                   @click="emit('ayuda', 'modelo')"
                 >
@@ -394,10 +394,10 @@ const vacioK = { k1: 0, k2: 0, k3: 0, k4: 0 }
                 <li
                   v-for="c in contribuciones"
                   :key="c.k"
-                  class="grid grid-cols-[minmax(0,9rem)_1fr_3rem] items-center gap-2 text-[12px]"
+                  class="grid grid-cols-[1fr_3rem] items-center gap-x-2 text-[12px]"
                   :data-grupo="c.k"
                 >
-                  <span class="truncate text-neutral-700">{{ c.nombre }}</span>
+                  <span class="col-span-2 text-neutral-700 leading-tight">{{ c.nombre }}</span>
                   <span
                     class="relative h-3 bg-gray-100 rounded"
                     role="img"
@@ -551,7 +551,7 @@ const vacioK = { k1: 0, k2: 0, k3: 0, k4: 0 }
             </dl>
             <button
               type="button"
-              class="self-start text-xs text-primary underline underline-offset-2"
+              class="self-start min-h-10 lg:min-h-0 text-xs text-primary underline underline-offset-2"
               @click="emit('ayuda', 'fuentes')"
             >
               Fuentes y limitaciones

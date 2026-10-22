@@ -56,7 +56,7 @@
       class="flex items-center gap-2 sm:gap-3"
     >
       <!-- Nombre y rol (solo desktop) -->
-      <div class="hidden sm:block text-right">
+      <div class="hidden lg:block text-right">
         <p class="text-sm font-semibold text-foreground">
           {{ auth.user?.full_name }}
         </p>
@@ -71,7 +71,7 @@
       <!-- Logout (solo desktop) -->
       <button
         type="button"
-        class="hidden sm:flex p-2 rounded hover:bg-secondary transition-colors"
+        class="hidden sm:flex w-10 h-10 items-center justify-center rounded hover:bg-secondary transition-colors"
         aria-label="Cerrar sesión"
         @click="onLogout"
       >
@@ -80,7 +80,7 @@
       <!-- Hamburger (solo móvil) -->
       <button
         type="button"
-        class="sm:hidden p-2 rounded hover:bg-secondary transition-colors"
+        class="sm:hidden w-10 h-10 flex items-center justify-center rounded hover:bg-secondary transition-colors"
         :aria-label="menuOpen ? 'Cerrar menú' : 'Abrir menú'"
         :aria-expanded="menuOpen"
         @click="menuOpen = !menuOpen"
@@ -188,8 +188,8 @@ const initials = computed(() => {
 
 function linkClass(path: string) {
   return route.path === path
-    ? 'px-4 py-1.5 text-sm text-white rounded-md bg-primary font-medium'
-    : 'px-4 py-1.5 text-sm text-foreground rounded-md hover:bg-secondary transition-colors'
+    ? 'inline-flex items-center min-h-10 lg:min-h-0 px-3 lg:px-4 py-1.5 text-sm text-white rounded-md bg-primary font-medium'
+    : 'inline-flex items-center min-h-10 lg:min-h-0 px-3 lg:px-4 py-1.5 text-sm text-foreground rounded-md hover:bg-secondary transition-colors'
 }
 
 function closeMenu() {

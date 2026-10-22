@@ -158,7 +158,7 @@ const FILAS_COMPARACION: Array<{ nombre: string; valor: (v: VersionComparada) =>
             :href="activa.atribucion.licencia_url"
             target="_blank"
             rel="noopener"
-            class="text-primary underline underline-offset-2"
+            class="inline-flex items-center min-h-10 lg:min-h-0 text-primary underline underline-offset-2"
           >{{ activa.licencia_datos }}</a>
           <span v-else>{{ activa.licencia_datos }}</span>
         </dd>
@@ -339,7 +339,7 @@ const FILAS_COMPARACION: Array<{ nombre: string; valor: (v: VersionComparada) =>
           >{{ seleccion.length }}/2 seleccionadas</span>
           <button
             :disabled="seleccion.length !== 2 || mlStore.compareFetching"
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="inline-flex items-center gap-1.5 min-h-10 lg:min-h-0 px-3 py-1.5 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             data-prueba="comparar"
             @click="comparar"
           >
@@ -409,14 +409,16 @@ const FILAS_COMPARACION: Array<{ nombre: string; valor: (v: VersionComparada) =>
                 v-if="mlStore.puedeComparar"
                 class="px-3 py-3"
               >
-                <input
-                  type="checkbox"
-                  :checked="seleccion.includes(v.paquete_version)"
-                  :disabled="seleccion.length >= 2 && !seleccion.includes(v.paquete_version)"
-                  class="accent-primary cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
-                  :aria-label="`Seleccionar ${v.paquete_version} para comparar`"
-                  @change="alternar(v.paquete_version)"
-                >
+                <label class="w-10 h-10 -m-2.5 flex items-center justify-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    :checked="seleccion.includes(v.paquete_version)"
+                    :disabled="seleccion.length >= 2 && !seleccion.includes(v.paquete_version)"
+                    class="accent-primary cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+                    :aria-label="`Seleccionar ${v.paquete_version} para comparar`"
+                    @change="alternar(v.paquete_version)"
+                  >
+                </label>
               </td>
               <td class="px-4 py-3 font-mono text-xs">
                 {{ v.paquete_version }}
@@ -619,7 +621,7 @@ const FILAS_COMPARACION: Array<{ nombre: string; valor: (v: VersionComparada) =>
             v-if="activa.archivos?.length"
             class="mt-1"
           >
-            <summary class="text-xs text-primary cursor-pointer">
+            <summary class="flex items-center min-h-10 lg:min-h-0 text-xs text-primary cursor-pointer">
               Ver archivos y hashes
             </summary>
             <ul class="mt-1 space-y-0.5">
@@ -675,15 +677,15 @@ const FILAS_COMPARACION: Array<{ nombre: string; valor: (v: VersionComparada) =>
     <Teleport to="body">
       <div
         v-if="verComparacion && mlStore.compareResult"
-        class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+        class="fixed inset-0 z-[9999] flex items-center justify-center sm:p-4"
         data-prueba="modal-comparacion"
       >
         <div
           class="absolute inset-0 bg-black/50"
           @click="cerrarComparacion"
         />
-        <div class="relative bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-          <div class="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-white">
+        <div class="relative bg-white sm:rounded-lg shadow-xl w-full h-full sm:h-auto max-w-2xl sm:max-h-[90vh] overflow-y-auto">
+          <div class="flex items-center justify-between px-4 sm:px-6 py-2 sm:py-4 border-b border-border sticky top-0 bg-white">
             <div class="flex items-center gap-2">
               <ArrowLeftRight class="w-4 h-4 text-muted-foreground" />
               <h2 class="text-sm font-semibold text-foreground">
@@ -691,24 +693,24 @@ const FILAS_COMPARACION: Array<{ nombre: string; valor: (v: VersionComparada) =>
               </h2>
             </div>
             <button
-              class="text-muted-foreground hover:text-foreground transition-colors"
+              class="w-10 h-10 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
               aria-label="Cerrar"
               @click="cerrarComparacion"
             >
               <X class="w-4 h-4" />
             </button>
           </div>
-          <div class="p-6">
-            <table class="w-full text-sm border border-border rounded-md overflow-hidden">
+          <div class="p-4 sm:p-6">
+            <table class="w-full text-sm border border-border rounded-md overflow-hidden table-fixed">
               <thead>
                 <tr class="bg-gray-50 border-b border-border">
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider w-40">
+                  <th class="px-2 sm:px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider w-28 sm:w-40">
                     Dato
                   </th>
                   <th
                     v-for="lado in (['a', 'b'] as const)"
                     :key="lado"
-                    class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider"
+                    class="px-2 sm:px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider"
                   >
                     <span class="font-mono">{{ mlStore.compareResult[lado].version.paquete_version }}</span>
                     <span
@@ -724,13 +726,13 @@ const FILAS_COMPARACION: Array<{ nombre: string; valor: (v: VersionComparada) =>
                   :key="f.nombre"
                   class="border-b border-border last:border-0"
                 >
-                  <td class="px-4 py-2.5 text-xs font-medium text-muted-foreground">
+                  <td class="px-2 sm:px-4 py-2.5 text-xs font-medium text-muted-foreground">
                     {{ f.nombre }}
                   </td>
-                  <td class="px-4 py-2.5 text-center tabular-nums">
+                  <td class="px-2 sm:px-4 py-2.5 text-center tabular-nums break-words">
                     {{ f.valor(mlStore.compareResult.a) }}
                   </td>
-                  <td class="px-4 py-2.5 text-center tabular-nums">
+                  <td class="px-2 sm:px-4 py-2.5 text-center tabular-nums break-words">
                     {{ f.valor(mlStore.compareResult.b) }}
                   </td>
                 </tr>

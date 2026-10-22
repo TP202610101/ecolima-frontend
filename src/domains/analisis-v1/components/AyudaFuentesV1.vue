@@ -57,49 +57,54 @@ const fuentesVisibles = computed(() => {
 const sinLugares = computed(() => store.distritosSinLugares.map(u => nombreDistrito(u)).join(', '))
 const distritosConExistentes = computed(() => new Set(store.existentes.map(e => e.ubigeo)).size)
 const tab = (s: Seccion) => props.seccion === s
-  ? 'px-3 py-1.5 text-sm rounded-md bg-primary text-white font-medium'
-  : 'px-3 py-1.5 text-sm rounded-md hover:bg-secondary'
+  ? 'flex-shrink-0 whitespace-nowrap min-h-10 lg:min-h-0 px-3 py-1.5 text-sm rounded-md bg-primary text-white font-medium'
+  : 'flex-shrink-0 whitespace-nowrap min-h-10 lg:min-h-0 px-3 py-1.5 text-sm rounded-md hover:bg-secondary'
 </script>
 
 <template>
   <div
-    class="fixed inset-0 z-[2000] bg-black/30 flex items-center justify-center p-4 print:hidden"
+    class="fixed inset-0 z-[2000] bg-black/30 flex items-center justify-center sm:p-4 print:hidden"
     @click.self="emit('cerrar')"
     @keydown.esc="emit('cerrar')"
   >
     <div
-      class="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col"
+      class="bg-white sm:rounded-xl shadow-xl w-full h-full sm:h-auto max-w-2xl sm:max-h-[85vh] flex flex-col"
       role="dialog"
       aria-modal="true"
       :aria-label="props.seccion === 'orden' ? 'Cómo se ordenan los lugares' : props.seccion === 'fuentes' ? 'Fuentes y limitaciones' : 'Acerca del modelo'"
       data-prueba="ayuda-fuentes"
     >
-      <div class="px-5 py-3 border-b border-border flex items-center gap-2">
-        <button
-          type="button"
-          :class="tab('orden')"
-          @click="emit('cambiar', 'orden')"
+      <!-- Cabecera fija: pestañas desplazables en horizontal si no caben y cierre siempre visible -->
+      <div class="flex-shrink-0 pl-3 sm:pl-5 pr-1 sm:pr-3 py-2 sm:py-3 border-b border-border flex items-center gap-1">
+        <div
+          class="flex-1 min-w-0 flex items-center gap-2 overflow-x-auto"
         >
-          Cómo se ordenan
-        </button>
+          <button
+            type="button"
+            :class="tab('orden')"
+            @click="emit('cambiar', 'orden')"
+          >
+            Cómo se ordenan
+          </button>
+          <button
+            type="button"
+            :class="tab('fuentes')"
+            @click="emit('cambiar', 'fuentes')"
+          >
+            Fuentes y limitaciones
+          </button>
+          <button
+            type="button"
+            :class="tab('modelo')"
+            data-prueba="tab-modelo"
+            @click="emit('cambiar', 'modelo')"
+          >
+            Acerca del modelo
+          </button>
+        </div>
         <button
           type="button"
-          :class="tab('fuentes')"
-          @click="emit('cambiar', 'fuentes')"
-        >
-          Fuentes y limitaciones
-        </button>
-        <button
-          type="button"
-          :class="tab('modelo')"
-          data-prueba="tab-modelo"
-          @click="emit('cambiar', 'modelo')"
-        >
-          Acerca del modelo
-        </button>
-        <button
-          type="button"
-          class="ml-auto p-1.5 rounded hover:bg-secondary"
+          class="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded hover:bg-secondary"
           aria-label="Cerrar"
           @click="emit('cerrar')"
         >
@@ -109,7 +114,7 @@ const tab = (s: Seccion) => props.seccion === s
 
       <div
         v-if="props.seccion === 'orden'"
-        class="flex-1 overflow-y-auto px-5 py-4 text-sm text-neutral-700 space-y-3"
+        class="flex-1 min-h-0 overflow-y-auto px-4 sm:px-5 py-4 text-sm text-neutral-700 space-y-3"
       >
         <h2 class="text-lg font-bold text-foreground">
           Cómo se ordenan los lugares
@@ -159,7 +164,7 @@ const tab = (s: Seccion) => props.seccion === s
 
       <div
         v-else-if="props.seccion === 'modelo'"
-        class="flex-1 overflow-y-auto px-5 py-4 text-sm text-neutral-700 space-y-3"
+        class="flex-1 min-h-0 overflow-y-auto px-4 sm:px-5 py-4 text-sm text-neutral-700 space-y-3"
         data-prueba="acerca-modelo"
       >
         <h2 class="text-lg font-bold text-foreground">
@@ -265,7 +270,7 @@ const tab = (s: Seccion) => props.seccion === s
 
       <div
         v-else
-        class="flex-1 overflow-y-auto px-5 py-4 text-sm text-neutral-700 space-y-3"
+        class="flex-1 min-h-0 overflow-y-auto px-4 sm:px-5 py-4 text-sm text-neutral-700 space-y-3"
       >
         <h2 class="text-lg font-bold text-foreground">
           Fuentes y limitaciones

@@ -25,7 +25,7 @@ const store = useExploracionV1Store()
         así que no hay un orden de revisión que mostrar.{{ store.existentesAmbito.length ? '' : ' Tampoco hay puntos de reciclaje registrados en él.' }}
         <button
           type="button"
-          class="text-primary underline underline-offset-2"
+          class="inline-flex items-center min-h-10 lg:min-h-0 text-primary underline underline-offset-2"
           data-prueba="ir-fuentes"
           @click="emit('fuentes')"
         >

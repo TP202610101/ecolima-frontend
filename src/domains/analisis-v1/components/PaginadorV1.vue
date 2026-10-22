@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vValorSelect } from '@/shared/directives/valorSelect'
 import { ChevronLeft, ChevronRight } from '@lucide/vue'
 import { fmtEntero, POR_PAGINA, type Pagina } from '../utils/lecturaV1'
 
@@ -7,7 +8,7 @@ const props = withDefaults(defineProps<{ pagina: Pagina<unknown>; porPagina: num
 const emit = defineEmits<{ mover: [delta: number]; 'por-pagina': [valor: number] }>()
 
 function cambiar(ev: Event) { emit('por-pagina', Number((ev.target as HTMLSelectElement).value)) }
-const btn = 'inline-flex items-center gap-0.5 rounded-md border border-border bg-white text-xs text-foreground hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed'
+const btn = 'inline-flex items-center gap-0.5 min-h-10 lg:min-h-0 rounded-md border border-border bg-white text-xs text-foreground hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed'
 </script>
 
 <template>
@@ -31,8 +32,8 @@ const btn = 'inline-flex items-center gap-0.5 rounded-md border border-border bg
       >
         <span class="sr-only">{{ props.que }} por página</span>
         <select
-          :value="props.porPagina"
-          class="border border-border rounded-md px-1.5 py-1 text-xs bg-white"
+          v-valor-select="props.porPagina"
+          class="min-h-10 lg:min-h-0 border border-border rounded-md px-1.5 py-1 text-xs bg-white"
           data-prueba="por-pagina"
           @change="cambiar"
         >
@@ -51,8 +52,8 @@ const btn = 'inline-flex items-center gap-0.5 rounded-md border border-border bg
       >
         <span class="sr-only">{{ props.que }} por página</span>
         <select
-          :value="props.porPagina"
-          class="border border-border rounded-md px-1.5 py-1 text-xs bg-white"
+          v-valor-select="props.porPagina"
+          class="min-h-10 lg:min-h-0 border border-border rounded-md px-1.5 py-1 text-xs bg-white"
           data-prueba="por-pagina"
           @change="cambiar"
         >

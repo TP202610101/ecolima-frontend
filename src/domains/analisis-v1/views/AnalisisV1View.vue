@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onMounted, ref, watch } from 'vue'
-import { AlertTriangle, Filter, Info, MapPin, RefreshCw } from '@lucide/vue'
+import { AlertTriangle, ArrowLeft, List, MapPin, RefreshCw } from '@lucide/vue'
 import AvisoV1 from '../components/AvisoV1.vue'
 import FiltrosListaV1 from '../components/FiltrosListaV1.vue'
 import MapaExploracionV1 from '../components/MapaExploracionV1.vue'
@@ -16,12 +16,22 @@ const store = useExploracionV1Store()
 const auth = useAuthStore()
 const mapa = ref<InstanceType<typeof MapaExploracionV1>>()
 const ayuda = ref<'orden' | 'fuentes' | 'modelo' | null>(null)
-// En pantallas angostas se muestra un panel a la vez (como las pestañas móviles del original).
-const panel = ref<'filtros' | 'mapa' | 'detalle'>('mapa')
+// En pantallas angostas (< lg): pestañas Lista / Mapa (un solo mapa, que solo se oculta) y el detalle del lugar
+// a pantalla completa por encima, con «Volver». En escritorio, las tres columnas de siempre.
+const panel = ref<'lista' | 'mapa'>('mapa')
+const detalleMovil = ref(false)
+const angosta = () => window.innerWidth < 1024
 
 function cargar() { store.inicializar(String(auth.user?.user_id ?? auth.user?.email ?? 'anonimo')) }
 
-watch(() => store.selId, id => { if (id && window.innerWidth < 1024) panel.value = 'detalle' })
+watch(() => store.selId, id => { detalleMovil.value = !!id && angosta() })
+// Elegir otra vez el mismo lugar (lista o mapa) vuelve a cargar su detalle: también reabre la vista a pantalla completa.
+watch(() => store.cargandoDetalle, c => { if (c && store.selId && angosta()) detalleMovil.value = true })
+async function volverDelDetalle() {
+  detalleMovil.value = false
+  await nextTick()
+  if (panel.value === 'mapa') mapa.value?.redimensionar()
+}
 watch(panel, async p => { if (p === 'mapa') { await nextTick(); mapa.value?.redimensionar() } })
 // Al cerrar el aviso el mapa gana alto: hay que avisarle a MapLibre.
 watch(() => store.avisoCerrado, async () => { await nextTick(); mapa.value?.redimensionar() })
@@ -56,7 +66,7 @@ onMounted(cargar)
       </p>
       <button
         type="button"
-        class="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm rounded-md"
+        class="inline-flex items-center gap-2 min-h-10 px-4 py-2 bg-primary text-white text-sm rounded-md"
         @click="cargar"
       >
         <RefreshCw class="w-4 h-4" />Reintentar
@@ -76,12 +86,13 @@ onMounted(cargar)
         aria-label="Paneles"
       >
         <button
-          v-for="t in ([['filtros', 'Filtros', Filter], ['mapa', 'Mapa', MapPin], ['detalle', 'Detalle', Info]] as const)"
+          v-for="t in ([['lista', 'Lista', List], ['mapa', 'Mapa', MapPin]] as const)"
           :key="t[0]"
           type="button"
-          class="flex-1 flex flex-col items-center gap-0.5 py-2 text-xs font-medium border-b-2"
+          class="flex-1 flex items-center justify-center gap-1.5 min-h-11 text-sm font-medium border-b-2"
           :class="panel === t[0] ? 'text-primary border-primary' : 'text-muted-foreground border-transparent'"
           :aria-current="panel === t[0]"
+          :data-panel="t[0]"
           @click="panel = t[0]"
         >
           <component
@@ -94,7 +105,7 @@ onMounted(cargar)
       <div class="flex-1 min-h-0 flex">
         <div
           class="w-full lg:w-72 xl:w-72 flex-shrink-0 lg:border-r border-border min-h-0"
-          :class="panel === 'filtros' ? 'flex' : 'hidden lg:flex'"
+          :class="panel === 'lista' ? 'flex' : 'hidden lg:flex'"
         >
           <FiltrosListaV1
             class="w-full"
@@ -107,12 +118,24 @@ onMounted(cargar)
         >
           <MapaExploracionV1 ref="mapa" />
         </div>
+        <!-- Detalle: columna derecha en escritorio; en pantallas angostas, a pantalla completa bajo la barra superior -->
         <div
-          class="w-full lg:w-[352px] xl:w-96 flex-shrink-0 lg:border-l border-border min-h-0"
-          :class="panel === 'detalle' ? 'flex' : 'hidden lg:flex'"
+          class="lg:w-[352px] xl:w-96 flex-shrink-0 lg:border-l border-border min-h-0 bg-white flex-col"
+          :class="detalleMovil ? 'flex max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:top-14 max-lg:z-[1500]' : 'hidden lg:flex'"
+          data-prueba="columna-detalle"
         >
+          <div class="lg:hidden flex items-center border-b border-border flex-shrink-0">
+            <button
+              type="button"
+              class="flex items-center gap-1.5 min-h-11 px-3 text-sm font-medium text-primary"
+              data-prueba="volver-detalle"
+              @click="volverDelDetalle"
+            >
+              <ArrowLeft class="w-4 h-4" />Volver {{ panel === 'mapa' ? 'al mapa' : 'a la lista' }}
+            </button>
+          </div>
           <PanelLugarV1
-            class="w-full"
+            class="w-full flex-1 min-h-0"
             @ayuda="s => (ayuda = s)"
           />
         </div>

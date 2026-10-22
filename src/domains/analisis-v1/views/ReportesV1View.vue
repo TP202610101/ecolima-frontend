@@ -7,8 +7,11 @@ import AvisoV1 from '../components/AvisoV1.vue'
 import PaginadorV1 from '../components/PaginadorV1.vue'
 import AyudaFuentesV1 from '../components/AyudaFuentesV1.vue'
 import AvisoSinLugaresV1 from '../components/AvisoSinLugaresV1.vue'
+import SelectorAmbitoV1 from '../components/SelectorAmbitoV1.vue'
 import { useExploracionV1Store } from '../stores/useExploracionV1Store'
+import { useCambioAmbito } from '../composables/useCambioAmbito'
 import { useAuthStore } from '@/domains/auth/stores/useAuthStore'
+import { vValorSelect } from '@/shared/directives/valorSelect'
 import {
   CLASE_LARGA, COLUMNA_TEXTO, ORDEN_INICIAL, PROVINCIA, T, aCsv, fechaLarga, filasCsv, fmtDec, fmtDist,
   fmtEntero, fuenteExistente, nombreAmbito, nombreArchivoCsv, nombreDistrito, nombreExistente, numeroDe, ordenarTabla,
@@ -33,7 +36,6 @@ const amb = computed(() => nombreAmbito(store.ambito))
 const v = computed(() => store.version)
 const ordenada = computed(() => ordenarTabla(store.seleccion, store.repOrden, store.ambito))
 const pgTabla = computed(() => paginar(ordenada.value, store.repPag, store.repPorPag))
-const otrosDistritos = computed(() => store.distritosConDatos.filter(u => u !== store.miDistrito).sort((a, b) => nombreDistrito(a).localeCompare(nombreDistrito(b), 'es')))
 const filasDistritos = computed(() => store.distritosConDatos
   .flatMap(u => { const c = store.conteosDistrito.get(u); return c ? [{ u, ...c, nombre: nombreDistrito(u) }] : [] })
   .sort((a, b) => b.n_top_k - a.n_top_k || a.nombre.localeCompare(b.nombre, 'es')))
@@ -75,7 +77,8 @@ const textoOrden = computed(() => {
   return `Ordenado por ${c.titulo().toLowerCase()} (${store.repOrden.dir === 1 ? (texto ? 'A–Z' : 'de menor a mayor') : (texto ? 'Z–A' : 'de mayor a menor')}). `
 })
 
-function cambiarAmbito(ev: Event) { store.cambiarAmbito((ev.target as HTMLSelectElement).value) }
+// El selector de ámbito (SelectorAmbitoV1) aplica la elección un cuadro después; mientras tanto, «Actualizando…».
+const { elegir: elegirAmbito, actualizando } = useCambioAmbito()
 function irAlLugar(id: string) { store.elegir(id); router.push({ name: 'analisis' }) }
 function moverDistritos(delta: number) { store.distPag = pgDistritos.value.p + delta }
 function avisar(t: string) {
@@ -161,7 +164,7 @@ onUnmounted(() => {
         </p>
         <button
           type="button"
-          class="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm rounded-md"
+          class="inline-flex items-center gap-2 min-h-10 px-4 py-2 bg-primary text-white text-sm rounded-md"
           @click="cargar"
         >
           <RefreshCw class="w-4 h-4" />Reintentar
@@ -191,10 +194,10 @@ onUnmounted(() => {
               Lugares para revisar {{ enLima ? 'en la provincia de Lima' : `en ${amb}` }} · revisión preliminar con datos públicos, paquete de resultados {{ v.paquete_version }} del {{ fechaLarga(v.fecha_paquete) }}
             </p>
           </div>
-          <div class="flex gap-2 flex-wrap print:hidden">
+          <div class="grid grid-cols-2 sm:flex gap-2 sm:flex-wrap w-full sm:w-auto print:hidden">
             <button
               type="button"
-              class="flex items-center gap-2 px-4 py-2 border border-border rounded-md text-sm bg-white hover:bg-secondary"
+              class="flex items-center justify-center gap-2 min-h-10 px-4 py-2 border border-border rounded-md text-sm bg-white hover:bg-secondary"
               data-prueba="copiar-resumen"
               @click="copiarResumen"
             >
@@ -202,7 +205,7 @@ onUnmounted(() => {
             </button>
             <button
               type="button"
-              class="flex items-center gap-2 px-4 py-2 border border-border rounded-md text-sm bg-white hover:bg-secondary"
+              class="flex items-center justify-center gap-2 min-h-10 px-4 py-2 border border-border rounded-md text-sm bg-white hover:bg-secondary"
               data-prueba="imprimir"
               @click="imprimir"
             >
@@ -210,7 +213,7 @@ onUnmounted(() => {
             </button>
             <button
               type="button"
-              class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-md text-sm hover:bg-primary-hover disabled:opacity-50"
+              class="col-span-2 sm:col-span-1 flex items-center justify-center gap-2 min-h-10 px-4 py-2 bg-primary text-white rounded-md text-sm hover:bg-primary-hover disabled:opacity-50"
               :disabled="!store.seleccion.length"
               data-prueba="descargar-csv"
               @click="descargarCsv"
@@ -233,46 +236,11 @@ onUnmounted(() => {
             for="v1-rep-distrito"
             class="text-sm font-medium"
           >Reporte de</label>
-          <select
+          <SelectorAmbitoV1
             id="v1-rep-distrito"
-            :value="store.ambito"
-            class="border border-border rounded-md px-2 py-1.5 text-sm bg-white min-w-[260px]"
             data-prueba="selector-reporte"
-            @change="cambiarAmbito"
-          >
-            <option
-              v-if="store.miDistrito"
-              :value="store.miDistrito"
-            >
-              {{ nombreDistrito(store.miDistrito) }} (mi distrito)
-            </option>
-            <optgroup :label="`${store.miDistrito ? 'Otros distritos' : 'Distritos'} con lugares evaluados (${otrosDistritos.length})`">
-              <option
-                v-for="u in otrosDistritos"
-                :key="u"
-                :value="u"
-              >
-                {{ nombreDistrito(u) }}
-              </option>
-            </optgroup>
-            <optgroup
-              v-if="store.distritosSinLugares.length"
-              :label="`Sin lugares evaluados (${store.distritosSinLugares.length})`"
-            >
-              <option
-                v-for="u in store.distritosSinLugares"
-                :key="u"
-                :value="u"
-              >
-                {{ nombreDistrito(u) }}
-              </option>
-            </optgroup>
-            <optgroup label="Vista general">
-              <option :value="PROVINCIA">
-                Provincia de Lima (43 distritos)
-              </option>
-            </optgroup>
-          </select>
+            class="w-full sm:w-auto sm:min-w-[260px]"
+          />
           <span
             v-if="store.esMiDistrito"
             class="text-[11px] font-medium rounded-full px-2 py-0.5 bg-green-100 text-green-800"
@@ -281,23 +249,32 @@ onUnmounted(() => {
             v-else-if="store.miDistrito"
             class="text-[11px] font-medium rounded-full px-2 py-0.5 bg-blue-100 text-blue-800"
           >Explorando</span>
+          <span
+            class="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
+            aria-live="polite"
+            data-prueba="actualizando"
+          >
+            <template v-if="actualizando">
+              <span class="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />Actualizando el reporte…
+            </template>
+          </span>
           <button
             v-if="store.miDistrito && !store.esMiDistrito"
             type="button"
-            class="text-sm text-primary underline underline-offset-2"
-            @click="store.cambiarAmbito(store.miDistrito)"
+            class="min-h-10 lg:min-h-0 text-sm text-primary underline underline-offset-2"
+            @click="elegirAmbito(store.miDistrito)"
           >
             Volver a mi distrito ({{ nombreDistrito(store.miDistrito) }})
           </button>
           <p
-            class="flex-1 min-w-[240px] text-[13px] text-muted-foreground sm:text-right"
+            class="basis-full sm:basis-auto flex-1 min-w-0 sm:min-w-[240px] text-[13px] text-muted-foreground sm:text-right"
             data-prueba="texto-filtros"
           >
             <template v-if="store.textoFiltros.length">
               Filtros de Análisis aplicados: {{ store.textoFiltros.join('; ') }}.
               <button
                 type="button"
-                class="text-primary underline underline-offset-2"
+                class="min-h-10 lg:min-h-0 text-primary underline underline-offset-2"
                 data-prueba="quitar-filtros"
                 @click="store.restablecerFiltros()"
               >
@@ -318,7 +295,8 @@ onUnmounted(() => {
 
         <!-- Indicadores del ámbito -->
         <div
-          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 print:grid-cols-4"
+          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 print:grid-cols-4 transition-opacity"
+          :class="actualizando ? 'opacity-50' : ''"
           data-prueba="kpis"
         >
           <KpiCard
@@ -353,10 +331,11 @@ onUnmounted(() => {
 
         <!-- Comparación entre distritos (no se exporta en un reporte distrital) -->
         <div
-          class="bg-white rounded-lg border border-border overflow-hidden print:hidden"
+          class="bg-white rounded-lg border border-border overflow-hidden print:hidden transition-opacity"
+          :class="actualizando ? 'opacity-50' : ''"
           data-prueba="caja-distritos"
         >
-          <div class="px-6 py-4 border-b border-border">
+          <div class="px-4 sm:px-6 py-4 border-b border-border">
             <h2 class="text-base font-semibold">
               Resultados por distrito
             </h2>
@@ -369,11 +348,11 @@ onUnmounted(() => {
               v-for="r in pgDistritos.items"
               :key="r.u"
               type="button"
-              class="w-full flex items-center gap-3 px-6 py-2.5 border-b border-border text-left text-sm hover:bg-secondary"
+              class="w-full flex flex-wrap sm:flex-nowrap items-center gap-x-3 gap-y-0.5 px-4 sm:px-6 py-2.5 min-h-11 border-b border-border text-left text-sm hover:bg-secondary"
               :class="r.u === store.ambito ? 'bg-accent shadow-[inset_2px_0_0_#16a34a]' : 'bg-white'"
               :aria-current="r.u === store.ambito"
               :data-distrito="r.u"
-              @click="store.cambiarAmbito(r.u)"
+              @click="elegirAmbito(r.u)"
             >
               <span
                 class="w-2.5 h-2.5 rounded-full flex-shrink-0"
@@ -383,9 +362,9 @@ onUnmounted(() => {
                 v-if="r.u === store.miDistrito"
                 class="ml-2 text-[11px] font-medium rounded-full px-2 py-0.5 bg-green-100 text-green-800"
               >Mi distrito</span></span>
-              <span class="text-xs text-muted-foreground whitespace-nowrap">{{ fmtEntero(r.n_sitios - r.n_punto_existente) }} evaluados · {{ plural(r.n_punto_existente, 'punto registrado', 'puntos registrados') }}</span>
+              <span class="order-last sm:order-none basis-full sm:basis-auto pl-[22px] sm:pl-0 text-xs text-muted-foreground sm:whitespace-nowrap">{{ fmtEntero(r.n_sitios - r.n_punto_existente) }} evaluados · {{ plural(r.n_punto_existente, 'punto registrado', 'puntos registrados') }}</span>
               <span
-                class="w-28 text-right tabular-nums whitespace-nowrap"
+                class="sm:w-28 text-right tabular-nums whitespace-nowrap"
                 :class="r.n_top_k ? 'font-semibold' : 'text-xs text-muted-foreground'"
               >{{ r.n_top_k ? `${r.n_top_k} de ${store.topK}` : 'Ninguno' }}</span>
             </button>
@@ -408,10 +387,12 @@ onUnmounted(() => {
 
         <!-- Orden de revisión del ámbito -->
         <div
-          class="bg-white rounded-lg border border-border overflow-hidden print:hidden"
+          class="bg-white rounded-lg border border-border overflow-hidden print:hidden transition-opacity"
+          :class="actualizando ? 'opacity-50' : ''"
+          :aria-busy="actualizando"
           data-prueba="tabla-orden"
         >
-          <div class="px-6 py-4 border-b border-border flex flex-wrap items-end justify-between gap-3">
+          <div class="px-4 sm:px-6 py-4 border-b border-border flex flex-wrap items-end justify-between gap-3">
             <div>
               <h2 class="text-base font-semibold">
                 {{ enLima ? 'Orden de revisión en la provincia' : `Orden de revisión en ${amb}` }}
@@ -423,7 +404,7 @@ onUnmounted(() => {
             <button
               v-if="ordenDistinto"
               type="button"
-              class="text-xs text-primary underline underline-offset-2 print:hidden"
+              class="min-h-10 lg:min-h-0 text-xs text-primary underline underline-offset-2 print:hidden"
               data-prueba="orden-original"
               @click="store.repOrden = { ...ORDEN_INICIAL }; store.repPag = 1"
             >
@@ -432,7 +413,89 @@ onUnmounted(() => {
           </div>
           <div
             v-if="store.seleccion.length"
-            class="overflow-x-auto"
+            class="md:hidden"
+            data-prueba="tarjetas-orden"
+          >
+            <div class="flex items-center gap-2 px-4 py-2 border-b border-border bg-gray-50">
+              <label
+                for="v1-rep-ordenar"
+                class="text-xs text-muted-foreground"
+              >Ordenar por</label>
+              <select
+                id="v1-rep-ordenar"
+                v-valor-select="store.repOrden.col"
+                class="flex-1 min-w-0 min-h-10 border border-border rounded-md px-2 text-sm bg-white"
+                @change="ordenarPor(($event.target as HTMLSelectElement).value as ColumnaTabla)"
+              >
+                <option
+                  v-for="c in columnasVisibles"
+                  :key="c.col"
+                  :value="c.col"
+                >
+                  {{ c.titulo() }}
+                </option>
+              </select>
+              <button
+                type="button"
+                class="w-10 h-10 flex items-center justify-center border border-border rounded-md bg-white"
+                :aria-label="store.repOrden.dir === 1 ? 'Orden ascendente; cambiar a descendente' : 'Orden descendente; cambiar a ascendente'"
+                @click="ordenarPor(store.repOrden.col)"
+              >
+                <ArrowUp
+                  v-if="store.repOrden.dir === 1"
+                  class="w-4 h-4"
+                />
+                <ArrowDown
+                  v-else
+                  class="w-4 h-4"
+                />
+              </button>
+            </div>
+            <ul>
+              <li
+                v-for="l in pgTabla.items"
+                :key="l.id"
+                class="border-b border-border"
+              >
+                <button
+                  type="button"
+                  class="w-full text-left px-4 py-3 hover:bg-gray-50 flex gap-3"
+                  :data-fila="l.id"
+                  @click="irAlLugar(l.id)"
+                >
+                  <span class="w-10 flex-shrink-0 text-right tabular-nums font-semibold">{{ l.rango != null ? fmtEntero(numeroDe(l, store.ambito)) : '—' }}</span>
+                  <span class="flex-1 min-w-0">
+                    <span class="block text-sm font-medium">{{ nombreLugar(l) }}</span>
+                    <span class="block text-xs text-muted-foreground break-all">{{ codigoCorto(l.id) }}</span>
+                    <span class="mt-1 flex flex-wrap gap-1">
+                      <span
+                        v-if="l.rango != null"
+                        class="rounded-full text-[11px] font-medium px-2 py-0.5 bg-green-100 text-green-800"
+                      >Superada</span>
+                      <span
+                        v-else
+                        class="rounded-full text-[11px] font-medium px-2 py-0.5 bg-secondary text-neutral-600 border border-border"
+                      >Descartado</span>
+                      <span
+                        v-if="l.top"
+                        class="rounded-full text-[11px] font-medium px-2 py-0.5 bg-primary text-white"
+                      >{{ store.topK }} primeros · puesto {{ fmtEntero(l.rango) }}</span>
+                    </span>
+                    <span class="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs text-neutral-700">
+                      <span>Personas: <b class="tabular-nums">{{ l.k ? fmtEntero(l.k.k1) : '—' }}</b></span>
+                      <span>Residuos: <b class="tabular-nums">{{ l.k ? fmtEntero(l.k.k2) : '—' }}</b> kg/día</span>
+                      <span>Punto cercano: <b class="tabular-nums">{{ fmtDist(l.dist) }}</b></span>
+                      <span>Vías: <b class="tabular-nums">{{ l.k ? fmtDec(l.k.k4, 1) : '—' }}</b> km/km²</span>
+                    </span>
+                  </span>
+                </button>
+              </li>
+            </ul>
+          </div>
+          <div
+            v-if="store.seleccion.length"
+            class="hidden md:block overflow-x-auto"
+            data-prueba="tabla-orden-pantalla"
           >
             <table class="w-full text-sm">
               <thead class="bg-gray-50 border-b border-border">
@@ -446,7 +509,7 @@ onUnmounted(() => {
                   >
                     <button
                       type="button"
-                      class="inline-flex items-center gap-1"
+                      class="inline-flex items-center gap-1 min-h-10 lg:min-h-0"
                       :class="[c.num ? 'flex-row-reverse' : '', store.repOrden.col === c.col ? 'text-foreground font-semibold' : 'hover:text-foreground']"
                       :data-orden="c.col"
                       title="Ordenar por esta columna"
@@ -729,7 +792,7 @@ onUnmounted(() => {
           <strong class="text-foreground">Antes de usar estos resultados.</strong> Son lugares para revisar, no ubicaciones aprobadas: superar la revisión preliminar no significa que sean viables, ninguno tiene autorización y las verificaciones de campo siguen pendientes. Estar entre los {{ store.topK }} primeros de Lima es un puesto en el orden provincial, no una aprobación. El paquete V1.0.0 no trae nombres de lugar.
           <button
             type="button"
-            class="text-primary underline underline-offset-2 print:hidden"
+            class="min-h-10 lg:min-h-0 text-primary underline underline-offset-2 print:hidden"
             @click="ayuda = 'fuentes'"
           >
             Fuentes y limitaciones

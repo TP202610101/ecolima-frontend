@@ -330,14 +330,14 @@ onMounted(() => datasetsStore.fetchDatasets())
     <Teleport to="body">
       <div
         v-if="showHistoryModal"
-        class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+        class="fixed inset-0 z-[9999] flex items-center justify-center sm:p-4"
       >
         <div
           class="absolute inset-0 bg-black/50"
           @click="closeHistoryModal"
         />
-        <div class="relative bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-          <div class="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-white">
+        <div class="relative bg-white sm:rounded-lg shadow-xl w-full h-full sm:h-auto max-w-lg sm:max-h-[90vh] overflow-y-auto">
+          <div class="flex items-center justify-between px-4 sm:px-6 py-2 sm:py-4 border-b border-border sticky top-0 bg-white">
             <div class="flex items-center gap-2 min-w-0">
               <History class="w-4 h-4 text-muted-foreground flex-shrink-0" />
               <h2 class="text-sm font-semibold text-foreground truncate">
@@ -345,7 +345,7 @@ onMounted(() => datasetsStore.fetchDatasets())
               </h2>
             </div>
             <button
-              class="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0 ml-2"
+              class="w-10 h-10 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors flex-shrink-0 ml-2"
               @click="closeHistoryModal"
             >
               <X class="w-4 h-4" />
@@ -427,7 +427,7 @@ onMounted(() => datasetsStore.fetchDatasets())
           Datasets de puntos de reciclaje
         </h2>
         <button
-          class="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 border border-primary text-primary text-sm font-medium rounded-md hover:bg-accent transition-colors"
+          class="flex items-center justify-center gap-2 w-full sm:w-auto min-h-10 px-4 py-2 border border-primary text-primary text-sm font-medium rounded-md hover:bg-accent transition-colors"
           @click="datasetsStore.openUploader()"
         >
           <Upload class="w-4 h-4" />
@@ -440,23 +440,23 @@ onMounted(() => datasetsStore.fetchDatasets())
         <KpiCard
           :icon="Calendar"
           icon-bg="bg-purple-100"
-          label="Última actualización"
+          label="Última carga"
           :value="latestDataset ? fmtDate(latestDataset.uploaded_at) : '—'"
-          subtitle="Fecha de carga"
+          subtitle="Fecha del dataset más reciente"
         />
         <KpiCard
           :icon="Database"
           icon-bg="bg-blue-100"
-          label="Número de registros"
+          label="Filas del último dataset"
           :value="latestDataset ? latestDataset.row_count.toLocaleString('es-PE') : '—'"
-          subtitle="Filas del dataset activo"
+          subtitle="Dataset más reciente"
         />
         <KpiCard
           :icon="FileText"
           icon-bg="bg-green-100"
-          label="Distritos cubiertos"
-          :value="'—'"
-          subtitle="Dataset más reciente"
+          label="Datasets confirmados"
+          :value="datasetsStore.datasets.filter(d => d.status === 'committed').length.toLocaleString('es-PE')"
+          subtitle="Ya agregaron sus puntos al mapa público"
         />
       </div>
 
@@ -464,7 +464,7 @@ onMounted(() => datasetsStore.fetchDatasets())
       <div class="bg-white rounded-lg border border-border overflow-hidden">
         <div class="px-6 py-4 border-b border-border">
           <h3 class="text-sm font-semibold text-foreground">
-            Preview del dataset (últimos 5)
+            Datasets cargados (últimos 5)
           </h3>
         </div>
 
@@ -493,8 +493,9 @@ onMounted(() => datasetsStore.fetchDatasets())
           v-else
           class="overflow-x-auto"
         >
-          <table class="w-full text-sm">
-            <thead>
+          <!-- Móvil (< md): cada fila es una tarjeta; desde md, tabla. Mismas celdas y acciones en ambos modos. -->
+          <table class="w-full text-sm block md:table">
+            <thead class="hidden md:table-header-group">
               <tr class="border-b border-border bg-gray-50">
                 <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   ID
@@ -516,41 +517,51 @@ onMounted(() => datasetsStore.fetchDatasets())
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody class="block md:table-row-group">
               <tr
                 v-for="ds in datasetsStore.datasets.slice(0, 5)"
                 :key="ds.dataset_id"
-                class="border-b border-border hover:bg-secondary transition-colors last:border-0"
+                class="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 md:p-0 md:table-row border-b border-border hover:bg-secondary transition-colors last:border-0"
+                data-prueba="fila-dataset"
               >
-                <td class="px-4 py-4 text-muted-foreground">
-                  {{ ds.dataset_id }}
+                <td class="order-2 md:order-none text-xs md:text-sm md:px-4 md:py-4 text-muted-foreground">
+                  <span class="md:hidden">#</span>{{ ds.dataset_id }}
                 </td>
-                <td class="px-4 py-4">
+                <td class="order-1 md:order-none basis-full md:px-4 md:py-4">
                   <div class="flex items-center gap-2">
                     <FileText class="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    <span class="font-medium text-foreground truncate max-w-[220px]">{{ ds.filename }}</span>
+                    <span
+                      class="font-medium text-foreground break-all md:break-normal md:truncate md:max-w-[220px]"
+                      :title="ds.filename"
+                    >{{ ds.filename }}</span>
                   </div>
                 </td>
-                <td class="px-4 py-4 text-foreground">
-                  {{ ds.row_count.toLocaleString('es-PE') }}
+                <td class="order-4 md:order-none text-xs md:text-sm md:px-4 md:py-4 text-foreground">
+                  {{ ds.row_count.toLocaleString('es-PE') }}<span class="md:hidden text-muted-foreground"> filas</span>
                 </td>
-                <td class="px-4 py-4">
+                <td class="order-3 md:order-none md:px-4 md:py-4">
                   <span
                     :class="['inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium', datasetStatusClass(ds.status)]"
                   >
                     {{ datasetStatusLabel(ds.status) }}
                   </span>
                 </td>
-                <td class="px-4 py-4 text-muted-foreground">
+                <td class="order-5 md:order-none text-xs md:text-sm md:px-4 md:py-4 text-muted-foreground">
                   {{ fmtDate(ds.uploaded_at) }}
                 </td>
-                <td class="px-4 py-4">
-                  <div class="flex flex-wrap items-center gap-1">
+                <td class="order-6 md:order-none basis-full md:px-4 md:py-4">
+                  <!-- Móvil: grilla de 2 columnas iguales (acción principal a ancho completo, Eliminar al final y aparte).
+                       Desde md: la fila de botones de siempre. -->
+                  <div
+                    class="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:items-center md:gap-1"
+                    data-prueba="acciones-dataset"
+                  >
                     <!-- Validar: pending, invalid o failed -->
                     <button
                       v-if="ds.status === 'pending' || ds.status === 'invalid' || ds.status === 'failed'"
                       :disabled="datasetsStore.validatingId !== null || datasetsStore.committingId !== null"
-                      class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      class="max-md:col-span-2 inline-flex items-center justify-center gap-1.5 min-h-10 lg:min-h-0 px-3 py-1.5 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      data-accion="validar"
                       @click="datasetsStore.validateDataset(ds.dataset_id, ds.filename)"
                     >
                       <span
@@ -563,7 +574,8 @@ onMounted(() => datasetsStore.fetchDatasets())
                     <button
                       v-else-if="ds.status === 'valid'"
                       :disabled="datasetsStore.validatingId !== null || datasetsStore.committingId !== null"
-                      class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-primary text-white rounded-md hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      class="max-md:col-span-2 inline-flex items-center justify-center gap-1.5 min-h-10 lg:min-h-0 px-3 py-1.5 text-xs font-medium bg-primary text-white rounded-md hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      data-accion="confirmar"
                       @click="handleCommit(ds)"
                     >
                       <span
@@ -578,7 +590,8 @@ onMounted(() => datasetsStore.fetchDatasets())
                         v-for="fmt in (['csv', 'xlsx'] as const)"
                         :key="fmt"
                         :disabled="exportingId !== null"
-                        class="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed uppercase"
+                        class="inline-flex items-center justify-center gap-1 min-h-10 lg:min-h-0 px-2 py-1.5 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed uppercase"
+                        :data-accion="fmt"
                         @click="handleExport(ds.dataset_id, fmt)"
                       >
                         <span
@@ -597,7 +610,8 @@ onMounted(() => datasetsStore.fetchDatasets())
                       v-if="isAdmin && ds.status !== 'committed'"
                       :disabled="datasetsStore.deletingRows !== null"
                       :title="`Eliminar filas sin lat/lon/distrito en ${ds.filename}`"
-                      class="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium border border-red-200 text-red-600 rounded-md hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      class="inline-flex items-center justify-center gap-1 min-h-10 lg:min-h-0 px-2 py-1.5 text-xs font-medium border border-red-200 text-red-600 rounded-md hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      data-accion="limpiar"
                       @click="handleDeleteIncomplete(ds)"
                     >
                       <span
@@ -613,7 +627,9 @@ onMounted(() => datasetsStore.fetchDatasets())
                     <!-- Ver historial -->
                     <button
                       :title="`Ver historial de acciones de ${ds.filename}`"
-                      class="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors"
+                      class="inline-flex items-center justify-center gap-1 min-h-10 lg:min-h-0 px-2 py-1.5 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors"
+                      :class="isAdmin && ds.status !== 'committed' ? '' : 'max-md:col-span-2'"
+                      data-accion="historial"
                       @click="handleViewHistory(ds)"
                     >
                       <History class="w-3 h-3" />
@@ -624,12 +640,13 @@ onMounted(() => datasetsStore.fetchDatasets())
                       v-if="ds.status !== 'committed'"
                       :disabled="datasetsStore.deletingDataset !== null"
                       :title="`Eliminar dataset ${ds.filename} por completo`"
-                      class="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      class="max-md:col-span-2 max-md:mt-1 inline-flex items-center justify-center gap-1 min-h-10 lg:min-h-0 px-2 py-1.5 text-xs font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 md:border-transparent md:bg-red-600 md:text-white md:hover:bg-red-700"
+                      data-accion="eliminar"
                       @click="handleDeleteDataset(ds)"
                     >
                       <span
                         v-if="datasetsStore.deletingDataset === ds.dataset_id"
-                        class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"
+                        class="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"
                       />
                       <FileX
                         v-else
@@ -673,7 +690,7 @@ onMounted(() => datasetsStore.fetchDatasets())
           </template>
         </div>
         <button
-          class="flex-shrink-0 p-1 rounded hover:bg-black/10 transition-colors"
+          class="flex-shrink-0 w-10 h-10 lg:w-auto lg:h-auto lg:p-1 flex items-center justify-center rounded hover:bg-black/10 transition-colors"
           aria-label="Cerrar"
           @click="datasetsStore.clearDeleteResult()"
         >
@@ -708,7 +725,7 @@ onMounted(() => datasetsStore.fetchDatasets())
           </template>
         </div>
         <button
-          class="flex-shrink-0 p-1 rounded hover:bg-black/10 transition-colors"
+          class="flex-shrink-0 w-10 h-10 lg:w-auto lg:h-auto lg:p-1 flex items-center justify-center rounded hover:bg-black/10 transition-colors"
           aria-label="Cerrar"
           @click="datasetsStore.clearEditCellsResult()"
         >
@@ -725,7 +742,7 @@ onMounted(() => datasetsStore.fetchDatasets())
           {{ datasetsStore.deleteDatasetError }}
         </p>
         <button
-          class="p-1 rounded hover:bg-black/10 transition-colors flex-shrink-0"
+          class="w-10 h-10 lg:w-auto lg:h-auto lg:p-1 flex items-center justify-center rounded hover:bg-black/10 transition-colors flex-shrink-0"
           aria-label="Cerrar"
           @click="datasetsStore.clearDeleteDatasetError()"
         >
@@ -742,7 +759,7 @@ onMounted(() => datasetsStore.fetchDatasets())
           {{ exportError }}
         </p>
         <button
-          class="p-1 rounded hover:bg-black/10 transition-colors"
+          class="w-10 h-10 lg:w-auto lg:h-auto lg:p-1 flex items-center justify-center rounded hover:bg-black/10 transition-colors"
           aria-label="Cerrar"
           @click="exportError = null"
         >
@@ -813,7 +830,7 @@ onMounted(() => datasetsStore.fetchDatasets())
                       </span>
                       <button
                         :class="[
-                          'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs transition-colors flex-shrink-0',
+                          'inline-flex items-center gap-1 min-h-10 lg:min-h-0 px-1.5 py-0.5 rounded text-xs transition-colors flex-shrink-0',
                           `${err.row_index}|${err.column}` in editingInputs
                             ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
@@ -826,16 +843,16 @@ onMounted(() => datasetsStore.fetchDatasets())
                     </div>
                     <div
                       v-if="`${err.row_index}|${err.column}` in editingInputs"
-                      class="ml-5 flex items-center gap-2"
+                      class="ml-5 flex flex-wrap items-center gap-2"
                     >
                       <input
                         :value="editingInputs[`${err.row_index}|${err.column}`]"
                         type="text"
                         :placeholder="`Nuevo valor para ${err.column}`"
-                        class="flex-1 min-w-0 border border-amber-300 rounded px-2 py-1 text-xs text-foreground bg-amber-50 focus:outline-none focus:border-amber-500"
+                        class="flex-1 min-w-[10rem] min-h-10 lg:min-h-0 border border-amber-300 rounded px-2 py-1 text-xs text-foreground bg-amber-50 focus:outline-none focus:border-amber-500"
                         @input="editingInputs[`${err.row_index}|${err.column}`] = ($event.target as HTMLInputElement).value"
                       >
-                      <span class="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">actual: <span class="font-mono">{{ String(err.value ?? '(nulo)') }}</span></span>
+                      <span class="text-xs text-muted-foreground sm:whitespace-nowrap">actual: <span class="font-mono">{{ String(err.value ?? '(nulo)') }}</span></span>
                     </div>
                   </div>
                   <!-- Controles eliminar seleccionadas -->
@@ -848,12 +865,12 @@ onMounted(() => datasetsStore.fetchDatasets())
                       type="text"
                       placeholder="Motivo de eliminación (requerido)"
                       maxlength="200"
-                      class="w-full border border-red-200 rounded-md px-2 py-1.5 text-xs text-foreground bg-white focus:outline-none focus:border-red-400 placeholder:text-muted-foreground/60"
+                      class="w-full min-h-10 lg:min-h-0 border border-red-200 rounded-md px-2 py-1.5 text-xs text-foreground bg-white focus:outline-none focus:border-red-400 placeholder:text-muted-foreground/60"
                     >
                     <div class="flex items-center gap-2 flex-wrap">
                       <button
                         :disabled="!deleteReason.trim() || previewingDelete || datasetsStore.deletingRows !== null"
-                        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        class="inline-flex items-center gap-1.5 min-h-10 lg:min-h-0 px-3 py-1.5 text-xs font-medium bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         @click="handleDeleteSelected"
                       >
                         <span
@@ -867,7 +884,7 @@ onMounted(() => datasetsStore.fetchDatasets())
                         Eliminar {{ selectedTypeErrors.length }} fila{{ selectedTypeErrors.length !== 1 ? 's' : '' }} seleccionada{{ selectedTypeErrors.length !== 1 ? 's' : '' }}
                       </button>
                       <button
-                        class="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        class="min-h-10 lg:min-h-0 text-xs text-muted-foreground hover:text-foreground transition-colors"
                         @click="clearSelection"
                       >
                         Deseleccionar todo
@@ -891,7 +908,7 @@ onMounted(() => datasetsStore.fetchDatasets())
                     <div class="flex items-center gap-2 flex-wrap">
                       <button
                         :disabled="datasetsStore.editingCells !== null"
-                        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        class="inline-flex items-center gap-1.5 min-h-10 lg:min-h-0 px-3 py-1.5 text-xs font-medium bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         @click="handleSaveCellEdits"
                       >
                         <span
@@ -905,7 +922,7 @@ onMounted(() => datasetsStore.fetchDatasets())
                         Guardar {{ Object.keys(editingInputs).length }} edición{{ Object.keys(editingInputs).length !== 1 ? 'es' : '' }}
                       </button>
                       <button
-                        class="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        class="min-h-10 lg:min-h-0 text-xs text-muted-foreground hover:text-foreground transition-colors"
                         @click="clearCellEdits"
                       >
                         Cancelar todo
@@ -982,7 +999,7 @@ onMounted(() => datasetsStore.fetchDatasets())
             </template>
           </div>
           <button
-            class="flex-shrink-0 p-1 rounded hover:bg-black/10 transition-colors"
+            class="flex-shrink-0 w-10 h-10 lg:w-auto lg:h-auto lg:p-1 flex items-center justify-center rounded hover:bg-black/10 transition-colors"
             aria-label="Cerrar"
             @click="datasetsStore.clearLastResult()"
           >
