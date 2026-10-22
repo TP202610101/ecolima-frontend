@@ -3,6 +3,7 @@ import { computed, ref, watch, nextTick } from 'vue'
 import { Filter, MapPin, Search, X } from '@lucide/vue'
 import { useExploracionV1Store } from '../stores/useExploracionV1Store'
 import PaginadorV1 from './PaginadorV1.vue'
+import AvisoSinLugaresV1 from './AvisoSinLugaresV1.vue'
 import {
   CLASES, CLASE_CORTA, CLASE_LARGA, CLASE_PLURAL, PROVINCIA, T, enAmbito, fmtDist, fmtEntero, nombreDistrito,
   numeroDe, ord, type Grupo,
@@ -11,6 +12,7 @@ import type { ClaseOportunidad } from '../entities/AnalisisV1'
 
 // Columna izquierda (como MapSidebar del original): distrito, filtros, buscador y lista paginada.
 // La lista usa el ícono verde de ubicación del original; el número de orden es un dato secundario.
+const emit = defineEmits<{ ayuda: [seccion: 'fuentes'] }>()
 const store = useExploracionV1Store()
 const lista = ref<HTMLElement>()
 
@@ -112,14 +114,30 @@ watch(() => store.selId, async id => {
               {{ nombreDistrito(u) }}
             </option>
           </optgroup>
+          <optgroup
+            v-if="store.distritosSinLugares.length"
+            :label="`Sin lugares evaluados (${store.distritosSinLugares.length})`"
+          >
+            <option
+              v-for="u in store.distritosSinLugares"
+              :key="u"
+              :value="u"
+            >
+              {{ nombreDistrito(u) }}
+            </option>
+          </optgroup>
           <optgroup label="Vista general">
             <option :value="PROVINCIA">
               Provincia de Lima (43 distritos)
             </option>
           </optgroup>
         </select>
+        <AvisoSinLugaresV1
+          v-if="store.ambitoSinLugares"
+          @fuentes="emit('ayuda', 'fuentes')"
+        />
         <p
-          v-if="!store.miDistrito"
+          v-else-if="!store.miDistrito"
           class="text-xs text-muted-foreground"
           data-prueba="sin-distrito-cuenta"
         >
@@ -252,7 +270,14 @@ watch(() => store.selId, async id => {
       data-prueba="lista"
     >
       <li
-        v-if="!store.seleccion.length"
+        v-if="!store.seleccion.length && store.ambitoSinLugares"
+        class="px-4 py-6 text-center text-sm text-muted-foreground"
+        data-prueba="lista-sin-lugares"
+      >
+        Sin lugares evaluados en {{ nombreDistrito(store.ambito) }}.
+      </li>
+      <li
+        v-else-if="!store.seleccion.length"
         class="px-4 py-6 text-center text-sm text-muted-foreground flex flex-col items-center gap-2.5"
         data-prueba="lista-vacia"
       >

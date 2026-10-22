@@ -54,9 +54,19 @@ export const CLASE_PLURAL: Record<ClaseOportunidad, string> = {
 }
 export const CLASES = Object.keys(CLASE_CORTA) as ClaseOportunidad[]
 
-// El paquete V1.0.0 no trae nombre de lugar: se usa una etiqueta genérica por tipo (no se inventan nombres).
-export const SIN_NOMBRE = 'Sin nombre en el paquete V1.0.0'
+// El paquete V1.0.0 no trae nombre de lugar: se etiqueta con tipo y distrito (no se inventan nombres)
+// y un código corto para distinguir lugares iguales del mismo distrito.
 export const etiquetaLugar = (l: { clase: ClaseOportunidad }) => CLASE_LARGA[l.clase]
+export const nombreLugar = (l: { clase: ClaseOportunidad; ubigeo: string }) =>
+  `${CLASE_LARGA[l.clase]} en ${nombreDistrito(l.ubigeo)}`
+
+/** ECO-V0.1-OSM-NODE-123 → N123 (nodo de OpenStreetMap); POS-SI-ER01 → ER01; POS-OSM-N123 → N123. */
+export function codigoCorto(id: string): string {
+  const m = /^ECO-V[\d.]+-OSM-NODE-(\d+)$/.exec(id) ?? /^POS-OSM-N(\d+)$/.exec(id)
+  if (m) return `N${m[1]}`
+  const er = /^POS-SI-(ER\d+)$/.exec(id)
+  return er ? er[1] : id
+}
 
 // Puntos existentes: el paquete solo trae su código. Se nombra la fuente (lote de San Isidro u OpenStreetMap)
 // sin afirmar quién los administra.
@@ -72,7 +82,7 @@ export function fuenteExistente(id: string): string {
 export const T = {
   topCorto: (k: number) => `Entre los ${k} primeros de Lima`,
   noTop: (k: number) => `No está entre los ${k} primeros de Lima`,
-  primero: 'Empieza por aquí',
+  primero: 'Entre los primeros a revisar',
   cand: 'Otros lugares evaluados',
   excl: 'Descartados en revisión preliminar',
   exist: 'Puntos de reciclaje existentes registrados',
@@ -350,7 +360,7 @@ export function filasCsv(lugares: Lugar[], existentes: Lugar[], m: MetaExportaci
     cab,
     ...lugares.map(l => {
       const a = l.rango != null
-      return [amb, m.version, fecha, 'lugar evaluado', numeroDe(l, m.ambito) ?? '', CLASE_LARGA[l.clase], SIN_NOMBRE,
+      return [amb, m.version, fecha, 'lugar evaluado', numeroDe(l, m.ambito) ?? '', CLASE_LARGA[l.clase], `${nombreLugar(l)} · ${codigoCorto(l.id)}`,
         nombreDistrito(l.ubigeo), a ? T.ok : T.desc, l.rango ?? '', l.top ? 'si' : 'no',
         r2(l.k?.k1), r2(l.k?.k2), r2(l.dist), r2(l.k?.k4, 2), l.lat, l.lon, m.verificacion(l), f, l.id]
     }),

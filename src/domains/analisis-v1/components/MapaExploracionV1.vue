@@ -6,7 +6,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { Plus, Minus, RotateCcw } from '@lucide/vue'
 import { useExploracionV1Store } from '../stores/useExploracionV1Store'
 import {
-  PROVINCIA, CLASE_LARGA, T, fmtEntero, nombreDistrito, nombreExistente, numeroDe, ord, type Lugar,
+  PROVINCIA, CLASE_LARGA, T, codigoCorto, fmtEntero, nombreDistrito, nombreExistente, nombreLugar, numeroDe, ord, type Lugar,
 } from '../utils/lecturaV1'
 
 // Mapa central de Análisis V1: lugares de la selección (mismos filtros que la lista), puntos existentes
@@ -149,7 +149,7 @@ function agregarCapas() {
     const l = store.porId.get(id)
     if (!l) return ''
     const linea = l.rango != null && l.rangoDist != null ? `${ord(l.rangoDist)} en el orden de ${esc(nombreDistrito(l.ubigeo))}${l.top ? `<br>${T.topCorto(store.topK)}` : ''}` : T.desc
-    return `<strong>${esc(CLASE_LARGA[l.clase])}</strong><br><span>${linea}</span>`
+    return `<strong>${esc(nombreLugar(l))}</strong> <small>${esc(codigoCorto(l.id))}</small><br><span>${linea}</span>`
   }))
   map.on('mouseenter', 'existentes', e => mostrar(e, id => {
     const l = store.porId.get(id)

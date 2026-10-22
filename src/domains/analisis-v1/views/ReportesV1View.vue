@@ -6,6 +6,7 @@ import KpiCard from '@/shared/components/KpiCard.vue'
 import AvisoV1 from '../components/AvisoV1.vue'
 import PaginadorV1 from '../components/PaginadorV1.vue'
 import AyudaFuentesV1 from '../components/AyudaFuentesV1.vue'
+import AvisoSinLugaresV1 from '../components/AvisoSinLugaresV1.vue'
 import { useExploracionV1Store } from '../stores/useExploracionV1Store'
 import { useAuthStore } from '@/domains/auth/stores/useAuthStore'
 import {
@@ -252,6 +253,18 @@ onUnmounted(() => {
                 {{ nombreDistrito(u) }}
               </option>
             </optgroup>
+            <optgroup
+              v-if="store.distritosSinLugares.length"
+              :label="`Sin lugares evaluados (${store.distritosSinLugares.length})`"
+            >
+              <option
+                v-for="u in store.distritosSinLugares"
+                :key="u"
+                :value="u"
+              >
+                {{ nombreDistrito(u) }}
+              </option>
+            </optgroup>
             <optgroup label="Vista general">
               <option :value="PROVINCIA">
                 Provincia de Lima (43 distritos)
@@ -294,6 +307,12 @@ onUnmounted(() => {
             </template>
           </p>
         </div>
+
+        <AvisoSinLugaresV1
+          v-if="store.ambitoSinLugares"
+          class="print:hidden"
+          @fuentes="ayuda = 'fuentes'"
+        />
 
         <!-- Indicadores del ámbito -->
         <div
@@ -516,6 +535,13 @@ onUnmounted(() => {
               </tbody>
             </table>
           </div>
+          <p
+            v-else-if="store.ambitoSinLugares"
+            class="px-6 py-8 text-center text-muted-foreground"
+            data-prueba="tabla-sin-lugares"
+          >
+            Sin lugares evaluados en {{ nombreDistrito(store.ambito) }}.
+          </p>
           <p
             v-else
             class="px-6 py-8 text-center text-muted-foreground"

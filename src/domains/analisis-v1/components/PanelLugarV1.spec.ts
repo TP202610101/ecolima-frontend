@@ -46,7 +46,7 @@ describe('PanelLugarV1', () => {
   it('resumen inicial con los datos pedidos y sin jerga técnica', () => {
     const { w } = montar()
     const t = w.text()
-    for (const x of ['Paradero de transporte público', 'San Isidro', 'Sin nombre en el paquete V1.0.0', 'Superó la revisión preliminar',
+    for (const x of ['Paradero de transporte público en San Isidro', 'Código A', 'Superó la revisión preliminar',
       'Orden de revisión en San Isidro', '1.º', 'de 6', 'No está entre los 110 primeros de Lima', 'Puesto 838 de',
       '¿Por qué ocupa esta posición?', 'Punto de reciclaje registrado más cercano', '740 m', 'Estación ER06 del plan de San Isidro',
       'Verificaciones pendientes', '8 de 8', 'no está aprobado ni autorizado', 'Ver más detalles']) {

@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { MapPin, X, CheckCircle2, MinusCircle, CircleDot, XCircle, Info, ListOrdered, ChevronDown, Users, Trash2, Navigation, Route } from '@lucide/vue'
 import { useExploracionV1Store } from '../stores/useExploracionV1Store'
 import {
-  CLASE_LARGA, CONTROLES_CAMPO, FACTOR_INFO, FACTORES, PROVINCIA, REGLAS_REVISION, RESULTADO_REGLA, SIN_NOMBRE, T,
+  CLASE_LARGA, CONTROLES_CAMPO, FACTOR_INFO, FACTORES, PROVINCIA, REGLAS_REVISION, RESULTADO_REGLA, T, codigoCorto, nombreLugar,
   distanciaM, explicacionBreve, fmtDec, fmtDist, fmtEntero, fuenteExistente, nivelesFactores, nombreDistrito,
   nombreExistente, ord, valorFactor, type Factor,
 } from '../utils/lecturaV1'
@@ -92,10 +92,10 @@ const vacioK = { k1: 0, k2: 0, k3: 0, k4: 0 }
             class="text-sm font-semibold leading-snug"
             data-prueba="panel-titulo"
           >
-            {{ CLASE_LARGA[l.clase] }}
+            {{ nombreLugar(l) }}
           </h2>
           <p class="text-xs text-muted-foreground mt-0.5">
-            {{ nombreDistrito(l.ubigeo) }} · {{ SIN_NOMBRE }}
+            Código {{ codigoCorto(l.id) }}
           </p>
         </div>
         <button
@@ -450,7 +450,7 @@ const vacioK = { k1: 0, k2: 0, k3: 0, k4: 0 }
               <dt class="text-muted-foreground">
                 Nombre
               </dt>
-              <dd>{{ SIN_NOMBRE }} (se muestra el tipo de lugar)</dd>
+              <dd>{{ nombreLugar(l) }} (el paquete V1.0.0 no trae nombre propio)</dd>
               <dt class="text-muted-foreground">
                 Código del lugar
               </dt>

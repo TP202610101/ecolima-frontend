@@ -3,6 +3,7 @@ import type { SitioResumen } from '../entities/AnalisisV1'
 import {
   PROVINCIA, construirLugares, explicacionBreve, filasCsv, filtrosActivos, filtrosIniciales, fmtDist, fmtEntero,
   nivelesFactores, nombreArchivoCsv, nombreDistrito, nombreExistente, ordenarTabla, paginar, seleccionar, textoResumen,
+  T, codigoCorto, nombreLugar,
   type MetaExportacion,
 } from './lecturaV1'
 
@@ -122,7 +123,7 @@ describe('exportaciones limitadas al ámbito', () => {
     expect(datos.every(d => d.ambito_reporte === 'San Isidro' && d.version_paquete === '1.0.0' && d.distrito === 'San Isidro')).toBe(true)
     expect(datos.filter(d => d.tipo_registro === 'punto de reciclaje existente registrado').map(d => d.id_sitio)).toEqual(['POS-SI-ER01'])
     expect(datos.map(d => d.orden_revision_distrito)).toEqual([1, 2, 3, '', ''])
-    expect(datos[0].nombre).toBe('Sin nombre en el paquete V1.0.0')
+    expect(datos[0].nombre).toBe('Paradero de transporte público en San Isidro · C')
     expect(nombreArchivoCsv(meta(SI))).toBe('ecolima-v1.0.0-san-isidro-lugares-para-revisar.csv')
   })
   it('CSV provincial solo cuando se elige la provincia', () => {
@@ -152,5 +153,21 @@ describe('vocabulario', () => {
     expect(nombreExistente('POS-OSM-N1')).toBe('Punto registrado en OpenStreetMap')
     expect(fmtEntero(2192)).toBe('2 192')
     expect(fmtDist(3700)).toBe('3,7 km')
+  })
+})
+
+describe('etiquetas de lugar sin nombre propio', () => {
+  it('nombra cada lugar con su tipo y distrito', () => {
+    expect(nombreLugar({ clase: 'parque', ubigeo: SI })).toBe('Parque en San Isidro')
+    expect(nombreLugar(por('A'))).toBe('Paradero de transporte público en San Isidro')
+  })
+  it('acorta el código del sitio sin perder el nodo de OpenStreetMap', () => {
+    expect(codigoCorto('ECO-V0.1-OSM-NODE-13382447436')).toBe('N13382447436')
+    expect(codigoCorto('POS-OSM-N10281453783')).toBe('N10281453783')
+    expect(codigoCorto('POS-SI-ER01')).toBe('ER01')
+    expect(codigoCorto('otro-formato')).toBe('otro-formato')
+  })
+  it('el primero del orden se marca sin sugerir una decisión', () => {
+    expect(T.primero).toBe('Entre los primeros a revisar')
   })
 })

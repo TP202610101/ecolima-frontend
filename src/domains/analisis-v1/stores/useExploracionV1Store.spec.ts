@@ -113,6 +113,20 @@ describe('useExploracionV1Store', () => {
     expect(s.cargado).toBe(false)
   })
 
+  it('un distrito sin lugares evaluados se puede elegir, queda vacío y no se fija como mi distrito', async () => {
+    const s = useExploracionV1Store()
+    await s.inicializar('7')
+    expect(s.distritosSinLugares).toEqual(['150126'])
+    s.cambiarAmbito('150126')
+    expect(s.ambito).toBe('150126')
+    expect(s.ambitoSinLugares).toBe(true)
+    expect(s.seleccion).toHaveLength(0)
+    s.fijarMiDistrito('150126')
+    expect(s.miDistrito).toBeNull()
+    s.cambiarAmbito(SI)
+    expect(s.ambitoSinLugares).toBe(false)
+  })
+
   it('clearData deja el store vacío y la siguiente cuenta vuelve a cargar', async () => {
     const s = useExploracionV1Store()
     await s.inicializar('7')

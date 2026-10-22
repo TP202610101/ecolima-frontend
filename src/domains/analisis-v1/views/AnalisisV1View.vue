@@ -96,7 +96,10 @@ onMounted(cargar)
           class="w-full lg:w-72 xl:w-72 flex-shrink-0 lg:border-r border-border min-h-0"
           :class="panel === 'filtros' ? 'flex' : 'hidden lg:flex'"
         >
-          <FiltrosListaV1 class="w-full" />
+          <FiltrosListaV1
+            class="w-full"
+            @ayuda="s => (ayuda = s)"
+          />
         </div>
         <div
           class="flex-1 min-w-0 min-h-0"

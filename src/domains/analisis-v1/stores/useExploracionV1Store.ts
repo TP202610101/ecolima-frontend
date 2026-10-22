@@ -78,6 +78,8 @@ export const useExploracionV1Store = defineStore('exploracionV1', () => {
     .map(p => p.ubigeo))
   const distritosSinLugares = computed(() => (distritos.value?.features ?? [])
     .map(f => f.properties).filter(p => p.n_sitios - p.n_punto_existente === 0).map(p => p.ubigeo))
+  /** El ámbito elegido es un distrito sin lugares evaluados en el paquete (se puede elegir para ver el aviso). */
+  const ambitoSinLugares = computed(() => distritosSinLugares.value.includes(ambito.value))
   const nAptos = computed(() => lugares.value.filter(l => l.rango != null).length)
   const esMiDistrito = computed(() => miDistrito.value != null && ambito.value === miDistrito.value)
 
@@ -136,7 +138,9 @@ export const useExploracionV1Store = defineStore('exploracionV1', () => {
     }
   }
 
-  function ambitoValido(a: string) { return a === PROVINCIA || distritosConDatos.value.includes(a) }
+  function ambitoValido(a: string) {
+    return a === PROVINCIA || distritosConDatos.value.includes(a) || distritosSinLugares.value.includes(a)
+  }
 
   function irAPaginaDe(id: string) {
     const i = seleccion.value.findIndex(l => l.id === id)
@@ -254,7 +258,7 @@ export const useExploracionV1Store = defineStore('exploracionV1', () => {
     version, sinVersion, distritos, lugares, tamizaje, cargando, error, cargado,
     usuario, miDistrito, ambito, filtros, capaExistentes, avisoCerrado, pag, porPag, selId, masDetalles,
     detalle, cargandoDetalle, errorDetalle, repPag, repPorPag, repOrden, distPag, distPorPag, fuentes, errorFuentes,
-    topK, porId, existentes, conteosDistrito, distritosConDatos, distritosSinLugares, nAptos, esMiDistrito,
+    topK, porId, existentes, conteosDistrito, distritosConDatos, distritosSinLugares, ambitoSinLugares, nAptos, esMiDistrito,
     seleccion, existentesAmbito, lugaresAmbito, textoFiltros, hayFiltros, paginaLista, seleccionado,
     cifrasAmbito, cifrasSeleccion, aptosDistrito,
     inicializar, ambitoValido, cambiarAmbito, fijarMiDistrito, setFiltros, restablecerFiltros, elegir,
