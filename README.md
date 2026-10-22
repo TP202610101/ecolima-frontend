@@ -2,7 +2,7 @@
 
 SPA de análisis geoespacial de residuos sólidos para Lima Metropolitana. Consume la API REST del backend FastAPI; no tiene lógica de negocio propia más allá de presentación y validación de formularios.
 
-🔗 **Demo:** https://mango-cliff-03aa6110f.7.azurestaticapps.net/puntos
+🔗 **Demo:** https://agreeable-pond-03717200f.4.azurestaticapps.net/puntos
 
 ---
 
