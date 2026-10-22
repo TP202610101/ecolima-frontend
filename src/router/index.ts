@@ -22,11 +22,11 @@ const routes = [
   // Ruta pública sin auth — no redirige al login, no muestra el navbar interno.
   { path: '/puntos',   name: 'puntos',   component: PublicMapView, meta: { requiresAuth: false, hideNavbar: true } },
   // Resultados V1 importados del paquete versionado (/api/v1/analisis/*); el backend exige admin o analista.
-  { path: '/analisis-v1', name: 'analisis-v1', component: AnalisisV1View, meta: { requiresAuth: true, roles: ['admin', 'analista'] } },
-  { path: '/reportes-v1', name: 'reportes-v1', component: ReportesV1View, meta: { requiresAuth: true, roles: ['admin', 'analista'] } },
-  // Vistas de Análisis y Reportes del prototipo LightGBM (etiqueta prototipo-lightgbm): llevan a las vistas V1.
-  { path: '/analisis', redirect: { name: 'analisis-v1' } },
-  { path: '/reportes', redirect: { name: 'reportes-v1' } },
+  { path: '/analisis', name: 'analisis', component: AnalisisV1View, meta: { requiresAuth: true, roles: ['admin', 'analista'] } },
+  { path: '/reportes', name: 'reportes', component: ReportesV1View, meta: { requiresAuth: true, roles: ['admin', 'analista'] } },
+  // URLs anteriores de las vistas V1: se reemplazan en el historial por las rutas sin versión.
+  { path: '/analisis-v1', redirect: { name: 'analisis' } },
+  { path: '/reportes-v1', redirect: { name: 'reportes' } },
   { path: '/panel-ml',        name: 'panel-ml',        component: MLPanelView,    meta: { requiresAuth: true, requiresAdmin: true } },
   { path: '/admin/usuarios',  name: 'admin-usuarios',  component: AdminUsersView, meta: { requiresAuth: true, requiresAdmin: true } },
   { path: '/:pathMatch(.*)*', redirect: { name: 'puntos' } },

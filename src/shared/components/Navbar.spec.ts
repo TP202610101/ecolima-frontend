@@ -6,7 +6,7 @@ import Navbar from './Navbar.vue'
 import { useAuthStore } from '@/domains/auth/stores/useAuthStore'
 import type { User } from '@/domains/auth/entities/User'
 
-vi.mock('vue-router', () => ({ useRoute: () => ({ path: '/analisis-v1' }), useRouter: () => ({ push: vi.fn() }) }))
+vi.mock('vue-router', () => ({ useRoute: () => ({ path: '/analisis' }), useRouter: () => ({ push: vi.fn() }) }))
 
 function enlaces(role: User['role']) {
   setActivePinia(createPinia())
@@ -19,10 +19,10 @@ beforeEach(() => localStorage.clear())
 
 describe('Navbar', () => {
   it('admin ve Análisis, Reportes, Panel ML y Usuarios', () => {
-    expect(enlaces('admin')).toEqual(['Análisis→/analisis-v1', 'Reportes→/reportes-v1', 'Panel ML→/panel-ml', 'Usuarios→/admin/usuarios'])
+    expect(enlaces('admin')).toEqual(['Análisis→/analisis', 'Reportes→/reportes', 'Panel ML→/panel-ml', 'Usuarios→/admin/usuarios'])
   })
 
   it('un analista no ve Panel ML ni Usuarios', () => {
-    expect(enlaces('analista')).toEqual(['Análisis→/analisis-v1', 'Reportes→/reportes-v1'])
+    expect(enlaces('analista')).toEqual(['Análisis→/analisis', 'Reportes→/reportes'])
   })
 })

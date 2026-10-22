@@ -76,7 +76,7 @@ const textoOrden = computed(() => {
 })
 
 function cambiarAmbito(ev: Event) { store.cambiarAmbito((ev.target as HTMLSelectElement).value) }
-function irAlLugar(id: string) { store.elegir(id); router.push({ name: 'analisis-v1' }) }
+function irAlLugar(id: string) { store.elegir(id); router.push({ name: 'analisis' }) }
 function moverDistritos(delta: number) { store.distPag = pgDistritos.value.p + delta }
 function avisar(t: string) {
   aviso.value = t

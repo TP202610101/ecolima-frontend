@@ -26,12 +26,26 @@ async function navegar(ruta: string, role?: User['role']) {
 
 beforeEach(() => localStorage.clear())
 
-describe('router — vistas viejas de Análisis y Reportes', () => {
+describe('router — Análisis y Reportes sin versión en la URL', () => {
   it.each([
-    ['/analisis', 'analisis-v1'],
-    ['/reportes', 'reportes-v1'],
-  ])('%s lleva a %s', async (ruta, destino) => {
-    expect((await navegar(ruta, 'analista')).name).toBe(destino)
+    ['/analisis', 'analisis', '/analisis'],
+    ['/reportes', 'reportes', '/reportes'],
+    ['/analisis-v1', 'analisis', '/analisis'],
+    ['/reportes-v1', 'reportes', '/reportes'],
+  ])('%s abre %s en %s', async (ruta, destino, path) => {
+    const r = await navegar(ruta, 'analista')
+    expect(r.name).toBe(destino)
+    expect(r.fullPath).toBe(path)
+  })
+
+  it('la URL anterior se reemplaza en el historial, no se apila', async () => {
+    vi.resetModules()
+    setActivePinia(createPinia())
+    useAuthStore().setSession(usuario('analista'), tokenVigente())
+    const { default: router } = await import('./index')
+    await router.push('/reportes-v1')
+    expect(router.currentRoute.value.redirectedFrom?.fullPath).toBe('/reportes-v1')
+    expect(history.state.current).toBe('/reportes')
   })
 
   it('sin sesión, las rutas viejas piden login', async () => {
@@ -43,7 +57,7 @@ describe('router — vistas viejas de Análisis y Reportes', () => {
   })
 
   it('con sesión de analista, /login lleva a Análisis V1', async () => {
-    expect((await navegar('/', 'analista')).name).toBe('analisis-v1')
+    expect((await navegar('/', 'analista')).name).toBe('analisis')
   })
 })
 
@@ -53,7 +67,7 @@ describe('router — Panel ML y Usuarios, solo admin', () => {
   })
 
   it('un analista que escribe /panel-ml vuelve a Análisis V1', async () => {
-    expect((await navegar('/panel-ml', 'analista')).name).toBe('analisis-v1')
+    expect((await navegar('/panel-ml', 'analista')).name).toBe('analisis')
   })
 
   it('un ciudadano que escribe /panel-ml va al mapa público', async () => {
@@ -66,6 +80,6 @@ describe('router — Panel ML y Usuarios, solo admin', () => {
 
   it('Usuarios sigue siendo solo para admin', async () => {
     expect((await navegar('/admin/usuarios', 'admin')).name).toBe('admin-usuarios')
-    expect((await navegar('/admin/usuarios', 'analista')).name).toBe('analisis-v1')
+    expect((await navegar('/admin/usuarios', 'analista')).name).toBe('analisis')
   })
 })

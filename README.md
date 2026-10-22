@@ -96,12 +96,12 @@ src/
 |------|--------------|-------------|
 | `/` | Ninguno (redirige si logueado) | Login |
 | `/puntos` | Ninguno | Mapa público de puntos de acopio |
-| `/analisis` | `analista` o `admin` | Análisis geoespacial interactivo |
-| `/reportes` | `analista` o `admin` | Reportes y exportaciones |
-| `/panel-ml` | `admin` | Inferencia ML, activación de modelos, recálculo de cobertura |
+| `/analisis` | `analista` o `admin` | Lugares evaluados del paquete V1: mapa, lista y detalle |
+| `/reportes` | `analista` o `admin` | Reporte por distrito o provincia, CSV e impresión |
+| `/panel-ml` | `admin` | Modelo vigente del paquete (solo lectura) y datasets de puntos de reciclaje |
 | `/admin/usuarios` | `admin` | CRUD de usuarios del sistema |
 
-El guard en `router/index.ts` redirige a `/analisis` si un analista intenta acceder a una ruta `requiresAdmin`, y a `/` si no hay sesión activa.
+El guard en `router/index.ts` redirige a `/analisis` si un analista intenta acceder a una ruta `requiresAdmin`, y a `/` si no hay sesión activa. Las URLs anteriores `/analisis-v1` y `/reportes-v1` redirigen a `/analisis` y `/reportes`.
 
 ---
 
