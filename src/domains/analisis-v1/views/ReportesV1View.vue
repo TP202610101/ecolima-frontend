@@ -12,7 +12,7 @@ import { useAuthStore } from '@/domains/auth/stores/useAuthStore'
 import {
   CLASE_LARGA, COLUMNA_TEXTO, ORDEN_INICIAL, PROVINCIA, T, aCsv, fechaLarga, filasCsv, fmtDec, fmtDist,
   fmtEntero, fuenteExistente, nombreAmbito, nombreArchivoCsv, nombreDistrito, nombreExistente, numeroDe, ordenarTabla,
-  paginar, plural, textoResumen, type ColumnaTabla, type MetaExportacion,
+  codigoCorto, nombreLugar, paginar, plural, textoResumen, type ColumnaTabla, type MetaExportacion,
 } from '../utils/lecturaV1'
 
 // Reportes V1 (prototipo V5): mismo distrito y filtros que Análisis V1. Copiar resumen, Imprimir y Descargar CSV
@@ -32,7 +32,7 @@ const enLima = computed(() => store.ambito === PROVINCIA)
 const amb = computed(() => nombreAmbito(store.ambito))
 const v = computed(() => store.version)
 const ordenada = computed(() => ordenarTabla(store.seleccion, store.repOrden, store.ambito))
-const pgTabla = computed(() => paginar(ordenada.value, store.repPag, imprimiendo.value ? Infinity : store.repPorPag))
+const pgTabla = computed(() => paginar(ordenada.value, store.repPag, store.repPorPag))
 const otrosDistritos = computed(() => store.distritosConDatos.filter(u => u !== store.miDistrito).sort((a, b) => nombreDistrito(a).localeCompare(nombreDistrito(b), 'es')))
 const filasDistritos = computed(() => store.distritosConDatos
   .flatMap(u => { const c = store.conteosDistrito.get(u); return c ? [{ u, ...c, nombre: nombreDistrito(u) }] : [] })
@@ -40,9 +40,9 @@ const filasDistritos = computed(() => store.distritosConDatos
 const pgDistritos = computed(() => {
   if (store.distPag == null) {
     const i = filasDistritos.value.findIndex(r => r.u === store.ambito)
-    return paginar(filasDistritos.value, i >= 0 ? Math.floor(i / store.distPorPag) + 1 : 1, imprimiendo.value ? Infinity : store.distPorPag)
+    return paginar(filasDistritos.value, i >= 0 ? Math.floor(i / store.distPorPag) + 1 : 1, store.distPorPag)
   }
-  return paginar(filasDistritos.value, store.distPag, imprimiendo.value ? Infinity : store.distPorPag)
+  return paginar(filasDistritos.value, store.distPag, store.distPorPag)
 })
 const sinLugares = computed(() => store.distritosSinLugares.map(u => nombreDistrito(u)).join(', '))
 const cifras = computed(() => store.cifrasSeleccion)
@@ -112,7 +112,9 @@ async function copiarResumen() {
     avisar(ok ? `Resumen de ${amb.value} copiado.` : 'No se pudo copiar. Selecciona el texto manualmente.')
   }
 }
-// Al imprimir se incluyen todas las filas de la selección (no solo la página) y la lista de puntos existentes.
+// Impresión: resumen, tabla por distrito y los primeros de Lima (provincia) o el orden del distrito elegido,
+// en tablas compactas que solo se arman al imprimir. La lista completa de la provincia va en el CSV.
+const filasImpresion = computed(() => (enLima.value ? ordenada.value.filter(l => l.top) : ordenada.value))
 const antes = () => { imprimiendo.value = true }
 const despues = () => { imprimiendo.value = false }
 async function imprimir() {
@@ -351,8 +353,7 @@ onUnmounted(() => {
 
         <!-- Comparación entre distritos (no se exporta en un reporte distrital) -->
         <div
-          class="bg-white rounded-lg border border-border overflow-hidden"
-          :class="enLima ? '' : 'print:hidden'"
+          class="bg-white rounded-lg border border-border overflow-hidden print:hidden"
           data-prueba="caja-distritos"
         >
           <div class="px-6 py-4 border-b border-border">
@@ -407,7 +408,7 @@ onUnmounted(() => {
 
         <!-- Orden de revisión del ámbito -->
         <div
-          class="bg-white rounded-lg border border-border overflow-hidden"
+          class="bg-white rounded-lg border border-border overflow-hidden print:hidden"
           data-prueba="tabla-orden"
         >
           <div class="px-6 py-4 border-b border-border flex flex-wrap items-end justify-between gap-3">
@@ -574,47 +575,157 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- Puntos existentes del ámbito: solo en la impresión -->
+        <!-- Versión impresa: solo se arma al imprimir (tablas compactas; filas y tarjetas no se cortan) -->
         <div
-          class="hidden print:block bg-white rounded-lg border border-border overflow-hidden"
-          data-prueba="impresion-existentes"
+          v-if="imprimiendo"
+          class="hidden print:block space-y-3"
+          data-prueba="impresion"
         >
-          <div class="px-6 py-3 border-b border-border">
-            <h2 class="text-base font-semibold">
+          <section
+            v-if="enLima"
+            class="impresion-seccion"
+            data-prueba="impresion-distritos"
+          >
+            <h2 class="text-sm font-semibold">
+              Resultados por distrito
+            </h2>
+            <table class="impresion-tabla">
+              <thead>
+                <tr>
+                  <th>Distrito</th>
+                  <th class="num">
+                    Evaluados
+                  </th>
+                  <th class="num">
+                    Superaron la revisión
+                  </th>
+                  <th class="num">
+                    Puntos registrados
+                  </th>
+                  <th class="num">
+                    Entre los {{ store.topK }} primeros
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="r in filasDistritos"
+                  :key="r.u"
+                >
+                  <td>{{ r.nombre }}</td>
+                  <td class="num">
+                    {{ fmtEntero(r.n_sitios - r.n_punto_existente) }}
+                  </td>
+                  <td class="num">
+                    {{ fmtEntero(r.n_apto_tamizaje) }}
+                  </td>
+                  <td class="num">
+                    {{ fmtEntero(r.n_punto_existente) }}
+                  </td>
+                  <td class="num">
+                    {{ r.n_top_k ? fmtEntero(r.n_top_k) : '—' }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="text-[9px] text-muted-foreground">
+              Sin lugares evaluados en esta versión: {{ sinLugares }}.
+            </p>
+          </section>
+
+          <section
+            v-if="filasImpresion.length"
+            class="impresion-seccion"
+            data-prueba="impresion-lugares"
+          >
+            <h2 class="text-sm font-semibold">
+              {{ enLima ? `Los ${store.topK} primeros lugares para revisar en Lima` : `Orden de revisión en ${amb}` }}
+            </h2>
+            <p class="text-[9px] text-muted-foreground">
+              {{ plural(filasImpresion.length, 'lugar', 'lugares') }}{{ store.hayFiltros ? ' con los filtros de Análisis' : '' }}. {{ textoOrden }}{{ enLima ? `La lista completa de los ${fmtEntero(store.seleccion.length)} lugares de la provincia está en «Descargar CSV».` : '' }}
+            </p>
+            <table class="impresion-tabla">
+              <thead>
+                <tr>
+                  <th class="num">
+                    {{ enLima ? 'Puesto' : 'Orden' }}
+                  </th>
+                  <th>Lugar</th>
+                  <th class="num">
+                    Personas cerca
+                  </th>
+                  <th class="num">
+                    Residuos (kg/día)
+                  </th>
+                  <th class="num">
+                    Punto registrado más cercano
+                  </th>
+                  <th class="num">
+                    Vías (km/km²)
+                  </th>
+                  <th v-if="!enLima">
+                    Revisión preliminar
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="l in filasImpresion"
+                  :key="l.id"
+                >
+                  <td class="num">
+                    {{ l.rango != null ? fmtEntero(numeroDe(l, store.ambito)) : '—' }}
+                  </td>
+                  <td>{{ nombreLugar(l) }} · {{ codigoCorto(l.id) }}</td>
+                  <td class="num">
+                    {{ l.k ? fmtEntero(l.k.k1) : '—' }}
+                  </td>
+                  <td class="num">
+                    {{ l.k ? fmtEntero(l.k.k2) : '—' }}
+                  </td>
+                  <td class="num">
+                    {{ fmtDist(l.dist) }}
+                  </td>
+                  <td class="num">
+                    {{ l.k ? fmtDec(l.k.k4, 1) : '—' }}
+                  </td>
+                  <td v-if="!enLima">
+                    {{ l.rango != null ? 'Superada' : 'Descartado' }}{{ l.top ? ` · entre los ${store.topK} primeros de Lima` : '' }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section
+            v-if="!enLima && store.existentesAmbito.length"
+            class="impresion-seccion"
+            data-prueba="impresion-existentes"
+          >
+            <h2 class="text-sm font-semibold">
               {{ T.exist }} en {{ amb }}
             </h2>
-            <p class="text-xs text-muted-foreground">
+            <p class="text-[9px] text-muted-foreground">
               {{ plural(store.existentesAmbito.length, 'punto', 'puntos') }} según OpenStreetMap y el plan de San Isidro. Puede haber otros sin registrar; no se afirma quién los administra.
             </p>
-          </div>
-          <table class="w-full text-xs">
-            <tbody>
-              <tr
-                v-for="e in store.existentesAmbito"
-                :key="e.id"
-                class="border-b border-border"
-              >
-                <td class="px-4 py-1.5">
-                  {{ nombreExistente(e.id) }}
-                </td>
-                <td
-                  v-if="enLima"
-                  class="px-4 py-1.5"
+            <table class="impresion-tabla">
+              <tbody>
+                <tr
+                  v-for="e in store.existentesAmbito"
+                  :key="e.id"
                 >
-                  {{ nombreDistrito(e.ubigeo) }}
-                </td>
-                <td class="px-4 py-1.5">
-                  {{ fuenteExistente(e.id) }}
-                </td>
-                <td class="px-4 py-1.5 text-right tabular-nums">
-                  {{ fmtDec(e.lat, 5) }}, {{ fmtDec(e.lon, 5) }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                  <td>{{ nombreExistente(e.id) }}</td>
+                  <td>{{ fuenteExistente(e.id) }}</td>
+                  <td class="num">
+                    {{ fmtDec(e.lat, 5) }}, {{ fmtDec(e.lon, 5) }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
         </div>
 
-        <p class="bg-white border border-border border-l-[3px] border-l-amber-600 rounded-lg px-5 py-4 text-[13px] text-neutral-700">
+        <p class="bg-white border border-border border-l-[3px] border-l-amber-600 rounded-lg px-5 py-4 text-[13px] text-neutral-700 print:px-3 print:py-2 print:text-[9px] break-inside-avoid">
           <strong class="text-foreground">Antes de usar estos resultados.</strong> Son lugares para revisar, no ubicaciones aprobadas: superar la revisión preliminar no significa que sean viables, ninguno tiene autorización y las verificaciones de campo siguen pendientes. Estar entre los {{ store.topK }} primeros de Lima es un puesto en el orden provincial, no una aprobación. El paquete V1.0.0 no trae nombres de lugar.
           <button
             type="button"
@@ -645,9 +756,17 @@ onUnmounted(() => {
 </template>
 
 <style>
-/* Solo mientras Reportes V1 está montado: la impresión ocupa varias páginas (App.vue fija h-screen y overflow). */
+/* Solo mientras Reportes está montado: la impresión ocupa varias páginas (App.vue fija h-screen y overflow). */
 @media print {
   html, body, #app, #app > div, #app main { height: auto !important; overflow: visible !important; display: block !important; }
-  [data-prueba="reportes-v1"] tr { break-inside: avoid; }
+  [data-prueba="reportes-v1"] h1 { font-size: 16px; }
+  [data-prueba="kpis"] > * { break-inside: avoid; padding: 8px !important; }
+  .impresion-seccion h2 { break-after: avoid; margin-bottom: 2px; }
+  .impresion-tabla { width: 100%; border-collapse: collapse; font-size: 9px; line-height: 1.25; margin-top: 4px; }
+  .impresion-tabla thead { display: table-header-group; }
+  .impresion-tabla tr { break-inside: avoid; }
+  .impresion-tabla th { text-align: left; font-weight: 600; color: #525252; border-bottom: 1px solid #a3a3a3; padding: 2px 4px; }
+  .impresion-tabla td { border-bottom: 1px solid #e5e5e5; padding: 1.5px 4px; vertical-align: top; }
+  .impresion-tabla .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 }
 </style>
