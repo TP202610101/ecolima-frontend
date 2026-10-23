@@ -148,6 +148,7 @@ onMounted(() => {
     style: 'https://tiles.openfreemap.org/styles/liberty',
     center: LIMA_CENTER,
     zoom: 13,
+    locale: { 'Popup.Close': 'Cerrar detalle' },
   })
 
   map.on('movestart', () => { hasSearched.value = false })
@@ -395,15 +396,44 @@ onUnmounted(() => {
 .chip-scroll::-webkit-scrollbar {
   display: none;
 }
-/* Cierre del detalle de un punto: 40 px en pantallas táctiles */
+/* Detalle de un punto: botón de cierre visible y con área cómoda (40 px en pantallas táctiles) */
+:deep(.maplibregl-popup-content) {
+  padding: 12px 44px 12px 14px;
+  border-radius: 10px;
+}
+:deep(.maplibregl-popup-close-button) {
+  top: 6px;
+  right: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: #f3f4f6;
+  color: #4b5563;
+  font-size: 20px;
+  line-height: 1;
+  transition: background-color 0.15s, color 0.15s;
+}
+:deep(.maplibregl-popup-close-button:hover) {
+  background: #e5e7eb;
+  color: #111827;
+}
+:deep(.maplibregl-popup-close-button:focus-visible) {
+  outline: 2px solid #16a34a;
+  outline-offset: 2px;
+}
 @media (pointer: coarse) {
   :deep(.maplibregl-popup-close-button) {
+    top: 4px;
+    right: 4px;
     width: 40px;
     height: 40px;
-    font-size: 20px;
+    font-size: 22px;
   }
   :deep(.maplibregl-popup-content) {
-    padding-right: 40px;
+    padding-right: 50px;
   }
 }
 </style>
