@@ -36,15 +36,21 @@ let map: maplibregl.Map | null = null
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 let mapStyleLoaded = false
 
+// Algunos registros traen los materiales sin tildes ("plastico", "carton"): se comparan sin tildes ni mayúsculas.
+const normalizar = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase()
+
 const filteredPoints = computed(() => {
   const allSelected = selectedMaterials.value.length === MATERIALS.length
   if (allSelected) return allPoints.value
+  const elegidos = selectedMaterials.value.map(normalizar)
   return allPoints.value.filter(p =>
-    Array.isArray(p.materiales) && p.materiales.some(m =>
-      (selectedMaterials.value as string[]).includes(m.toLowerCase())
-    )
+    Array.isArray(p.materiales) && p.materiales.some(m => elegidos.includes(normalizar(m)))
   )
 })
+
+const ENTIDADES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }
+// El detalle del punto se arma como HTML: los textos que vienen de la base se escapan.
+const escaparHtml = (s: string) => s.replace(/[&<>"']/g, c => ENTIDADES[c] ?? c)
 
 function isWithinLima(lat: number, lng: number): boolean {
   return lat >= LIMA_LAT_MIN && lat <= LIMA_LAT_MAX &&
@@ -173,19 +179,19 @@ onMounted(() => {
       const coords = (f.geometry as { type: 'Point'; coordinates: [number, number] }).coordinates
       const p = f.properties ?? {}
       const mats: string[] = JSON.parse((p['materiales'] as string | null) ?? '[]')
-      const matsStr = formatMaterials(mats.join(','))
+      const matsStr = escaparHtml(formatMaterials(mats.join(',')))
       const rawDist = p['distancia'] as number | null
       const dist = rawDist === null
-        ? 'distancia no disponible'
+        ? 'Distancia no disponible'
         : rawDist < 1000
-          ? `${Math.round(rawDist)} m`
-          : `${(rawDist / 1000).toFixed(1)} km`
+          ? `A ${Math.round(rawDist)} m del punto de búsqueda`
+          : `A ${(rawDist / 1000).toFixed(1)} km del punto de búsqueda`
 
       new maplibregl.Popup({ maxWidth: '260px', offset: 12 })
         .setLngLat(coords)
         .setHTML(`<div style="font-size:13px;min-width:160px">
-          <strong style="font-size:14px;display:block;margin-bottom:2px">${p['nombre'] as string}</strong>
-          <span style="color:#6b7280;font-size:12px">📍 ${dist} de distancia</span>
+          <strong style="font-size:14px;display:block;margin-bottom:2px">${escaparHtml(String(p['nombre'] ?? ''))}</strong>
+          <span style="color:#6b7280;font-size:12px">${dist}</span>
           <hr style="margin:6px 0;border-color:#e5e7eb">
           <span style="font-size:12px"><strong>Acepta:</strong> ${matsStr}</span>
         </div>`)
@@ -211,19 +217,6 @@ onUnmounted(() => {
 
 <template>
   <div class="h-full flex flex-col">
-    <!-- Overlay portrait en teléfonos: pide rotar a landscape -->
-    <div
-      class="fixed inset-0 z-[9999] bg-white
-             hidden [@media(orientation:portrait)_and_(max-width:639px)]:block"
-    >
-      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-4">
-        <RotateCcw class="w-12 h-12 text-gray-300" />
-        <p class="text-sm font-medium text-gray-600 text-center px-8">
-          Gira el teléfono para ver el mapa
-        </p>
-      </div>
-    </div>
-
     <!-- Cabecera pública -->
     <header class="flex items-center justify-between px-4 py-2.5 bg-white border-b border-gray-200 flex-shrink-0">
       <div class="flex items-center gap-3 min-w-0">
@@ -256,30 +249,19 @@ onUnmounted(() => {
         class="w-full h-full"
       />
 
-      <!-- Alerta geolocalización denegada — encima de los filtros -->
-      <div
-        v-if="geoError"
-        class="absolute top-3 left-3 right-14 z-[1000]"
-      >
-        <div class="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 shadow-sm">
-          <AlertCircle class="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
-          <p class="text-xs text-amber-800">
-            Geolocalización no disponible. Mueve el mapa y pulsa <strong>Buscar en esta zona</strong>.
-          </p>
-        </div>
-      </div>
-
-      <!-- Filtro por material -->
-      <div
-        class="absolute left-3 z-[1000] w-[calc(100%-8rem)] sm:w-[calc(100%-9.5rem)]"
-        :class="geoError ? 'top-14' : 'top-3'"
-      >
-        <div class="chip-scroll flex gap-1.5 overflow-x-auto pb-0.5">
+      <!-- Columna izquierda: filtros y avisos, apilados para que no se tapen entre sí ni a los controles -->
+      <div class="absolute top-3 left-3 right-[4.25rem] z-[1000] flex flex-col gap-2 pointer-events-none">
+        <div
+          class="chip-scroll flex gap-1.5 overflow-x-auto pb-0.5 pointer-events-auto"
+          role="group"
+          aria-label="Filtrar por material"
+        >
           <button
             v-for="m in MATERIALS"
             :key="m"
+            :aria-pressed="selectedMaterials.includes(m)"
             :class="[
-              'flex-shrink-0 whitespace-nowrap px-3 py-1 rounded-full text-xs font-medium border shadow-sm transition-colors',
+              'flex-shrink-0 whitespace-nowrap px-3 py-1 [@media(pointer:coarse)]:min-h-10 rounded-full text-xs font-medium border shadow-sm transition-colors',
               selectedMaterials.includes(m)
                 ? MATERIAL_ACTIVE_CLASS[m]
                 : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400',
@@ -289,45 +271,55 @@ onUnmounted(() => {
             {{ m.charAt(0).toUpperCase() + m.slice(1) }}
           </button>
         </div>
+
+        <!-- Alerta geolocalización denegada -->
+        <div
+          v-if="geoError"
+          class="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 shadow-sm pointer-events-auto sm:max-w-md"
+        >
+          <AlertCircle class="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <p class="text-xs text-amber-800">
+            Geolocalización no disponible. Mueve el mapa y pulsa <strong>Buscar en esta zona</strong>.
+          </p>
+        </div>
+
+        <!-- Alerta error API -->
+        <div
+          v-if="error"
+          role="alert"
+          data-prueba="error-puntos"
+          class="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 shadow-sm pointer-events-auto sm:max-w-md"
+        >
+          <AlertCircle class="w-3.5 h-3.5 text-red-500 flex-shrink-0 mt-0.5" />
+          <p class="text-xs text-red-700">
+            {{ error }}
+          </p>
+        </div>
       </div>
 
-      <!-- Controles de zoom -->
-      <div class="absolute right-3 top-12 sm:top-3 z-[1000] flex items-center gap-1">
+      <!-- Controles de zoom (40 px en pantallas táctiles) -->
+      <div class="absolute right-3 top-3 z-[1000] flex flex-col gap-1">
         <button
-          class="w-8 h-8 bg-white border border-gray-200 rounded-md shadow text-gray-700 hover:bg-gray-50 flex items-center justify-center transition-colors"
+          class="w-8 h-8 [@media(pointer:coarse)]:w-10 [@media(pointer:coarse)]:h-10 bg-white border border-gray-200 rounded-md shadow text-gray-700 hover:bg-gray-50 flex items-center justify-center transition-colors"
           aria-label="Acercar"
           @click="zoomIn"
         >
           <Plus class="w-4 h-4" />
         </button>
         <button
-          class="w-8 h-8 bg-white border border-gray-200 rounded-md shadow text-gray-700 hover:bg-gray-50 flex items-center justify-center transition-colors"
+          class="w-8 h-8 [@media(pointer:coarse)]:w-10 [@media(pointer:coarse)]:h-10 bg-white border border-gray-200 rounded-md shadow text-gray-700 hover:bg-gray-50 flex items-center justify-center transition-colors"
           aria-label="Alejar"
           @click="zoomOut"
         >
           <Minus class="w-4 h-4" />
         </button>
         <button
-          class="w-8 h-8 bg-white border border-gray-200 rounded-md shadow text-gray-700 hover:bg-gray-50 flex items-center justify-center transition-colors"
+          class="w-8 h-8 [@media(pointer:coarse)]:w-10 [@media(pointer:coarse)]:h-10 bg-white border border-gray-200 rounded-md shadow text-gray-700 hover:bg-gray-50 flex items-center justify-center transition-colors"
           aria-label="Restablecer vista"
           @click="resetView"
         >
           <RotateCcw class="w-3.5 h-3.5" />
         </button>
-      </div>
-
-      <!-- Alerta error API -->
-      <div
-        v-if="error"
-        class="absolute z-[1000] left-3 right-14"
-        :class="geoError ? 'top-[88px]' : 'top-3'"
-      >
-        <div class="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 shadow-sm">
-          <AlertCircle class="w-3.5 h-3.5 text-red-500 flex-shrink-0 mt-0.5" />
-          <p class="text-xs text-red-700">
-            {{ error }}
-          </p>
-        </div>
       </div>
 
       <!-- Loading overlay -->
@@ -341,6 +333,8 @@ onUnmounted(() => {
       <!-- Empty state -->
       <div
         v-else-if="hasSearched && !error && filteredPoints.length === 0"
+        role="status"
+        data-prueba="sin-puntos"
         class="absolute top-[35%] -translate-y-1/2 left-1/2 -translate-x-1/2 z-[1000] w-56 sm:w-80 max-w-[88vw]"
       >
         <div class="bg-white border border-gray-200 rounded-xl shadow-lg px-3 py-3 sm:px-5 sm:py-5 text-center">
@@ -357,7 +351,8 @@ onUnmounted(() => {
       </div>
 
       <!-- Botones de acción -->
-      <div class="absolute bottom-20 sm:bottom-8 left-1/2 -translate-x-1/2 z-[1000] flex flex-col items-center gap-2 sm:flex-row sm:gap-3">
+      <!-- Por encima de la atribución del mapa, que en tablet ocupa dos líneas -->
+      <div class="absolute bottom-20 sm:bottom-14 lg:bottom-8 left-1/2 -translate-x-1/2 z-[1000] flex flex-col items-center gap-2 sm:flex-row sm:gap-3">
         <button
           :disabled="loading"
           class="flex items-center gap-2 px-5 py-3 bg-white border border-gray-300 rounded-full text-sm font-medium text-gray-700 shadow-md hover:shadow-lg hover:bg-gray-50 transition-all disabled:opacity-50"
@@ -386,5 +381,16 @@ onUnmounted(() => {
 }
 .chip-scroll::-webkit-scrollbar {
   display: none;
+}
+/* Cierre del detalle de un punto: 40 px en pantallas táctiles */
+@media (pointer: coarse) {
+  :deep(.maplibregl-popup-close-button) {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+  :deep(.maplibregl-popup-content) {
+    padding-right: 40px;
+  }
 }
 </style>
