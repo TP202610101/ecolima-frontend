@@ -43,10 +43,18 @@ beforeEach(() => { vi.useFakeTimers(); getNearby.mockReset() })
 afterEach(() => { w?.unmount(); vi.useRealTimers() })
 
 describe('PublicMapView', () => {
+  it('muestra la nota de origen de los puntos, accesible y sin lenguaje del análisis interno', async () => {
+    await montar()
+    const nota = w.find('[data-prueba="nota-origen"]')
+    expect(nota.exists()).toBe(true)
+    expect(nota.attributes('role')).toBe('note')
+    expect(nota.text()).toBe('Puntos limpios de registros municipales y de prensa. Puede haber otros sin registrar. No es el conjunto de puntos que usa el análisis interno.')
+    expect(w.text()).not.toMatch(/recomendaci|probabilidad|idoneidad|\b(Alta|Media|Baja)\b|SHAP|\bML\b/i)
+  })
+
   it('ya no bloquea la vista en móvil vertical', async () => {
     await montar()
     expect(w.text()).not.toContain('Gira el teléfono')
-    expect(w.text()).not.toMatch(/recomendaci|probabilidad|idoneidad|\b(Alta|Media|Baja)\b|SHAP|\bML\b/i)
   })
 
   it('sin puntos en la zona muestra un mensaje claro', async () => {

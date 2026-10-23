@@ -2,7 +2,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { MapPin, Recycle, Navigation, Search, LogIn, Plus, Minus, RotateCcw, AlertCircle } from '@lucide/vue'
+import { MapPin, Recycle, Navigation, Search, LogIn, Plus, Minus, RotateCcw, AlertCircle, Info } from '@lucide/vue'
 import { PublicRepository, type PublicPoint } from '../repositories/PublicRepository'
 import { formatMaterials } from '@/shared/utils/formatters'
 
@@ -241,6 +241,19 @@ onUnmounted(() => {
         <span class="sm:hidden">Ingresar</span>
       </router-link>
     </header>
+
+    <!-- Nota de origen: fuera del mapa para no tapar puntos ni controles. El endpoint no trae fecha de actualización. -->
+    <p
+      role="note"
+      data-prueba="nota-origen"
+      class="flex items-start gap-1.5 px-4 py-1.5 bg-gray-50 border-b border-gray-200 text-xs text-gray-600 leading-snug flex-shrink-0"
+    >
+      <Info
+        class="w-3.5 h-3.5 flex-shrink-0 mt-px text-gray-400"
+        aria-hidden="true"
+      />
+      <span>Puntos limpios de registros municipales y de prensa. Puede haber otros sin registrar. No es el conjunto de puntos que usa el análisis interno.</span>
+    </p>
 
     <!-- Área del mapa -->
     <div class="flex-1 relative overflow-hidden">
