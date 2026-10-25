@@ -41,7 +41,7 @@ onMounted(cargar)
 
 <template>
   <div
-    class="flex flex-col h-[calc(100vh-56px)]"
+    class="flex flex-col h-full"
     data-prueba="analisis-v1"
   >
     <AvisoV1 @ayuda="s => (ayuda = s)" />

@@ -139,7 +139,7 @@ onUnmounted(() => {
 
 <template>
   <div
-    class="flex flex-col h-[calc(100vh-56px)] print:h-auto"
+    class="flex flex-col h-full print:h-auto"
     data-prueba="reportes-v1"
   >
     <AvisoV1 @ayuda="s => (ayuda = s)" />

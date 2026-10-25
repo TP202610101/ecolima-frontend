@@ -45,7 +45,7 @@ onMounted(() => mlStore.fetchPanel())
       </div>
 
       <div
-        class="flex gap-1 border-b border-border overflow-x-auto"
+        class="flex gap-1 border-b border-border overflow-x-auto overflow-y-hidden"
         role="tablist"
         aria-label="Secciones del Panel ML"
       >
