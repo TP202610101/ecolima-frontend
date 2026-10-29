@@ -9,7 +9,7 @@
           EcoLima ML
         </h1>
         <p class="text-sm text-muted-foreground text-center mt-1">
-          Sistema de Recomendación de Ubicaciones<br>Municipalidad de Lima
+          Análisis de ubicaciones para puntos de reciclaje<br>Municipalidad de Lima
         </p>
       </div>
 
@@ -71,6 +71,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { Recycle } from '@lucide/vue'
 import { LoginUseCase } from '../use-cases/LoginUseCase'
 import { useAuthStore } from '../stores/useAuthStore'
+import { rutaInicio } from '../utils/rutaInicio'
 
 const email = ref('')
 const password = ref('')
@@ -92,7 +93,7 @@ async function onSubmit() {
   try {
     const result = await LoginUseCase(email.value, password.value)
     auth.setSession(result.user, result.access_token)
-    router.push({ name: 'analisis' })
+    router.push({ name: rutaInicio(result.user.role) })
   } catch (error: any) {
     if (error.response?.status === 401) {
       errorMessage.value = 'Credenciales inválidas. Intenta de nuevo.'

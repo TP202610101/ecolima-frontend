@@ -34,7 +34,7 @@ export const PublicRepository = {
     } catch (e) {
       if (axios.isAxiosError(e)) {
         if (e.response?.status === 422) throw new Error('OUT_OF_RANGE', { cause: e })
-        if (!e.response) throw new Error('Sin conexión. Verifica tu red.', { cause: e })
+        if (!e.response) throw new Error('No se pudo conectar con el servidor. Revisa tu conexión e intenta de nuevo.', { cause: e })
       }
       throw new Error('No se pudo cargar los puntos.', { cause: e })
     }

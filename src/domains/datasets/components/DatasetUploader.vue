@@ -36,9 +36,9 @@ function onClose() {
     class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
     @click.self="onClose"
   >
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 relative">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md max-h-full overflow-y-auto p-4 sm:p-6 relative">
       <button
-        class="absolute top-4 right-4 p-1 rounded hover:bg-secondary transition-colors"
+        class="absolute top-2 right-2 w-10 h-10 flex items-center justify-center rounded hover:bg-secondary transition-colors"
         aria-label="Cerrar"
         @click="onClose"
       >
@@ -75,7 +75,7 @@ function onClose() {
           {{ store.uploadResult.filename }}
         </p>
         <button
-          class="mt-5 px-4 py-2 bg-primary text-white text-sm rounded-md font-medium hover:bg-primary-hover transition-colors"
+          class="mt-5 min-h-10 px-4 py-2 bg-primary text-white text-sm rounded-md font-medium hover:bg-primary-hover transition-colors"
           @click="onClose"
         >
           Cerrar
@@ -138,14 +138,14 @@ function onClose() {
         <!-- Acciones -->
         <div class="flex gap-2 mt-6">
           <button
-            class="flex-1 px-4 py-2 border border-border rounded-md text-sm text-foreground hover:bg-secondary transition-colors"
+            class="flex-1 min-h-10 px-4 py-2 border border-border rounded-md text-sm text-foreground hover:bg-secondary transition-colors"
             @click="onClose"
           >
             Cancelar
           </button>
           <button
             :disabled="!selectedFile || store.uploading"
-            class="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="flex-1 flex items-center justify-center gap-2 min-h-10 px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             @click="onUpload"
           >
             <span

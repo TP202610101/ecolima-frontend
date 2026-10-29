@@ -1,204 +1,86 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { ModelVersion, ModelVersionMetrics } from '../entities/ModelVersion'
+import type { ModeloV1, ResumenMcda, ResumenTamizaje, VersionActiva } from '@/domains/analisis-v1/entities/AnalisisV1'
+import type { ListaVersiones, VersionComparada } from '../entities/ModelVersion'
 import { MLRepository } from '../repositories/MLRepository'
-import type { RecalculateResult } from '../repositories/MLRepository'
-import { GetRecommendationsUseCase } from '@/domains/recommendations/use-cases/GetRecommendationsUseCase'
 
-export interface ZoneSnapshot {
-  zoneId: number
-  districtName: string
-  priorityLabel: string
-}
+// Panel ML (solo admin): estado de solo lectura del paquete de resultados importado.
+// Registrar o activar una versión se hace en el backend con el script de importación, no desde aquí.
 
-export interface UpdateRecommendationsResult {
-  newZones: ZoneSnapshot[]
-  retiredZones: ZoneSnapshot[]
-  unchangedCount: number
+function mensaje(e: unknown, porDefecto: string): string {
+  const x = e as { response?: { status?: number; data?: { detail?: unknown } }; message?: string }
+  if (x?.response?.status === 404 && typeof x.response.data?.detail === 'string') return x.response.data.detail
+  if (x?.response?.status === 401) return 'Tu sesión expiró. Vuelve a iniciar sesión.'
+  if (x?.response?.status === 403) return 'Tu cuenta no tiene acceso a esta información.'
+  if (x?.message === 'Network Error') return 'No se pudo conectar con el servidor.'
+  return porDefecto
 }
 
 export const useMLStore = defineStore('ml', () => {
-  const models = ref<ModelVersion[]>([])
+  const versiones = ref<ListaVersiones | null>(null)
+  const activa = ref<VersionActiva | null>(null)
+  const modelo = ref<ModeloV1 | null>(null)
+  const mcda = ref<ResumenMcda | null>(null)
+  const tamizaje = ref<ResumenTamizaje | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
-  const inferenceTaskId = ref<string | null>(null)
-  const inferring = ref(false)
-  const inferenceProgress = ref(0)
-  const inferenceError = ref<string | null>(null)
-  const zonesProcessed = ref(0)
-  const estimatedZones = ref(0)
-  const activatingVersion = ref<string | null>(null)
-  const recalculating = ref(false)
-  const recalculateResult = ref<RecalculateResult | null>(null)
-  const recalculateError = ref<string | null>(null)
-  const updating = ref(false)
-  const updateResult = ref<UpdateRecommendationsResult | null>(null)
-  const updateError = ref<string | null>(null)
+  // Cada bloque puede fallar por separado sin vaciar el resto del panel.
+  const errores = ref<Partial<Record<'versiones' | 'activa' | 'modelo' | 'mcda' | 'tamizaje', string>>>({})
 
   const compareFetching = ref(false)
-  const compareResult = ref<{ a: ModelVersionMetrics; b: ModelVersionMetrics } | null>(null)
+  const compareResult = ref<{ a: VersionComparada; b: VersionComparada } | null>(null)
   const compareError = ref<string | null>(null)
 
-  const activeModel = computed(() => models.value.find(m => m.is_active) ?? null)
+  let generacion = 0
 
-  let pollTimer: ReturnType<typeof setInterval> | null = null
+  const listaVersiones = computed(() => versiones.value?.versiones ?? [])
+  const puedeComparar = computed(() => listaVersiones.value.length >= 2)
 
-  async function fetchModels() {
+  async function fetchPanel() {
+    const g = ++generacion
     loading.value = true
     error.value = null
-    try {
-      models.value = await MLRepository.getModels()
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Error al cargar modelos'
-    } finally {
-      loading.value = false
+    errores.value = {}
+    const pedidos = {
+      versiones: MLRepository.getVersiones(),
+      activa: MLRepository.getVersion(),
+      modelo: MLRepository.getModelo(),
+      mcda: MLRepository.getMcda(),
+      tamizaje: MLRepository.getTamizaje(),
     }
-  }
-
-  async function activateModel(version: string) {
-    activatingVersion.value = version
-    error.value = null
-    try {
-      await MLRepository.activateModel(version)
-      await fetchModels()
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Error al activar modelo'
-    } finally {
-      activatingVersion.value = null
-    }
-  }
-
-  // Retorna una Promise que resuelve cuando el polling termina (done) o rechaza (error).
-  // startPolling() la llama silenciando el rechazo para el botón individual de inferencia.
-  function _pollUntilDone(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (pollTimer) clearInterval(pollTimer)
-      pollTimer = setInterval(async () => {
-        if (!inferenceTaskId.value) return
-        try {
-          const status = await MLRepository.getInferenceStatus(inferenceTaskId.value)
-          inferenceProgress.value = status.progress_pct ?? 0
-          zonesProcessed.value = status.zones_processed ?? 0
-          if (status.status === 'done') {
-            stopPolling()
-            inferring.value = false
-            await fetchModels()
-            resolve()
-          } else if (status.status === 'error') {
-            stopPolling()
-            inferring.value = false
-            inferenceError.value = 'El proceso de inferencia terminó con error'
-            reject(new Error(inferenceError.value))
-          }
-        } catch (e) {
-          stopPolling()
-          inferring.value = false
-          reject(e)
-        }
-      }, 2000)
+    const claves = Object.keys(pedidos) as Array<keyof typeof pedidos>
+    const res = await Promise.allSettled(claves.map(k => pedidos[k]))
+    if (g !== generacion) return
+    const nuevos: typeof errores.value = {}
+    res.forEach((r, i) => {
+      const k = claves[i]
+      if (r.status === 'rejected') { nuevos[k] = mensaje(r.reason, 'No se pudo cargar esta sección.'); return }
+      if (k === 'versiones') versiones.value = r.value as ListaVersiones
+      else if (k === 'activa') activa.value = r.value as VersionActiva
+      else if (k === 'modelo') modelo.value = r.value as ModeloV1
+      else if (k === 'mcda') mcda.value = r.value as ResumenMcda
+      else tamizaje.value = r.value as ResumenTamizaje
     })
-  }
-
-  function startPolling() {
-    _pollUntilDone().catch(() => {})
-  }
-
-  async function runInference() {
-    inferring.value = true
-    inferenceError.value = null
-    inferenceProgress.value = 0
-    zonesProcessed.value = 0
-    estimatedZones.value = 0
-    try {
-      const result = await MLRepository.runInference({ model_version: 'latest', threshold: 0.5 })
-      inferenceTaskId.value = result.task_id
-      estimatedZones.value = result.estimated_zones ?? 0
-      startPolling()
-    } catch (e) {
-      inferring.value = false
-      inferenceError.value = e instanceof Error ? e.message : 'Error al ejecutar inferencia'
-    }
-  }
-
-  async function recalculateCoverage() {
-    recalculating.value = true
-    recalculateResult.value = null
-    recalculateError.value = null
-    try {
-      recalculateResult.value = await MLRepository.recalculateCoverage()
-    } catch (e) {
-      recalculateError.value = e instanceof Error ? e.message : 'Error al recalcular cobertura'
-    } finally {
-      recalculating.value = false
-    }
-  }
-
-  async function updateRecommendations() {
-    updating.value = true
-    updateResult.value = null
-    updateError.value = null
-    try {
-      // a. Snapshot ANTES — conjunto de zone_id presentes
-      const beforeRecs = await GetRecommendationsUseCase.execute({ limit: 1000 })
-      const beforeMap = new Map<number, ZoneSnapshot>(
-        beforeRecs.map(r => [r.zone_id, { zoneId: r.zone_id, districtName: r.district_name, priorityLabel: r.priority_label }])
-      )
-
-      // b. Recalcular cobertura
-      await recalculateCoverage()
-      if (recalculateError.value) throw new Error(recalculateError.value)
-
-      // c. Ejecutar inferencia y esperar a que el polling termine
-      inferring.value = true
-      inferenceError.value = null
-      inferenceProgress.value = 0
-      zonesProcessed.value = 0
-      estimatedZones.value = 0
-      const inferResult = await MLRepository.runInference({ model_version: 'latest', threshold: 0.5 })
-      inferenceTaskId.value = inferResult.task_id
-      estimatedZones.value = inferResult.estimated_zones ?? 0
-      await _pollUntilDone()
-
-      // d. Snapshot DESPUÉS
-      const afterRecs = await GetRecommendationsUseCase.execute({ limit: 1000 })
-      const afterMap = new Map<number, ZoneSnapshot>(
-        afterRecs.map(r => [r.zone_id, { zoneId: r.zone_id, districtName: r.district_name, priorityLabel: r.priority_label }])
-      )
-
-      // e. Diff por teoría de conjuntos (presencia/ausencia de zone_id)
-      const newZones: ZoneSnapshot[] = []
-      const retiredZones: ZoneSnapshot[] = []
-      let unchangedCount = 0
-      for (const [id, snap] of afterMap) {
-        if (beforeMap.has(id)) unchangedCount++
-        else newZones.push(snap)
-      }
-      for (const [id, snap] of beforeMap) {
-        if (!afterMap.has(id)) retiredZones.push(snap)
-      }
-
-      updateResult.value = { newZones, retiredZones, unchangedCount }
-    } catch (e) {
-      updateError.value = e instanceof Error ? e.message : 'Error al actualizar recomendaciones'
-    } finally {
-      updating.value = false
-    }
+    errores.value = nuevos
+    if (res.every(r => r.status === 'rejected')) error.value = Object.values(nuevos)[0] ?? 'No se pudo cargar el Panel ML.'
+    loading.value = false
   }
 
   async function fetchCompare(vA: string, vB: string) {
+    const g = generacion
     compareFetching.value = true
     compareError.value = null
-    compareResult.value = null
     try {
-      const [a, b] = await Promise.all([
-        MLRepository.getModelMetrics(vA),
-        MLRepository.getModelMetrics(vB),
-      ])
-      compareResult.value = { a, b }
+      const leer = async (v: string): Promise<VersionComparada> => {
+        const [version, modeloV] = await Promise.all([MLRepository.getVersion(v), MLRepository.getModelo(v).catch(() => null)])
+        return { version, modelo: modeloV }
+      }
+      const [a, b] = await Promise.all([leer(vA), leer(vB)])
+      if (g === generacion) compareResult.value = { a, b }
     } catch (e) {
-      compareError.value = e instanceof Error ? e.message : 'Error al obtener métricas para comparar'
+      if (g === generacion) compareError.value = mensaje(e, 'No se pudieron comparar las versiones.')
     } finally {
-      compareFetching.value = false
+      if (g === generacion) compareFetching.value = false
     }
   }
 
@@ -207,71 +89,25 @@ export const useMLStore = defineStore('ml', () => {
     compareError.value = null
   }
 
-  function stopPolling() {
-    if (pollTimer) {
-      clearInterval(pollTimer)
-      pollTimer = null
-    }
-  }
-
-  function abortInProgress() {
-    stopPolling()
-    inferring.value = false
-    updating.value = false
-  }
-
   function clearData() {
-    stopPolling()
-    models.value = []
+    generacion++
+    versiones.value = null
+    activa.value = null
+    modelo.value = null
+    mcda.value = null
+    tamizaje.value = null
+    loading.value = false
     error.value = null
-    inferenceTaskId.value = null
-    inferring.value = false
-    inferenceProgress.value = 0
-    inferenceError.value = null
-    zonesProcessed.value = 0
-    estimatedZones.value = 0
-    activatingVersion.value = null
-    recalculating.value = false
-    recalculateResult.value = null
-    recalculateError.value = null
-    updating.value = false
-    updateResult.value = null
-    updateError.value = null
+    errores.value = {}
     compareFetching.value = false
     compareResult.value = null
     compareError.value = null
   }
 
   return {
-    models,
-    activeModel,
-    loading,
-    error,
-    inferenceTaskId,
-    inferring,
-    inferenceProgress,
-    inferenceError,
-    zonesProcessed,
-    estimatedZones,
-    activatingVersion,
-    recalculating,
-    recalculateResult,
-    recalculateError,
-    updating,
-    updateResult,
-    updateError,
-    recalculateCoverage,
-    fetchModels,
-    activateModel,
-    runInference,
-    updateRecommendations,
-    stopPolling,
-    abortInProgress,
-    compareFetching,
-    compareResult,
-    compareError,
-    fetchCompare,
-    clearCompare,
-    clearData,
+    versiones, activa, modelo, mcda, tamizaje, loading, error, errores,
+    compareFetching, compareResult, compareError,
+    listaVersiones, puedeComparar,
+    fetchPanel, fetchCompare, clearCompare, clearData,
   }
 })

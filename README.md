@@ -2,7 +2,7 @@
 
 SPA de análisis geoespacial de residuos sólidos para Lima Metropolitana. Consume la API REST del backend FastAPI; no tiene lógica de negocio propia más allá de presentación y validación de formularios.
 
-🔗 **Demo:** https://mango-cliff-03aa6110f.7.azurestaticapps.net/puntos
+🔗 **Demo:** https://agreeable-pond-03717200f.4.azurestaticapps.net/puntos
 
 ---
 
@@ -15,7 +15,7 @@ SPA de análisis geoespacial de residuos sólidos para Lima Metropolitana. Consu
 | Estado | Pinia |
 | Routing | Vue Router 4 |
 | HTTP | Axios (interceptors centralizados) |
-| Mapas | Leaflet 1.9 |
+| Mapas | MapLibre GL JS + OpenFreeMap |
 | Gráficos | Chart.js 4 |
 | Estilos | Tailwind CSS 3 |
 | Tests | Vitest + @vue/test-utils |
@@ -71,7 +71,7 @@ src/
 │   ├── admin/          # Gestión de usuarios (solo admin)
 │   ├── auth/           # Login, sesión, AuthStore
 │   ├── datasets/       # Carga, validación y commit de datasets CSV
-│   ├── map/            # Vista de análisis geoespacial con Leaflet
+│   ├── map/            # Vista de análisis geoespacial con MapLibre
 │   ├── ml-panel/       # Panel ML: inferencia, modelos, cobertura
 │   ├── public/         # Mapa público sin auth (/puntos)
 │   ├── recommendations/# Recomendaciones derivadas del análisis
@@ -96,12 +96,12 @@ src/
 |------|--------------|-------------|
 | `/` | Ninguno (redirige si logueado) | Login |
 | `/puntos` | Ninguno | Mapa público de puntos de acopio |
-| `/analisis` | `analista` o `admin` | Análisis geoespacial interactivo |
-| `/reportes` | `analista` o `admin` | Reportes y exportaciones |
-| `/panel-ml` | `admin` | Inferencia ML, activación de modelos, recálculo de cobertura |
+| `/analisis` | `analista` o `admin` | Lugares evaluados del paquete V1: mapa, lista y detalle |
+| `/reportes` | `analista` o `admin` | Reporte por distrito o provincia, CSV e impresión |
+| `/panel-ml` | `admin` | Modelo vigente del paquete (solo lectura) y datasets de puntos de reciclaje |
 | `/admin/usuarios` | `admin` | CRUD de usuarios del sistema |
 
-El guard en `router/index.ts` redirige a `/analisis` si un analista intenta acceder a una ruta `requiresAdmin`, y a `/` si no hay sesión activa.
+El guard en `router/index.ts` redirige a `/analisis` si un analista intenta acceder a una ruta `requiresAdmin`, y a `/` si no hay sesión activa. Las URLs anteriores `/analisis-v1` y `/reportes-v1` redirigen a `/analisis` y `/reportes`.
 
 ---
 
