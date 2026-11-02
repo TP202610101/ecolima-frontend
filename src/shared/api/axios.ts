@@ -108,7 +108,8 @@ api.interceptors.response.use(
       return Promise.reject(error)
     }
 
-    return Promise.reject(buildApiError(error))
+    // El error original queda en cause: quien necesite el código HTTP (p. ej. el 429 del login) lo lee de ahí.
+    return Promise.reject(Object.assign(buildApiError(error), { cause: error }))
   }
 )
 

@@ -86,13 +86,14 @@ function onClose() {
       <template v-else>
         <!-- Zona de selección de archivo -->
         <label
-          class="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg p-8 cursor-pointer hover:border-primary hover:bg-accent/30 transition-colors"
+          class="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg p-8 cursor-pointer hover:border-primary hover:bg-accent/30 transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/30"
           :class="{ 'border-primary bg-accent/30': selectedFile }"
         >
+          <!-- sr-only (no hidden): el campo sigue oculto a la vista pero se alcanza con Tab y se abre con Enter o Espacio. -->
           <input
             type="file"
             accept=".csv"
-            class="hidden"
+            class="sr-only"
             @change="onFileChange"
           >
           <FileText
