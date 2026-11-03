@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
-import { UserPlus, Users } from '@lucide/vue'
+import { ref, reactive, computed, nextTick, onMounted, onUnmounted } from 'vue'
+import { FileUp, UserPlus, Users } from '@lucide/vue'
 import { useAdminUsersStore } from '../stores/useAdminUsersStore'
 import { useAuthStore } from '@/domains/auth/stores/useAuthStore'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import ConfirmacionesAviso from '../components/ConfirmacionesAviso.vue'
+import CrearUsuariosBloqueDialog from '../components/CrearUsuariosBloqueDialog.vue'
 import { cumplePolitica, revisarContrasena } from '@/shared/utils/politicaContrasena'
 
 const store = useAdminUsersStore()
@@ -43,6 +44,16 @@ async function submitCreate() {
   })
   if (ok) showCreate.value = false
   else formError.value = store.createError ?? 'Error al crear usuario'
+}
+
+// ── Crear usuarios en bloque ─────────────────────────────────────────────────
+const showBloque = ref(false)
+const botonBloque = ref<HTMLButtonElement>()
+async function cerrarBloque(creados: boolean) {
+  showBloque.value = false
+  if (creados) store.fetchUsers()
+  await nextTick()
+  botonBloque.value?.focus()
 }
 
 // ── Confirm dialog ───────────────────────────────────────────────────────────
@@ -127,13 +138,28 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
             Administra los accesos al sistema
           </p>
         </div>
-        <button
-          class="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-primary-hover transition-colors"
-          @click="openCreate"
-        >
-          <UserPlus class="w-4 h-4" />
-          Crear usuario
-        </button>
+        <div class="flex flex-wrap gap-2">
+          <button
+            ref="botonBloque"
+            type="button"
+            class="flex items-center gap-2 min-h-10 px-4 py-2 border border-border bg-white text-sm font-medium rounded-md hover:bg-secondary transition-colors"
+            data-prueba="abrir-bloque"
+            @click="showBloque = true"
+          >
+            <FileUp
+              class="w-4 h-4"
+              aria-hidden="true"
+            />
+            Crear usuarios en bloque
+          </button>
+          <button
+            class="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-primary-hover transition-colors"
+            @click="openCreate"
+          >
+            <UserPlus class="w-4 h-4" />
+            Crear usuario
+          </button>
+        </div>
       </div>
 
       <!-- Action error banner -->
@@ -458,6 +484,12 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
       </div>
     </div>
   </div>
+
+  <!-- ── Crear usuarios en bloque ─────────────────────────────────────────── -->
+  <CrearUsuariosBloqueDialog
+    v-if="showBloque"
+    @cerrar="cerrarBloque"
+  />
 
   <!-- ── Confirm dialog ────────────────────────────────────────────────────── -->
   <ConfirmDialog

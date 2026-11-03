@@ -16,7 +16,7 @@ Rutas y permisos definidos en `src/router/index.ts`. Tras iniciar sesión, el an
 | `/reportes` | «Reporte de análisis» | Analista y administrador | Elegir el ámbito (provincia o distrito), ver las cifras, la tabla «Resultados por distrito» y el orden de revisión, y exportar con «Copiar resumen», «Imprimir» y «Descargar CSV» |
 | `/panel-ml` | «Panel ML», pestaña «Modelo» | Solo administrador | Consultar, sin modificar, la versión activa del paquete, el estado de los datos, las métricas del modelo, las versiones registradas, la priorización (MCDA) y la integridad del paquete |
 | `/panel-ml` | «Panel ML», pestaña «Datos» (gestión de datasets) | Solo administrador | Subir, validar, corregir, confirmar, eliminar y exportar datasets de puntos de reciclaje para la vista pública |
-| `/admin/usuarios` | «Gestión de usuarios» | Solo administrador | Crear usuarios (analista o administrador), cambiar el rol y activar o desactivar cuentas. No hay eliminación de usuarios. Debajo de la tabla, «Lectura de la ayuda del Análisis»: por cuenta y por sección, si la leyó (con fecha) o está pendiente |
+| `/admin/usuarios` | «Gestión de usuarios» | Solo administrador | Crear usuarios (analista o administrador) uno a uno o en bloque desde un CSV («Crear usuarios en bloque», solo analistas), cambiar el rol y activar o desactivar cuentas. No hay eliminación de usuarios. Debajo de la tabla, «Lectura de la ayuda del Análisis»: por cuenta y por sección, si la leyó (con fecha) o está pendiente |
 | `/analisis-v1`, `/reportes-v1` | Redirecciones | — | Llevan a `/analisis` y `/reportes`; en el despliegue responden con 301 |
 | Cualquier otra ruta | Redirección | — | Lleva a `/puntos` |
 
@@ -81,6 +81,15 @@ El administrador hace todo lo anterior; las vistas de «Análisis» y «Reportes
 2. «Crear usuario»: correo, nombre, contraseña (8 caracteres como mínimo, con mayúscula, minúscula y número), confirmación y rol (analista o administrador).
 3. En la fila de un analista, usar «→ Admin» o «Desactivar»; en una cuenta inactiva, «Activar». Cada acción pide confirmación.
 4. Las filas de otros administradores muestran «—» y la propia, «Tu cuenta», sin acciones.
+
+**Crear usuarios en bloque**
+
+1. En «Usuarios», pulsar «Crear usuarios en bloque». Se abre un diálogo; Escape lo cierra, salvo mientras se envía el archivo.
+2. Paso 1: leer las indicaciones (CSV UTF-8 con las columnas correo, nombre y rol separadas por coma o punto y coma; solo rol analista; máximo 200 filas y 1 MB; sin contraseñas, porque cada persona recibe un correo para elegir la suya y el enlace vale 48 horas). «Descargar plantilla» baja un CSV con la cabecera y una fila de ejemplo.
+3. Elegir el archivo en «Archivo CSV» y pulsar «Validar archivo». El navegador solo revisa la extensión y el tamaño; el contenido lo revisa el servidor sin crear nada.
+4. Paso 2: el resumen indica «N filas, X con error» y la tabla muestra línea, correo, nombre, rol y estado («Correcto» o «Error», con icono), con los mensajes de error de cada fila tal como los envía el servidor. «Crear usuarios» solo se activa si todas las filas son correctas; si hay errores, hay que corregir el archivo y pulsar «Elegir otro archivo».
+5. Pulsar «Crear usuarios». El servidor vuelve a revisar el mismo archivo antes de crear.
+6. Paso 3: «Se crearon N usuarios» y «Se enviaron M correos de invitación». Si alguna invitación falló, se listan esos correos: la cuenta sí se creó y la persona puede usar «¿Olvidaste tu contraseña?». Al pulsar «Cerrar», la lista de usuarios se actualiza.
 
 ### Analista o administrador: leer una sección de la ayuda por primera vez
 
@@ -167,6 +176,14 @@ El administrador hace todo lo anterior; las vistas de «Análisis» y «Reportes
 | Panel ML › Datos | «Error al subir el archivo», «Error al validar el dataset», «Error al confirmar el dataset», etc. | Error sin mensaje propio del backend | Sí, genéricos |
 | Usuarios | «Ingresa un email válido.», «La contraseña no cumple los requisitos de seguridad.», «Las contraseñas no coinciden.» | Validación del formulario «Crear usuario» | Sí |
 | Usuarios | «No puedes modificar a otro administrador.», «No se puede dejar el sistema sin administradores activos.», «Activa la cuenta antes de promoverla a administrador.» | Salvaguardas del backend | Sí |
+| Crear usuarios en bloque | «El archivo debe tener extensión .csv.» / «El archivo pesa más de 1 MB. Divide la lista en varios archivos.» / «El archivo está vacío.» | Revisión del navegador antes de enviar | Sí |
+| Crear usuarios en bloque | El mensaje del servidor (por ejemplo, sobre la cabecera, el archivo vacío, el tamaño o la cantidad de filas) | Archivo ilegible o fuera de límites (422) | Sí |
+| Crear usuarios en bloque | «N filas, X con error» y «Corrige el archivo y vuelve a subirlo. No se creará ningún usuario mientras haya filas con error.» | La validación encontró filas con error | Sí |
+| Crear usuarios en bloque | «Al crear, el servidor volvió a revisar el archivo y encontró errores. No se creó ningún usuario.» | Al crear, el servidor revalidó y rechazó el archivo (409) | Sí |
+| Crear usuarios en bloque | «Se crearon N usuarios.», «Se enviaron M correos de invitación.» y, si corresponde, la lista de invitaciones fallidas | Creación correcta (201) | Sí |
+| Crear usuarios en bloque | «Se alcanzó el límite de solicitudes. Espera unos minutos e intenta de nuevo.» | Demasiadas solicitudes (429) | Sí |
+| Crear usuarios en bloque | «Tu cuenta no tiene permiso para crear usuarios.» | La cuenta no es administradora (403) | Sí |
+| Crear usuarios en bloque | «No se pudo conectar con el servidor. Revisa tu conexión e intenta de nuevo.» / «No se pudo procesar el archivo. Intenta de nuevo.» | Sin respuesta del servidor u otro error | Sí |
 | Vista pública | «Sin puntos de reciclaje en esta zona» / «Mueve el mapa o busca en otra zona» | La búsqueda no devuelve puntos | Sí |
 | Vista pública | «Geolocalización no disponible. Mueve el mapa y pulsa Buscar en esta zona.» | Se niega el permiso, falla o pasan 10 segundos | Sí |
 | Vista pública | «La ubicación está fuera del área de Lima. Mueve el mapa dentro de la ciudad.» | Se busca con el centro del mapa fuera de Lima | Sí |
