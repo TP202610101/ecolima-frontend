@@ -25,20 +25,30 @@
         @submit.prevent="onSubmit"
       >
         <div>
-          <label class="block text-sm font-medium text-muted-foreground mb-2">Correo electrónico</label>
+          <label
+            for="login-email"
+            class="block text-sm font-medium text-muted-foreground mb-2"
+          >Correo electrónico</label>
           <input
+            id="login-email"
             v-model="email"
             type="email"
+            autocomplete="email"
             placeholder="correo@ejemplo.com"
             class="w-full rounded-xl border border-border bg-input-bg px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
           >
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-muted-foreground mb-2">Contraseña</label>
+          <label
+            for="login-password"
+            class="block text-sm font-medium text-muted-foreground mb-2"
+          >Contraseña</label>
           <input
+            id="login-password"
             v-model="password"
             type="password"
+            autocomplete="current-password"
             placeholder="••••••••"
             class="w-full rounded-xl border border-border bg-input-bg px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
           >
@@ -53,6 +63,7 @@
 
         <p
           v-if="errorMessage"
+          role="alert"
           class="text-sm text-destructive text-center"
         >
           {{ errorMessage }}
@@ -95,8 +106,14 @@ async function onSubmit() {
     auth.setSession(result.user, result.access_token)
     router.push({ name: rutaInicio(result.user.role) })
   } catch (error: any) {
-    if (error.response?.status === 401) {
+    // El 401 llega tal cual desde axios; el resto trae la respuesta original en cause (shared/api/axios.ts).
+    const respuesta = error.response ?? error.cause?.response
+    if (respuesta?.status === 401) {
       errorMessage.value = 'Credenciales inválidas. Intenta de nuevo.'
+    } else if (respuesta?.status === 429) {
+      // Bloqueo por intentos fallidos: el backend explica cuánto esperar en detail. El límite por minuto no trae detail.
+      const detalle = respuesta.data?.detail
+      errorMessage.value = typeof detalle === 'string' ? detalle : 'Demasiados intentos de inicio de sesión. Espera un momento e intenta de nuevo.'
     } else {
       errorMessage.value = 'No fue posible iniciar sesión. Verifica tus datos.'
     }

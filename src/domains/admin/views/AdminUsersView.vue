@@ -326,8 +326,12 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
       <div class="space-y-4">
         <!-- Email -->
         <div>
-          <label class="block text-xs font-medium text-foreground mb-1">Email <span class="text-red-500">*</span></label>
+          <label
+            for="nuevo-usuario-email"
+            class="block text-xs font-medium text-foreground mb-1"
+          >Email <span class="text-red-500">*</span></label>
           <input
+            id="nuevo-usuario-email"
             v-model="form.email"
             type="email"
             placeholder="usuario@ejemplo.com"
@@ -337,8 +341,12 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
         </div>
         <!-- Nombre -->
         <div>
-          <label class="block text-xs font-medium text-foreground mb-1">Nombre completo</label>
+          <label
+            for="nuevo-usuario-nombre"
+            class="block text-xs font-medium text-foreground mb-1"
+          >Nombre completo</label>
           <input
+            id="nuevo-usuario-nombre"
             v-model="form.fullName"
             type="text"
             placeholder="Nombre (opcional)"
@@ -347,8 +355,12 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
         </div>
         <!-- Password -->
         <div>
-          <label class="block text-xs font-medium text-foreground mb-1">Contraseña <span class="text-red-500">*</span></label>
+          <label
+            for="nuevo-usuario-password"
+            class="block text-xs font-medium text-foreground mb-1"
+          >Contraseña <span class="text-red-500">*</span></label>
           <input
+            id="nuevo-usuario-password"
             v-model="form.password"
             type="password"
             placeholder="Mínimo 8 caracteres"
@@ -376,8 +388,12 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
         </div>
         <!-- Confirmar contraseña -->
         <div>
-          <label class="block text-xs font-medium text-foreground mb-1">Confirmar contraseña <span class="text-red-500">*</span></label>
+          <label
+            for="nuevo-usuario-confirmar"
+            class="block text-xs font-medium text-foreground mb-1"
+          >Confirmar contraseña <span class="text-red-500">*</span></label>
           <input
+            id="nuevo-usuario-confirmar"
             v-model="form.confirmPassword"
             type="password"
             placeholder="Repite la contraseña"
@@ -394,8 +410,12 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
         </div>
         <!-- Rol -->
         <div>
-          <label class="block text-xs font-medium text-foreground mb-1">Rol <span class="text-red-500">*</span></label>
+          <label
+            for="nuevo-usuario-rol"
+            class="block text-xs font-medium text-foreground mb-1"
+          >Rol <span class="text-red-500">*</span></label>
           <select
+            id="nuevo-usuario-rol"
             v-model="form.role"
             class="w-full px-3 py-2 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-white"
           >
