@@ -4,6 +4,7 @@ import { UserPlus, Users } from '@lucide/vue'
 import { useAdminUsersStore } from '../stores/useAdminUsersStore'
 import { useAuthStore } from '@/domains/auth/stores/useAuthStore'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
+import ConfirmacionesAviso from '../components/ConfirmacionesAviso.vue'
 import { cumplePolitica, revisarContrasena } from '@/shared/utils/politicaContrasena'
 
 const store = useAdminUsersStore()
@@ -295,6 +296,9 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
           </table>
         </div>
       </div>
+
+      <!-- Quién leyó la ayuda del Análisis -->
+      <ConfirmacionesAviso />
     </div>
   </div>
 

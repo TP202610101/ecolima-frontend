@@ -4,6 +4,7 @@ import { useMLStore } from '@/domains/ml-panel/stores/useMLStore'
 import { useAdminUsersStore } from '@/domains/admin/stores/useAdminUsersStore'
 import { useDatasetsStore } from '@/domains/datasets/stores/useDatasetsStore'
 import { useExploracionV1Store } from '@/domains/analisis-v1/stores/useExploracionV1Store'
+import { useAvisoStore } from '@/domains/avisos/stores/useAvisoStore'
 
 export async function LogoutUseCase() {
   const auth = useAuthStore()
@@ -13,4 +14,5 @@ export async function LogoutUseCase() {
   useAdminUsersStore().clearData()
   useDatasetsStore().clearData()
   useExploracionV1Store().clearData()
+  useAvisoStore().clearData()
 }

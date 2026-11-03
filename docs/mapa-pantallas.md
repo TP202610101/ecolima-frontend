@@ -16,9 +16,11 @@ Rutas y permisos definidos en `src/router/index.ts`. Tras iniciar sesión, el an
 | `/reportes` | «Reporte de análisis» | Analista y administrador | Elegir el ámbito (provincia o distrito), ver las cifras, la tabla «Resultados por distrito» y el orden de revisión, y exportar con «Copiar resumen», «Imprimir» y «Descargar CSV» |
 | `/panel-ml` | «Panel ML», pestaña «Modelo» | Solo administrador | Consultar, sin modificar, la versión activa del paquete, el estado de los datos, las métricas del modelo, las versiones registradas, la priorización (MCDA) y la integridad del paquete |
 | `/panel-ml` | «Panel ML», pestaña «Datos» (gestión de datasets) | Solo administrador | Subir, validar, corregir, confirmar, eliminar y exportar datasets de puntos de reciclaje para la vista pública |
-| `/admin/usuarios` | «Gestión de usuarios» | Solo administrador | Crear usuarios (analista o administrador), cambiar el rol y activar o desactivar cuentas. No hay eliminación de usuarios |
+| `/admin/usuarios` | «Gestión de usuarios» | Solo administrador | Crear usuarios (analista o administrador), cambiar el rol y activar o desactivar cuentas. No hay eliminación de usuarios. Debajo de la tabla, «Lectura de la ayuda del Análisis»: por cuenta y por sección, si la leyó (con fecha) o está pendiente |
 | `/analisis-v1`, `/reportes-v1` | Redirecciones | — | Llevan a `/analisis` y `/reportes`; en el despliegue responden con 301 |
 | Cualquier otra ruta | Redirección | — | Lleva a `/puntos` |
+
+**Lectura obligatoria de la ayuda del Análisis, por sección.** La ayuda con las pestañas «Cómo se ordenan», «Fuentes y limitaciones» y «Acerca del modelo» se abre desde varios lugares de Análisis y Reportes, cada uno en una pestaña. Si la sección con la que se abre (la de entrada) todavía no fue leída por esa cuenta, la ayuda no se puede cerrar (ni con la X, ni con Escape, ni tocando fuera) hasta desplazar ese texto hasta el final. Las otras pestañas no son obligatorias; si se leen completas, también se registran. Las lecturas se guardan en el servidor al cerrar la ayuda, cada sección por separado (claves `como-se-ordenan`, `fuentes-limitaciones` y `acerca-del-modelo`, en `src/domains/analisis-v1/components/avisoAyuda.ts`). Una sección ya leída no se vuelve a exigir hasta que cambie su versión. Si el servicio falla, no se exige nada.
 
 Si un usuario entra a una ruta sin permiso, el sistema lo devuelve a su pantalla de inicio sin mostrar un error: un analista que escribe `/panel-ml` vuelve a `/analisis`, y alguien sin sesión que escribe `/analisis` va al inicio de sesión.
 
@@ -80,6 +82,20 @@ El administrador hace todo lo anterior; las vistas de «Análisis» y «Reportes
 3. En la fila de un analista, usar «→ Admin» o «Desactivar»; en una cuenta inactiva, «Activar». Cada acción pide confirmación.
 4. Las filas de otros administradores muestran «—» y la propia, «Tu cuenta», sin acciones.
 
+### Analista o administrador: leer una sección de la ayuda por primera vez
+
+1. Abrir la ayuda desde cualquiera de sus accesos, por ejemplo «Fuentes y limitaciones» en el aviso superior de Análisis. Esa es la sección de entrada.
+2. Si es la primera vez para esa sección, el pie dice «Primera vez: desplázate hasta el final de este texto para poder cerrar.» y la X no responde.
+3. Desplazar el texto hasta el final, con la rueda del mouse, el dedo o el teclado (Tab para enfocar el texto; luego flechas, RePág/AvPág, Espacio o Fin). La pestaña queda marcada como leída y el pie dice «Leíste «…» hasta el final. Ya puedes cerrar la ayuda.». Si el texto cabe entero, cuenta como leído en cuanto termina de cargar. Volver a subir no lo desmarca.
+4. Las otras pestañas se pueden visitar sin obligación. Si en una de ellas el pie recuerda «Primera vez: para poder cerrar, desplázate hasta el final de «…».», se refiere a la sección de entrada.
+5. Cerrar la ayuda. Se registran las secciones leídas completas que seguían pendientes. La próxima vez que se abra en una sección ya leída, se cierra sin condiciones.
+
+### Administrador: ver quién leyó la ayuda
+
+1. Ir a «Usuarios».
+2. Debajo de «Usuarios del sistema», la sección «Lectura de la ayuda del Análisis» muestra, por sección, cuántas cuentas la leyeron, y una tabla con una columna por sección («Cómo se ordenan», «Fuentes y limitaciones» y «Acerca del modelo»): «Leída» con su fecha o «Pendiente». Primero aparecen las cuentas con más secciones pendientes.
+3. «Actualizar» vuelve a consultar la lista.
+
 ### Analista o administrador: recuperar la contraseña
 
 1. En el inicio de sesión, pulsar «¿Olvidaste tu contraseña?».
@@ -112,6 +128,12 @@ El administrador hace todo lo anterior; las vistas de «Análisis» y «Reportes
 | Inicio de sesión | «Demasiados intentos de inicio de sesión. Espera un momento e intenta de nuevo.» | Se superan 5 intentos por minuto desde la misma IP (429 sin detalle) | Sí |
 | Inicio de sesión | «No fue posible iniciar sesión. Verifica tus datos.» | Cualquier otro error, por ejemplo con el servidor apagado | Sí |
 | Inicio de sesión | «Tu sesión expiró, vuelve a iniciar sesión.» | Se llega con un token vencido | Sí |
+| Ayuda del Análisis (primera vez) | «Primera vez: desplázate hasta el final de este texto para poder cerrar.» | La sección de entrada aún no se leyó; la X no responde | Sí |
+| Ayuda del Análisis (primera vez) | «Primera vez: para poder cerrar, desplázate hasta el final de «…».» | Se está en otra pestaña y falta leer la sección de entrada | Sí |
+| Ayuda del Análisis (primera vez) | «Leíste «…» hasta el final. Ya puedes cerrar la ayuda.» (o sin la última frase en otras pestañas) | Se llegó al final de una sección pendiente | Sí |
+| Ayuda del Análisis (primera vez) | «No se pudo guardar que leíste esta ayuda. Se te volverá a pedir la próxima vez que la abras. Puedes cerrarla.» | Falla el registro al cerrar; el siguiente intento cierra igual | Sí |
+| Usuarios | «No se pudo cargar quién leyó la ayuda.» | Falla la lista de lecturas; «Actualizar» permite reintentar | Sí |
+| Usuarios | «No hay cuentas que deban leer la ayuda.» | La lista llega vacía | Sí |
 | Recuperar contraseña | «Si el correo está registrado, recibirás un enlace para restablecer tu contraseña. Revisa también la carpeta de spam.» | Tras enviar el correo, con cualquier respuesta del servidor, exista o no la cuenta | Sí: no revela qué correos están registrados |
 | Recuperar contraseña | «Ingresa tu correo electrónico.» / «Ingresa un correo electrónico válido.» | Campo vacío o con un formato inválido | Sí |
 | Recuperar contraseña | «No se pudo conectar con el servidor. Revisa tu conexión e intenta de nuevo.» | El servidor no responde; el formulario queda disponible para reintentar | Sí |

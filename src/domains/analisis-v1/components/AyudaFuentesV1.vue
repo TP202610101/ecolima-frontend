@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { onMounted, computed, watch } from 'vue'
-import { X } from '@lucide/vue'
+import { onMounted, onBeforeUnmount, computed, nextTick, ref, watch } from 'vue'
+import { Check, X } from '@lucide/vue'
 import { useExploracionV1Store } from '../stores/useExploracionV1Store'
+import { useAvisoStore } from '@/domains/avisos/stores/useAvisoStore'
+import { useAuthStore } from '@/domains/auth/stores/useAuthStore'
+import { NOMBRE_SECCION_AYUDA } from './avisoAyuda'
 import { CONTROLES_CAMPO, REGLAS_REVISION, fechaLarga, fmtDec, fmtEntero, nombreDistrito } from '../utils/lecturaV1'
 import type { MetricaModelo } from '../entities/AnalisisV1'
 
@@ -11,8 +14,109 @@ type Seccion = 'orden' | 'fuentes' | 'modelo'
 const props = defineProps<{ seccion: Seccion }>()
 const emit = defineEmits<{ cerrar: []; cambiar: [seccion: Seccion] }>()
 const store = useExploracionV1Store()
+const aviso = useAvisoStore()
+const auth = useAuthStore()
 
-onMounted(() => store.cargarFuentes())
+// ── Lectura obligatoria por sección (AVISOS_AYUDA en ./avisoAyuda.ts) ─────────────────────────────────
+// La sección con la que se abre la ayuda (la de entrada) es la única obligatoria: si el backend dice que falta,
+// la ayuda no se cierra (X, Escape ni clic fuera) hasta llegar al final de ese texto. Las otras pestañas no se
+// exigen, pero si se leen completas también se registran. Todo se registra al cerrar.
+const TOLERANCIA_PX = 8
+const entrada = props.seccion
+const texto = ref<HTMLElement>()
+const caja = ref<HTMLElement>()
+const leidas = ref<Seccion[]>([])
+const registrando = ref(false)
+const errorRegistro = ref<string | null>(null)
+let registroIntentado = false
+
+const usuarioId = () => String(auth.user?.user_id ?? auth.user?.email ?? 'anonimo')
+const pendiente = (s: Seccion) => aviso.estados[s] === 'pendiente'
+const bloqueaCierre = computed(() => aviso.pideLectura(entrada) && !leidas.value.includes(entrada))
+// Solo con la respuesta «pendiente» se muestra algo: mientras se comprueba, el cierre espera sin anunciar nada.
+const mostrarIndicacion = computed(() => bloqueaCierre.value && pendiente(entrada))
+const leidaMarcada = (s: Seccion) => leidas.value.includes(s)
+const ultimoAnuncio = ref('')
+
+// Una sección cuenta como leída cuando su contenido terminó de cargar y se llegó al final (o cabe entera).
+const listo: Record<Seccion, () => boolean> = {
+  orden: () => store.cargado,
+  fuentes: () => store.cargado && (store.fuentes.length > 0 || !!store.errorFuentes),
+  modelo: () => !!store.modelo || !!store.errorModelo,
+}
+function evaluarFinal() {
+  const el = texto.value
+  const s = props.seccion
+  // Solo cuentan las secciones pendientes de lectura. Sin altura visible (oculto o aún sin pintar) no se sabe: no cuenta.
+  if (!aviso.pideLectura(s) || !el || el.clientHeight === 0 || leidas.value.includes(s) || !listo[s]()) return
+  if (el.scrollTop + el.clientHeight >= el.scrollHeight - TOLERANCIA_PX) {
+    leidas.value = [...leidas.value, s]
+    ultimoAnuncio.value = s === entrada
+      ? `Leíste «${NOMBRE_SECCION_AYUDA[s]}» hasta el final. Ya puedes cerrar la ayuda.`
+      : `Leíste «${NOMBRE_SECCION_AYUDA[s]}» hasta el final.`
+  }
+}
+let observador: ResizeObserver | null = null
+async function observar() {
+  await nextTick()
+  observador?.disconnect()
+  if (texto.value && typeof ResizeObserver !== 'undefined') {
+    observador = new ResizeObserver(() => evaluarFinal())
+    observador.observe(texto.value)
+  }
+  evaluarFinal()
+}
+watch(() => [props.seccion, listo[props.seccion](), aviso.estados[props.seccion]], observar)
+// Cada sección visitada se consulta por su cuenta (para saber si su lectura ya está registrada).
+watch(() => props.seccion, s => aviso.comprobar(usuarioId(), s))
+
+/** Registra las secciones leídas completas que seguían pendientes. Devuelve false si alguna falló. */
+async function registrarLecturas(): Promise<boolean> {
+  const porRegistrar = leidas.value.filter(pendiente)
+  if (!porRegistrar.length) return true
+  const r = await Promise.all(porRegistrar.map(s => aviso.confirmar(s)))
+  return r.every(Boolean)
+}
+async function intentarCerrar() {
+  if (bloqueaCierre.value || registrando.value) return
+  if (!registroIntentado) {
+    registroIntentado = true
+    registrando.value = true
+    const ok = await registrarLecturas()
+    registrando.value = false
+    if (!ok) {
+      // Se avisa una vez; el siguiente intento cierra igual (la lectura se pedirá de nuevo la próxima vez).
+      errorRegistro.value = 'No se pudo guardar que leíste esta ayuda. Se te volverá a pedir la próxima vez que la abras. Puedes cerrarla.'
+      return
+    }
+  }
+  emit('cerrar')
+}
+// Tab y Shift+Tab dan la vuelta dentro de la ayuda; Escape la cierra salvo que falte la lectura.
+const ENFOCABLES = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+function teclado(e: KeyboardEvent) {
+  if (e.key === 'Escape') { intentarCerrar(); return }
+  if (e.key !== 'Tab' || !caja.value) return
+  const el = [...caja.value.querySelectorAll<HTMLElement>(ENFOCABLES)]
+  if (!el.length) return
+  const primero = el[0], ultimo = el[el.length - 1], activo = document.activeElement
+  if (e.shiftKey && (activo === primero || activo === caja.value)) { e.preventDefault(); ultimo.focus() }
+  else if (!e.shiftKey && activo === ultimo) { e.preventDefault(); primero.focus() }
+}
+
+onMounted(() => {
+  store.cargarFuentes()
+  aviso.comprobar(usuarioId(), entrada)
+  document.addEventListener('keydown', teclado)
+  caja.value?.focus()
+  observar()
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', teclado)
+  observador?.disconnect()
+  // Si la ayuda se desmonta sin pasar por «cerrar» (por ejemplo, al navegar), se intenta registrar igual.
+  if (!registroIntentado) registrarLecturas()
+})
 watch(() => props.seccion, s => { if (s === 'modelo') store.cargarModelo() }, { immediate: true })
 
 const METRICAS: Array<{ k: MetricaModelo; nombre: string; que: string }> = [
@@ -64,11 +168,12 @@ const tab = (s: Seccion) => props.seccion === s
 <template>
   <div
     class="fixed inset-0 z-[2000] bg-black/30 flex items-center justify-center sm:p-4 print:hidden"
-    @click.self="emit('cerrar')"
-    @keydown.esc="emit('cerrar')"
+    @click.self="intentarCerrar"
   >
     <div
-      class="bg-white sm:rounded-xl shadow-xl w-full h-full sm:h-auto max-w-2xl sm:max-h-[85vh] flex flex-col"
+      ref="caja"
+      tabindex="-1"
+      class="bg-white sm:rounded-xl shadow-xl w-full h-full sm:h-auto max-w-2xl sm:max-h-[85vh] flex flex-col focus:outline-none"
       role="dialog"
       aria-modal="true"
       :aria-label="props.seccion === 'orden' ? 'Cómo se ordenan los lugares' : props.seccion === 'fuentes' ? 'Fuentes y limitaciones' : 'Acerca del modelo'"
@@ -84,14 +189,24 @@ const tab = (s: Seccion) => props.seccion === s
             :class="tab('orden')"
             @click="emit('cambiar', 'orden')"
           >
-            Cómo se ordenan
+            Cómo se ordenan<template v-if="leidaMarcada('orden')">
+              <Check
+                class="inline w-3.5 h-3.5 ml-1 -mt-0.5"
+                aria-hidden="true"
+              /><span class="sr-only"> (leída)</span>
+            </template>
           </button>
           <button
             type="button"
             :class="tab('fuentes')"
             @click="emit('cambiar', 'fuentes')"
           >
-            Fuentes y limitaciones
+            Fuentes y limitaciones<template v-if="leidaMarcada('fuentes')">
+              <Check
+                class="inline w-3.5 h-3.5 ml-1 -mt-0.5"
+                aria-hidden="true"
+              /><span class="sr-only"> (leída)</span>
+            </template>
           </button>
           <button
             type="button"
@@ -99,14 +214,21 @@ const tab = (s: Seccion) => props.seccion === s
             data-prueba="tab-modelo"
             @click="emit('cambiar', 'modelo')"
           >
-            Acerca del modelo
+            Acerca del modelo<template v-if="leidaMarcada('modelo')">
+              <Check
+                class="inline w-3.5 h-3.5 ml-1 -mt-0.5"
+                aria-hidden="true"
+              /><span class="sr-only"> (leída)</span>
+            </template>
           </button>
         </div>
         <button
           type="button"
-          class="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded hover:bg-secondary"
+          class="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded hover:bg-secondary disabled:text-gray-400 disabled:cursor-not-allowed disabled:hover:bg-transparent"
           aria-label="Cerrar"
-          @click="emit('cerrar')"
+          :disabled="bloqueaCierre || registrando"
+          :aria-describedby="mostrarIndicacion ? 'ayuda-lectura-indicacion' : undefined"
+          @click="intentarCerrar"
         >
           <X class="w-4 h-4" />
         </button>
@@ -114,7 +236,12 @@ const tab = (s: Seccion) => props.seccion === s
 
       <div
         v-if="props.seccion === 'orden'"
-        class="flex-1 min-h-0 overflow-y-auto px-4 sm:px-5 py-4 text-sm text-neutral-700 space-y-3"
+        ref="texto"
+        role="region"
+        aria-label="Texto de Cómo se ordenan"
+        tabindex="0"
+        class="flex-1 min-h-0 overflow-y-auto px-4 sm:px-5 py-4 text-sm text-neutral-700 space-y-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+        @scroll.passive="evaluarFinal"
       >
         <h2 class="text-lg font-bold text-foreground">
           Cómo se ordenan los lugares
@@ -164,8 +291,13 @@ const tab = (s: Seccion) => props.seccion === s
 
       <div
         v-else-if="props.seccion === 'modelo'"
-        class="flex-1 min-h-0 overflow-y-auto px-4 sm:px-5 py-4 text-sm text-neutral-700 space-y-3"
+        ref="texto"
+        role="region"
+        aria-label="Texto de Acerca del modelo"
+        tabindex="0"
+        class="flex-1 min-h-0 overflow-y-auto px-4 sm:px-5 py-4 text-sm text-neutral-700 space-y-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
         data-prueba="acerca-modelo"
+        @scroll.passive="evaluarFinal"
       >
         <h2 class="text-lg font-bold text-foreground">
           Acerca del modelo
@@ -270,7 +402,12 @@ const tab = (s: Seccion) => props.seccion === s
 
       <div
         v-else
-        class="flex-1 min-h-0 overflow-y-auto px-4 sm:px-5 py-4 text-sm text-neutral-700 space-y-3"
+        ref="texto"
+        role="region"
+        aria-label="Texto de Fuentes y limitaciones"
+        tabindex="0"
+        class="flex-1 min-h-0 overflow-y-auto px-4 sm:px-5 py-4 text-sm text-neutral-700 space-y-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+        @scroll.passive="evaluarFinal"
       >
         <h2 class="text-lg font-bold text-foreground">
           Fuentes y limitaciones
@@ -341,6 +478,46 @@ const tab = (s: Seccion) => props.seccion === s
         </ul>
         <p class="text-xs text-muted-foreground">
           {{ store.version?.atribucion.aviso }}
+        </p>
+      </div>
+
+      <!-- Lectura por sección: indicación visible y un anuncio solo al terminar una sección (no en cada scroll). -->
+      <div
+        v-if="mostrarIndicacion || leidas.length || errorRegistro"
+        class="flex-shrink-0 px-4 sm:px-5 py-3 border-t border-border space-y-1.5 text-sm"
+        data-prueba="lectura-ayuda"
+      >
+        <p
+          v-if="mostrarIndicacion"
+          id="ayuda-lectura-indicacion"
+          class="text-neutral-700"
+        >
+          <template v-if="props.seccion === entrada">
+            Primera vez: desplázate hasta el final de este texto para poder cerrar.
+          </template>
+          <template v-else>
+            Primera vez: para poder cerrar, desplázate hasta el final de «{{ NOMBRE_SECCION_AYUDA[entrada] }}».
+          </template>
+        </p>
+        <p
+          v-else-if="leidaMarcada(props.seccion)"
+          class="text-green-800"
+          aria-hidden="true"
+        >
+          {{ ultimoAnuncio }}
+        </p>
+        <p
+          role="status"
+          class="sr-only"
+        >
+          {{ ultimoAnuncio }}
+        </p>
+        <p
+          v-if="errorRegistro"
+          role="alert"
+          class="text-red-700"
+        >
+          {{ errorRegistro }}
         </p>
       </div>
     </div>
