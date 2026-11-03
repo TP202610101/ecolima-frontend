@@ -1,5 +1,10 @@
 <template>
-  <nav class="sticky top-0 z-50 h-14 bg-white border-b border-border px-4 flex items-center justify-between print:hidden">
+  <!-- Con el menú móvil abierto la barra sube por encima del detalle a pantalla completa de Análisis (z-[1500]);
+       cerrado vuelve a z-50 para no tapar los diálogos. -->
+  <nav
+    class="sticky top-0 h-14 bg-white border-b border-border px-4 flex items-center justify-between print:hidden"
+    :class="menuOpen ? 'z-[1600]' : 'z-50'"
+  >
     <!-- Logo -->
     <div class="flex items-center gap-3">
       <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
