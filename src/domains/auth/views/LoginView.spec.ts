@@ -13,6 +13,7 @@ async function montar() {
     history: createMemoryHistory(),
     routes: [
       { path: '/', name: 'login', component: LoginView },
+      { path: '/recuperar', name: 'recuperar', component: { template: '<div />' } },
       { path: '/analisis', name: 'analisis', component: { template: '<div />' } },
       { path: '/puntos', name: 'puntos', component: { template: '<div />' } },
     ],
@@ -41,6 +42,12 @@ describe('LoginView', () => {
       expect(w.find(`#${id}`).element.tagName).toBe('INPUT')
       expect(w.find(`#${id}`).attributes('autocomplete')).toBe(auto)
     }
+  })
+
+  it('ofrece el enlace «¿Olvidaste tu contraseña?» a /recuperar', async () => {
+    const w = await montar()
+    const enlace = w.findAll('a').find(a => a.text() === '¿Olvidaste tu contraseña?')
+    expect(enlace?.attributes('href')).toBe('/recuperar')
   })
 
   it('el error se anuncia con role="alert"', async () => {

@@ -8,7 +8,9 @@ Rutas y permisos definidos en `src/router/index.ts`. Tras iniciar sesión, el an
 
 | Ruta | Pantalla | Quién puede verla | Qué permite hacer |
 |---|---|---|---|
-| `/` | Inicio de sesión («EcoLima ML») | Público. Con sesión activa redirige a la pantalla de inicio del rol | Iniciar sesión con correo y contraseña |
+| `/` | Inicio de sesión («EcoLima ML») | Público. Con sesión activa redirige a la pantalla de inicio del rol | Iniciar sesión con correo y contraseña. El enlace «¿Olvidaste tu contraseña?» lleva a `/recuperar` |
+| `/recuperar` | «Recuperar contraseña» | Público. Con sesión activa redirige como el inicio de sesión | Pedir por correo un enlace para crear una contraseña nueva |
+| `/restablecer?token=…` | «Nueva contraseña» | Público, con el enlace del correo. Con sesión activa redirige como el inicio de sesión | Crear una contraseña nueva que cumpla la política (la misma de «Crear usuario») |
 | `/puntos` | Vista pública («EcoLima — Encuentra dónde reciclar») | Público, con o sin sesión | Buscar puntos de reciclaje registrados con «Buscar en esta zona» o «Usar mi ubicación», filtrar por material y ver el detalle de un punto. El botón «Acceso municipal» (en móvil, «Ingresar») lleva al inicio de sesión |
 | `/analisis` | Análisis | Analista y administrador | Ver el orden de revisión de los lugares en el mapa y en la lista, filtrar por distrito, grupo y tipo de lugar, buscar por tipo o código y consultar el detalle de un lugar |
 | `/reportes` | «Reporte de análisis» | Analista y administrador | Elegir el ámbito (provincia o distrito), ver las cifras, la tabla «Resultados por distrito» y el orden de revisión, y exportar con «Copiar resumen», «Imprimir» y «Descargar CSV» |
@@ -78,6 +80,16 @@ El administrador hace todo lo anterior; las vistas de «Análisis» y «Reportes
 3. En la fila de un analista, usar «→ Admin» o «Desactivar»; en una cuenta inactiva, «Activar». Cada acción pide confirmación.
 4. Las filas de otros administradores muestran «—» y la propia, «Tu cuenta», sin acciones.
 
+### Analista o administrador: recuperar la contraseña
+
+1. En el inicio de sesión, pulsar «¿Olvidaste tu contraseña?».
+2. En «Recuperar contraseña», escribir el correo de la cuenta y pulsar «Enviar enlace».
+3. Aparece siempre el mismo mensaje: «Si el correo está registrado, recibirás un enlace para restablecer tu contraseña. Revisa también la carpeta de spam.». No indica si la cuenta existe.
+4. Abrir el enlace del correo, que lleva a `/restablecer?token=…`.
+5. Escribir la nueva contraseña y su confirmación. La pantalla muestra los requisitos («8 caracteres mínimo», «Una mayúscula», «Una minúscula», «Un número») y los marca a medida que se cumplen.
+6. Pulsar «Cambiar contraseña». Si todo es correcto, aparece el mensaje de éxito y a los 3 segundos se vuelve al inicio de sesión.
+7. Si el enlace ya venció o se usó, la pantalla lo indica y ofrece «Pedir un enlace nuevo».
+
 ### Ciudadano (público, sin cuenta): usar la vista pública
 
 1. Abrir `/puntos`. El mapa empieza vacío; no se muestran puntos hasta buscar.
@@ -100,6 +112,15 @@ El administrador hace todo lo anterior; las vistas de «Análisis» y «Reportes
 | Inicio de sesión | «Demasiados intentos de inicio de sesión. Espera un momento e intenta de nuevo.» | Se superan 5 intentos por minuto desde la misma IP (429 sin detalle) | Sí |
 | Inicio de sesión | «No fue posible iniciar sesión. Verifica tus datos.» | Cualquier otro error, por ejemplo con el servidor apagado | Sí |
 | Inicio de sesión | «Tu sesión expiró, vuelve a iniciar sesión.» | Se llega con un token vencido | Sí |
+| Recuperar contraseña | «Si el correo está registrado, recibirás un enlace para restablecer tu contraseña. Revisa también la carpeta de spam.» | Tras enviar el correo, con cualquier respuesta del servidor, exista o no la cuenta | Sí: no revela qué correos están registrados |
+| Recuperar contraseña | «Ingresa tu correo electrónico.» / «Ingresa un correo electrónico válido.» | Campo vacío o con un formato inválido | Sí |
+| Recuperar contraseña | «No se pudo conectar con el servidor. Revisa tu conexión e intenta de nuevo.» | El servidor no responde; el formulario queda disponible para reintentar | Sí |
+| Nueva contraseña | «Este enlace no es válido: le falta el código de restablecimiento. Usa el enlace completo del correo o pide uno nuevo.» | Se abre `/restablecer` sin `token` en la URL | Sí |
+| Nueva contraseña | «El enlace no es válido, ya venció o ya se usó. Pide uno nuevo para restablecer tu contraseña.» con «Pedir un enlace nuevo» | El servidor responde 400 | Sí |
+| Nueva contraseña | El motivo que envía el servidor (por ejemplo, «La contraseña debe tener al menos un número.») | El servidor responde 422 | Sí |
+| Nueva contraseña | «La contraseña no cumple los requisitos de seguridad.» / «Las contraseñas no coinciden.» | Validación antes de enviar | Sí |
+| Nueva contraseña | «Tu contraseña se cambió correctamente. Te llevamos al inicio de sesión…» | El servidor responde 200; a los 3 segundos vuelve al inicio de sesión | Sí |
+| Nueva contraseña | «No se pudo cambiar la contraseña. Intenta de nuevo en unos minutos.» / «No se pudo conectar con el servidor…» | Otro error del servidor, o el servidor no responde | Sí |
 | Análisis y Reportes | «Cargando los resultados…» | Mientras se descargan los 2 242 sitios | Sí |
 | Análisis y Reportes | «Todavía no hay resultados V1 cargados en el servidor.» | El backend no tiene un paquete activo | Sí |
 | Análisis y Reportes | «No se pudo conectar con el servidor. Revisa que el backend esté encendido.» con «Reintentar» | Backend apagado o CORS rechazado | Sí |

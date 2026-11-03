@@ -4,6 +4,7 @@ import { UserPlus, Users } from '@lucide/vue'
 import { useAdminUsersStore } from '../stores/useAdminUsersStore'
 import { useAuthStore } from '@/domains/auth/stores/useAuthStore'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
+import { cumplePolitica, revisarContrasena } from '@/shared/utils/politicaContrasena'
 
 const store = useAdminUsersStore()
 const auth = useAuthStore()
@@ -13,12 +14,7 @@ const showCreate = ref(false)
 const form = reactive({ email: '', fullName: '', password: '', confirmPassword: '', role: 'analista' as 'admin' | 'analista' })
 const formError = ref('')
 
-const pwChecks = computed(() => ({
-  length: form.password.length >= 8,
-  upper:  /[A-Z]/.test(form.password),
-  lower:  /[a-z]/.test(form.password),
-  number: /[0-9]/.test(form.password),
-}))
+const pwChecks = computed(() => revisarContrasena(form.password))
 
 function openCreate() {
   form.email = ''; form.fullName = ''; form.password = ''; form.confirmPassword = ''; form.role = 'analista'
@@ -29,8 +25,7 @@ function openCreate() {
 
 function validateForm(): string | null {
   if (!form.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) return 'Ingresa un email válido.'
-  const { length, upper, lower, number } = pwChecks.value
-  if (!length || !upper || !lower || !number) return 'La contraseña no cumple los requisitos de seguridad.'
+  if (!cumplePolitica(pwChecks.value)) return 'La contraseña no cumple los requisitos de seguridad.'
   if (form.password !== form.confirmPassword) return 'Las contraseñas no coinciden.'
   return null
 }

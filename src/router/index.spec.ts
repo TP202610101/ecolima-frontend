@@ -6,6 +6,8 @@ import type { User } from '@/domains/auth/entities/User'
 // Las vistas reales cargan MapLibre y Chart.js; aquí solo importa a qué ruta se llega.
 const vista = { template: '<div />' }
 vi.mock('@/domains/auth/views/LoginView.vue', () => ({ default: vista }))
+vi.mock('@/domains/auth/views/RecuperarContrasenaView.vue', () => ({ default: vista }))
+vi.mock('@/domains/auth/views/RestablecerContrasenaView.vue', () => ({ default: vista }))
 vi.mock('@/domains/admin/views/AdminUsersView.vue', () => ({ default: vista }))
 vi.mock('@/domains/public/views/PublicMapView.vue', () => ({ default: vista }))
 vi.mock('@/domains/ml-panel/views/MLPanelView.vue', () => ({ default: vista }))
@@ -81,5 +83,39 @@ describe('router — Panel ML y Usuarios, solo admin', () => {
   it('Usuarios sigue siendo solo para admin', async () => {
     expect((await navegar('/admin/usuarios', 'admin')).name).toBe('admin-usuarios')
     expect((await navegar('/admin/usuarios', 'analista')).name).toBe('analisis')
+  })
+})
+
+describe('router — recuperar contraseña', () => {
+  it.each([
+    ['/recuperar', 'recuperar'],
+    ['/restablecer?token=abc', 'restablecer'],
+  ])('sin sesión, %s se abre', async (ruta, destino) => {
+    const r = await navegar(ruta)
+    expect(r.name).toBe(destino)
+  })
+
+  it('el token del enlace se conserva en la URL', async () => {
+    expect((await navegar('/restablecer?token=abc')).query.token).toBe('abc')
+  })
+
+  it.each([
+    ['/recuperar', 'analista', 'analisis'],
+    ['/restablecer?token=abc', 'admin', 'analisis'],
+    ['/recuperar', 'ciudadano', 'puntos'],
+  ])('con sesión, %s redirige como el login (%s → %s)', async (ruta, role, destino) => {
+    expect((await navegar(ruta, role as User['role'])).name).toBe(destino)
+  })
+
+  it('con una sesión vencida, el enlace de restablecer no se pierde', async () => {
+    vi.resetModules()
+    setActivePinia(createPinia())
+    const vencido = `x.${btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) - 60 }))}.y`
+    useAuthStore().setSession(usuario('analista'), vencido)
+    const { default: router } = await import('./index')
+    await router.push('/restablecer?token=abc')
+    expect(router.currentRoute.value.name).toBe('restablecer')
+    expect(router.currentRoute.value.query.token).toBe('abc')
+    expect(useAuthStore().isAuthenticated).toBe(false)
   })
 })

@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '@/domains/auth/views/LoginView.vue'
+import RecuperarContrasenaView from '@/domains/auth/views/RecuperarContrasenaView.vue'
+import RestablecerContrasenaView from '@/domains/auth/views/RestablecerContrasenaView.vue'
 import MLPanelView from '@/domains/ml-panel/views/MLPanelView.vue'
 import AdminUsersView from '@/domains/admin/views/AdminUsersView.vue'
 import PublicMapView from '@/domains/public/views/PublicMapView.vue'
@@ -18,7 +20,10 @@ function isTokenExpired(token: string): boolean {
 }
 
 const routes = [
-  { path: '/',         name: 'login',    component: LoginView,    meta: { requiresAuth: false, hideNavbar: true } },
+  { path: '/',         name: 'login',    component: LoginView,    meta: { requiresAuth: false, hideNavbar: true, soloSinSesion: true } },
+  // Recuperación de contraseña: públicas; con sesión iniciada redirigen como el login.
+  { path: '/recuperar',   name: 'recuperar',   component: RecuperarContrasenaView,   meta: { requiresAuth: false, hideNavbar: true, soloSinSesion: true } },
+  { path: '/restablecer', name: 'restablecer', component: RestablecerContrasenaView, meta: { requiresAuth: false, hideNavbar: true, soloSinSesion: true } },
   // Ruta pública sin auth — no redirige al login, no muestra el navbar interno.
   { path: '/puntos',   name: 'puntos',   component: PublicMapView, meta: { requiresAuth: false, hideNavbar: true } },
   // Resultados V1 importados del paquete versionado (/api/v1/analisis/*); el backend exige admin o analista.
@@ -43,11 +48,13 @@ router.beforeEach((to, from, next) => {
   // Token en localStorage pero expirado → limpiar y mostrar banner
   if (auth.token && isTokenExpired(auth.token)) {
     auth.clearSession()
+    // En la recuperación de contraseña se sigue sin sesión: no se pierde el token del enlace.
+    if (to.name === 'recuperar' || to.name === 'restablecer') return next()
     return next({ name: 'login', query: { expired: 'true' } })
   }
 
   const inicio = rutaInicio(auth.user?.role)
-  if (to.name === 'login' && auth.isAuthenticated) return next({ name: inicio })
+  if (to.meta.soloSinSesion && auth.isAuthenticated) return next({ name: inicio })
   if ((to.meta as any).requiresAuth && !auth.isAuthenticated) return next({ name: 'login' })
   if ((to.meta as any).requiresAdmin && auth.user?.role !== 'admin') return next({ name: inicio })
   const roles = to.meta.roles as string[] | undefined

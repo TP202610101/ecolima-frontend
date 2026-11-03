@@ -52,6 +52,14 @@
             placeholder="••••••••"
             class="w-full rounded-xl border border-border bg-input-bg px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
           >
+          <div class="mt-2 text-right">
+            <router-link
+              :to="{ name: 'recuperar' }"
+              class="text-sm text-primary hover:underline"
+            >
+              ¿Olvidaste tu contraseña?
+            </router-link>
+          </div>
         </div>
 
         <button

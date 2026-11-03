@@ -29,3 +29,25 @@ describe('AuthRepository.login', () => {
     expect(caught).toBe(error)
   })
 })
+
+describe('AuthRepository: recuperar contraseña', () => {
+  beforeEach(() => { post.mockReset() })
+
+  it('forgotPassword envía solo el correo', async () => {
+    post.mockResolvedValue({ data: { message: 'ok' } })
+    await expect(AuthRepository.forgotPassword('a@b.pe')).resolves.toBeUndefined()
+    expect(post).toHaveBeenCalledWith('/api/v1/auth/forgot-password', { email: 'a@b.pe' })
+  })
+
+  it('resetPassword envía token y new_password', async () => {
+    post.mockResolvedValue({ data: {} })
+    await AuthRepository.resetPassword('tok-123', 'Nueva1234')
+    expect(post).toHaveBeenCalledWith('/api/v1/auth/reset-password', { token: 'tok-123', new_password: 'Nueva1234' })
+  })
+
+  it('resetPassword propaga el error del backend (por ejemplo, token inválido)', async () => {
+    const error = Object.assign(new Error('Token inválido'), { cause: { response: { status: 400 } } })
+    post.mockImplementation(() => Promise.reject(error))
+    await expect(AuthRepository.resetPassword('malo', 'Nueva1234')).rejects.toBe(error)
+  })
+})
