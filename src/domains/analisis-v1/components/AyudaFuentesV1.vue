@@ -453,7 +453,7 @@ const tab = (s: Seccion) => props.seccion === s
           <li
             v-for="f in fuentesVisibles"
             :key="f.codigo"
-            class="py-2 grid grid-cols-[1fr_auto] gap-x-4"
+            class="py-2 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-x-4 gap-y-1"
           >
             <div>
               <p class="font-medium text-foreground">
@@ -463,7 +463,7 @@ const tab = (s: Seccion) => props.seccion === s
                 {{ f.nombre }}. {{ f.institucion }}.
               </p>
             </div>
-            <div class="text-xs text-muted-foreground text-right">
+            <div class="text-xs text-muted-foreground sm:text-right sm:max-w-[16rem] break-words">
               <p>
                 <a
                   v-if="f.licencia_url"
