@@ -143,7 +143,7 @@ onUnmounted(() => {
     data-prueba="reportes-v1"
   >
     <AvisoV1 @ayuda="s => (ayuda = s)" />
-    <div class="flex-1 overflow-auto bg-gray-50 print:overflow-visible print:bg-white">
+    <div class="relative flex-1 overflow-auto bg-gray-50 print:static print:overflow-visible print:bg-white">
       <div
         v-if="store.cargando"
         class="py-24 flex flex-col items-center gap-2"
