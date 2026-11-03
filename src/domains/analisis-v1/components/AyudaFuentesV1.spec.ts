@@ -126,14 +126,28 @@ describe('AyudaFuentesV1 — lectura obligatoria de la sección de entrada', () 
   it('sección de entrada pendiente: no se cierra con la X, Escape ni clic fuera', async () => {
     await abrir('fuentes')
     expect(getEstado).toHaveBeenCalledWith(AVISOS_AYUDA.fuentes)
-    expect(cerrarX().attributes('disabled')).toBeDefined()
-    expect(cerrarX().attributes('aria-describedby')).toBe('ayuda-lectura-indicacion')
-    expect(pie().text()).toBe('Primera vez: desplázate hasta el final de este texto para poder cerrar.')
+    expect(cerrarX().attributes('aria-disabled')).toBe('true')
     await cerrarX().trigger('click')
     escape()
     await w.trigger('click')
     await flushPromises()
     expect(w.emitted('cerrar')).toBeUndefined()
+  })
+
+  it('el mensaje sale solo al intentar cerrar y se quita al terminar de leer; luego cierra', async () => {
+    confirmar.mockResolvedValue()
+    await abrir('fuentes')
+    expect(pie().exists()).toBe(false) // sin intento, sin mensaje
+    await cerrarX().trigger('click')
+    expect(pie().text()).toBe('Primera vez: desplázate hasta el final de este texto para poder cerrar.')
+    expect(pie().find('[role="alert"]').exists()).toBe(true)
+    expect(cerrarX().attributes('aria-describedby')).toBe('ayuda-lectura-indicacion')
+    await bajarHastaElFinal()
+    expect(pie().exists()).toBe(false)
+    expect(cerrarX().attributes('aria-disabled')).toBeUndefined()
+    await cerrar()
+    expect(w.emitted('cerrar')).toHaveLength(1)
+    expect(confirmar.mock.calls).toEqual([[AVISOS_AYUDA.fuentes]])
   })
 
   it('al leer la sección de entrada: marca, anuncio, y al cerrar registra solo esa clave', async () => {
@@ -142,25 +156,30 @@ describe('AyudaFuentesV1 — lectura obligatoria de la sección de entrada', () 
     await bajarHastaElFinal()
     expect(tab('Cómo se ordenan')?.text()).toContain('(leída)')
     expect(w.find('[role="status"]').text()).toBe('Leíste «Cómo se ordenan» hasta el final. Ya puedes cerrar la ayuda.')
-    expect(cerrarX().attributes('disabled')).toBeUndefined()
+    expect(cerrarX().attributes('aria-disabled')).toBeUndefined()
     expect(confirmar).not.toHaveBeenCalled() // se registra al cerrar
     await cerrar()
     expect(confirmar.mock.calls).toEqual([[AVISOS_AYUDA.orden]])
     expect(w.emitted('cerrar')).toHaveLength(1)
   })
 
-  it('otra pestaña pendiente no se exige: basta con la de entrada', async () => {
+  it('leer otra pestaña no basta para cerrar: hace falta la de entrada', async () => {
     confirmar.mockResolvedValue()
     await abrir('orden')
     await irA('modelo')
     expect(getEstado).toHaveBeenCalledWith(AVISOS_AYUDA.modelo)
+    await bajarHastaElFinal() // leer otra pestaña no basta
+    escape()
+    await flushPromises()
+    expect(w.emitted('cerrar')).toBeUndefined()
     expect(pie().text()).toBe('Primera vez: para poder cerrar, desplázate hasta el final de «Cómo se ordenan».')
     await irA('orden')
     await bajarHastaElFinal()
     await irA('modelo')
-    expect(cerrarX().attributes('disabled')).toBeUndefined()
+    expect(cerrarX().attributes('aria-disabled')).toBeUndefined()
     await cerrar()
-    expect(confirmar.mock.calls).toEqual([[AVISOS_AYUDA.orden]])
+    expect(confirmar.mock.calls).toHaveLength(2)
+    expect(confirmar.mock.calls).toEqual(expect.arrayContaining([[AVISOS_AYUDA.orden], [AVISOS_AYUDA.modelo]]))
   })
 
   it('las otras secciones leídas completas y pendientes también se registran al cerrar', async () => {
@@ -171,7 +190,8 @@ describe('AyudaFuentesV1 — lectura obligatoria de la sección de entrada', () 
     await bajarHastaElFinal()
     expect(w.find('[role="status"]').text()).toBe('Leíste «Acerca del modelo» hasta el final.')
     await cerrar()
-    expect(confirmar.mock.calls).toEqual([[AVISOS_AYUDA.orden], [AVISOS_AYUDA.modelo]])
+    expect(confirmar.mock.calls).toHaveLength(2)
+    expect(confirmar.mock.calls).toEqual(expect.arrayContaining([[AVISOS_AYUDA.orden], [AVISOS_AYUDA.modelo]]))
   })
 
   it('una sección ya confirmada no se vuelve a registrar aunque se lea', async () => {
@@ -187,7 +207,7 @@ describe('AyudaFuentesV1 — lectura obligatoria de la sección de entrada', () 
 
   it('sección de entrada ya confirmada: se cierra como siempre, aunque las otras falten', async () => {
     await abrir('fuentes', ['fuentes'])
-    expect(cerrarX().attributes('disabled')).toBeUndefined()
+    expect(cerrarX().attributes('aria-disabled')).toBeUndefined()
     expect(pie().exists()).toBe(false)
     escape()
     await flushPromises()
@@ -197,7 +217,7 @@ describe('AyudaFuentesV1 — lectura obligatoria de la sección de entrada', () 
 
   it('si el servicio falla, no se exige nada', async () => {
     await abrir('modelo', 'error')
-    expect(cerrarX().attributes('disabled')).toBeUndefined()
+    expect(cerrarX().attributes('aria-disabled')).toBeUndefined()
     expect(pie().exists()).toBe(false)
     await cerrar()
     expect(w.emitted('cerrar')).toHaveLength(1)
@@ -219,7 +239,7 @@ describe('AyudaFuentesV1 — lectura obligatoria de la sección de entrada', () 
     medidas(250, 300)
     await region().trigger('scroll')
     expect(tab('Fuentes y limitaciones')?.text()).toContain('(leída)')
-    expect(cerrarX().attributes('disabled')).toBeUndefined()
+    expect(cerrarX().attributes('aria-disabled')).toBeUndefined()
   })
 
   it('mientras la sección carga, llegar al final no cuenta', async () => {
@@ -228,7 +248,7 @@ describe('AyudaFuentesV1 — lectura obligatoria de la sección de entrada', () 
     await flushPromises()
     await bajarHastaElFinal()
     expect(tab('Acerca del modelo')?.text()).not.toContain('(leída)')
-    expect(cerrarX().attributes('disabled')).toBeDefined()
+    expect(cerrarX().attributes('aria-disabled')).toBe('true')
   })
 
   it('volver a subir no desmarca la sección leída', async () => {
@@ -237,7 +257,7 @@ describe('AyudaFuentesV1 — lectura obligatoria de la sección de entrada', () 
     ;(region().element as HTMLElement).scrollTop = 0
     await region().trigger('scroll')
     expect(tab('Cómo se ordenan')?.text()).toContain('(leída)')
-    expect(cerrarX().attributes('disabled')).toBeUndefined()
+    expect(cerrarX().attributes('aria-disabled')).toBeUndefined()
   })
 
   it('el texto de cada sección es una región con nombre que se enfoca para desplazarlo con teclado', async () => {

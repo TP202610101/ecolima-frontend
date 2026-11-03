@@ -33,8 +33,10 @@ let registroIntentado = false
 const usuarioId = () => String(auth.user?.user_id ?? auth.user?.email ?? 'anonimo')
 const pendiente = (s: Seccion) => aviso.estados[s] === 'pendiente'
 const bloqueaCierre = computed(() => aviso.pideLectura(entrada) && !leidas.value.includes(entrada))
-// Solo con la respuesta «pendiente» se muestra algo: mientras se comprueba, el cierre espera sin anunciar nada.
-const mostrarIndicacion = computed(() => bloqueaCierre.value && pendiente(entrada))
+// La indicación sale solo tras intentar cerrar (X, Escape o clic fuera) sin haber leído la sección de entrada,
+// y se quita sola al terminarla. Mientras se comprueba con el backend, el cierre espera sin anunciar nada.
+const intentoCerrar = ref(false)
+const mostrarIndicacion = computed(() => intentoCerrar.value && bloqueaCierre.value && pendiente(entrada))
 const leidaMarcada = (s: Seccion) => leidas.value.includes(s)
 const ultimoAnuncio = ref('')
 
@@ -78,7 +80,8 @@ async function registrarLecturas(): Promise<boolean> {
   return r.every(Boolean)
 }
 async function intentarCerrar() {
-  if (bloqueaCierre.value || registrando.value) return
+  if (bloqueaCierre.value) { intentoCerrar.value = true; return }
+  if (registrando.value) return
   if (!registroIntentado) {
     registroIntentado = true
     registrando.value = true
@@ -224,9 +227,10 @@ const tab = (s: Seccion) => props.seccion === s
         </div>
         <button
           type="button"
-          class="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded hover:bg-secondary disabled:text-gray-400 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+          class="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded"
+          :class="bloqueaCierre || registrando ? 'text-gray-400 cursor-not-allowed' : 'hover:bg-secondary'"
           aria-label="Cerrar"
-          :disabled="bloqueaCierre || registrando"
+          :aria-disabled="bloqueaCierre || registrando ? 'true' : undefined"
           :aria-describedby="mostrarIndicacion ? 'ayuda-lectura-indicacion' : undefined"
           @click="intentarCerrar"
         >
@@ -481,15 +485,23 @@ const tab = (s: Seccion) => props.seccion === s
         </p>
       </div>
 
-      <!-- Lectura por sección: indicación visible y un anuncio solo al terminar una sección (no en cada scroll). -->
+      <!-- Anuncio para lectores de pantalla solo al terminar una sección (no en cada scroll). Siempre presente para que se lea. -->
+      <p
+        role="status"
+        class="sr-only"
+      >
+        {{ ultimoAnuncio }}
+      </p>
+      <!-- La indicación aparece solo al intentar cerrar sin haber leído la sección de entrada, y se quita al terminarla. -->
       <div
-        v-if="mostrarIndicacion || leidas.length || errorRegistro"
+        v-if="mostrarIndicacion || errorRegistro"
         class="flex-shrink-0 px-4 sm:px-5 py-3 border-t border-border space-y-1.5 text-sm"
         data-prueba="lectura-ayuda"
       >
         <p
           v-if="mostrarIndicacion"
           id="ayuda-lectura-indicacion"
+          role="alert"
           class="text-neutral-700"
         >
           <template v-if="props.seccion === entrada">
@@ -498,19 +510,6 @@ const tab = (s: Seccion) => props.seccion === s
           <template v-else>
             Primera vez: para poder cerrar, desplázate hasta el final de «{{ NOMBRE_SECCION_AYUDA[entrada] }}».
           </template>
-        </p>
-        <p
-          v-else-if="leidaMarcada(props.seccion)"
-          class="text-green-800"
-          aria-hidden="true"
-        >
-          {{ ultimoAnuncio }}
-        </p>
-        <p
-          role="status"
-          class="sr-only"
-        >
-          {{ ultimoAnuncio }}
         </p>
         <p
           v-if="errorRegistro"
