@@ -550,17 +550,17 @@ onMounted(() => datasetsStore.fetchDatasets())
                   {{ fmtDate(ds.uploaded_at) }}
                 </td>
                 <td class="order-6 md:order-none basis-full md:px-4 md:py-4">
-                  <!-- Móvil: grilla de 2 columnas iguales (acción principal a ancho completo, Eliminar al final y aparte).
-                       Desde md: la fila de botones de siempre. -->
+                  <!-- Móvil: la acción principal a ancho completo y las secundarias en una sola fila de tres
+                       (Limpiar · Historial · Eliminar, o CSV · XLSX · Historial). Desde md: la fila de botones de siempre. -->
                   <div
-                    class="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:items-center md:gap-1"
+                    class="grid grid-cols-3 gap-2 md:flex md:flex-wrap md:items-center md:gap-1"
                     data-prueba="acciones-dataset"
                   >
                     <!-- Validar: pending, invalid o failed -->
                     <button
                       v-if="ds.status === 'pending' || ds.status === 'invalid' || ds.status === 'failed'"
                       :disabled="datasetsStore.validatingId !== null || datasetsStore.committingId !== null"
-                      class="max-md:col-span-2 inline-flex items-center justify-center gap-1.5 min-h-10 lg:min-h-0 px-3 py-1.5 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      class="max-md:col-span-3 inline-flex items-center justify-center gap-1.5 min-h-10 lg:min-h-0 px-3 py-1.5 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       data-accion="validar"
                       @click="datasetsStore.validateDataset(ds.dataset_id, ds.filename)"
                     >
@@ -574,7 +574,7 @@ onMounted(() => datasetsStore.fetchDatasets())
                     <button
                       v-else-if="ds.status === 'valid'"
                       :disabled="datasetsStore.validatingId !== null || datasetsStore.committingId !== null"
-                      class="max-md:col-span-2 inline-flex items-center justify-center gap-1.5 min-h-10 lg:min-h-0 px-3 py-1.5 text-xs font-medium bg-primary text-white rounded-md hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      class="max-md:col-span-3 inline-flex items-center justify-center gap-1.5 min-h-10 lg:min-h-0 px-3 py-1.5 text-xs font-medium bg-primary text-white rounded-md hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       data-accion="confirmar"
                       @click="handleCommit(ds)"
                     >
@@ -628,7 +628,6 @@ onMounted(() => datasetsStore.fetchDatasets())
                     <button
                       :title="`Ver historial de acciones de ${ds.filename}`"
                       class="inline-flex items-center justify-center gap-1 min-h-10 lg:min-h-0 px-2 py-1.5 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors"
-                      :class="isAdmin && ds.status !== 'committed' ? '' : 'max-md:col-span-2'"
                       data-accion="historial"
                       @click="handleViewHistory(ds)"
                     >
@@ -640,7 +639,7 @@ onMounted(() => datasetsStore.fetchDatasets())
                       v-if="ds.status !== 'committed'"
                       :disabled="datasetsStore.deletingDataset !== null"
                       :title="`Eliminar dataset ${ds.filename} por completo`"
-                      class="max-md:col-span-2 max-md:mt-1 inline-flex items-center justify-center gap-1 min-h-10 lg:min-h-0 px-2 py-1.5 text-xs font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 md:border-transparent md:bg-red-600 md:text-white md:hover:bg-red-700"
+                      class="inline-flex items-center justify-center gap-1 min-h-10 lg:min-h-0 px-2 py-1.5 text-xs font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-red-200 bg-white text-red-700 hover:bg-red-50 md:border-transparent md:bg-red-600 md:text-white md:hover:bg-red-700"
                       data-accion="eliminar"
                       @click="handleDeleteDataset(ds)"
                     >

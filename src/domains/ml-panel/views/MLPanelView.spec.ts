@@ -61,17 +61,18 @@ describe('PanelDatos', () => {
     expect(revisarLenguaje(w.text())).toEqual([])
   })
 
-  it('lista los datasets cargados con acciones en grilla: principal primero y Eliminar al final, aparte', async () => {
+  it('lista los datasets cargados con acciones compactas: principal a lo ancho y secundarias en una fila de tres', async () => {
     const w = mount(PanelDatos, { global: { stubs: { teleport: true } } })
     await flushPromises()
     expect(w.text()).toContain('Datasets cargados (últimos 5)')
     expect(w.text()).not.toMatch(/Preview del dataset|Distritos cubiertos|dataset activo/)
     const acciones = w.find('[data-prueba="acciones-dataset"]')
-    expect(acciones.classes()).toEqual(expect.arrayContaining(['grid', 'grid-cols-2', 'md:flex']))
+    expect(acciones.classes()).toEqual(expect.arrayContaining(['grid', 'grid-cols-3', 'md:flex']))
     const botones = acciones.findAll('button')
     expect(botones.map(b => b.attributes('data-accion'))).toEqual(['confirmar', 'limpiar', 'historial', 'eliminar'])
-    expect(botones[0].classes()).toContain('max-md:col-span-2')
-    expect(botones[3].classes()).toEqual(expect.arrayContaining(['max-md:col-span-2', 'bg-red-50', 'md:bg-red-600']))
+    expect(botones[0].classes()).toContain('max-md:col-span-3')
+    for (const b of botones.slice(1)) expect(b.classes().some(c => c.startsWith('max-md:col-span'))).toBe(false)
+    expect(botones[3].classes()).toEqual(expect.arrayContaining(['text-red-700', 'md:bg-red-600']))
     for (const b of botones) expect(b.classes()).toContain('min-h-10')
   })
 
