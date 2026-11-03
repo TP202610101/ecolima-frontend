@@ -164,8 +164,8 @@ const fuentesVisibles = computed(() => {
 const sinLugares = computed(() => store.distritosSinLugares.map(u => nombreDistrito(u)).join(', '))
 const distritosConExistentes = computed(() => new Set(store.existentes.map(e => e.ubigeo)).size)
 const tab = (s: Seccion) => props.seccion === s
-  ? 'flex-shrink-0 whitespace-nowrap min-h-10 lg:min-h-0 px-3 py-1.5 text-sm rounded-md bg-primary text-white font-medium'
-  : 'flex-shrink-0 whitespace-nowrap min-h-10 lg:min-h-0 px-3 py-1.5 text-sm rounded-md hover:bg-secondary'
+  ? 'min-h-10 lg:min-h-0 px-1.5 sm:px-3 py-1.5 text-sm leading-tight sm:leading-normal text-center rounded-md sm:flex-shrink-0 sm:whitespace-nowrap bg-primary text-white font-medium'
+  : 'min-h-10 lg:min-h-0 px-1.5 sm:px-3 py-1.5 text-sm leading-tight sm:leading-normal text-center rounded-md sm:flex-shrink-0 sm:whitespace-nowrap hover:bg-secondary'
 </script>
 
 <template>
@@ -182,10 +182,11 @@ const tab = (s: Seccion) => props.seccion === s
       :aria-label="props.seccion === 'orden' ? 'Cómo se ordenan los lugares' : props.seccion === 'fuentes' ? 'Fuentes y limitaciones' : 'Acerca del modelo'"
       data-prueba="ayuda-fuentes"
     >
-      <!-- Cabecera fija: pestañas desplazables en horizontal si no caben y cierre siempre visible -->
-      <div class="flex-shrink-0 pl-3 sm:pl-5 pr-1 sm:pr-3 py-2 sm:py-3 border-b border-border flex items-center gap-1">
+      <!-- Cabecera fija: en celular las tres pestañas van en columnas iguales (el nombre largo parte en dos líneas
+           dentro de su botón), así se ven todas y la cabecera no cambia según la sección activa; cierre siempre visible -->
+      <div class="flex-shrink-0 pl-2 sm:pl-5 pr-1 sm:pr-3 py-2 sm:py-3 border-b border-border flex items-center gap-1">
         <div
-          class="flex-1 min-w-0 flex items-center gap-2 overflow-x-auto"
+          class="flex-1 min-w-0 grid grid-cols-3 gap-1 sm:flex sm:items-center sm:gap-2"
         >
           <button
             type="button"
