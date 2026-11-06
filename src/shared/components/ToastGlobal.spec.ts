@@ -26,6 +26,13 @@ describe('ToastGlobal', () => {
     expect(toast(w).exists()).toBe(false)
   })
 
+  it('se ajusta a su texto sin salirse de la pantalla y deja pasar los toques', async () => {
+    const w = mount(ToastGlobal)
+    mostrarToast('Usuario creado.')
+    await w.vm.$nextTick()
+    expect(toast(w).classes()).toEqual(expect.arrayContaining(['w-max', 'max-w-[calc(100vw-2rem)]', 'text-center', 'pointer-events-none']))
+  })
+
   it('un aviso nuevo reemplaza al anterior y reinicia el tiempo', async () => {
     const w = mount(ToastGlobal)
     mostrarToast('Primero')

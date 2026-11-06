@@ -68,12 +68,12 @@ describe('AnalisisV1View — pantallas angostas', () => {
 })
 
 describe('AnalisisV1View — título', () => {
-  it('tiene un solo h1 «Análisis», visible desde escritorio y para lectores de pantalla en móvil', () => {
+  it('tiene un solo h1 «Análisis», solo para lectores de pantalla', () => {
     const { w } = montar(1280)
     const titulos = w.findAll('h1')
     expect(titulos).toHaveLength(1)
     expect(titulos[0].text()).toBe('Análisis')
-    expect(titulos[0].classes()).toEqual(expect.arrayContaining(['sr-only', 'lg:not-sr-only']))
+    expect(titulos[0].classes()).toEqual(['sr-only'])
   })
 
   it('el título sigue presente mientras carga o si hay un error', async () => {

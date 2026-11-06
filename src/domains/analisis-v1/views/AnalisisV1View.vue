@@ -44,9 +44,8 @@ onMounted(cargar)
     class="relative flex flex-col h-full"
     data-prueba="analisis-v1"
   >
-    <!-- En escritorio, una franja compacta sobre las columnas. En pantallas angostas el mapa necesita el alto:
-         el título queda solo para lectores de pantalla (las pestañas y el aviso ya ocupan esa zona). -->
-    <h1 class="sr-only lg:not-sr-only lg:flex-shrink-0 lg:px-4 lg:py-1.5 lg:text-lg lg:font-bold lg:bg-white lg:border-b lg:border-border">
+    <!-- Título solo para lectores de pantalla: el mapa y la lista necesitan todo el alto. -->
+    <h1 class="sr-only">
       Análisis
     </h1>
     <AvisoV1 @ayuda="s => (ayuda = s)" />
