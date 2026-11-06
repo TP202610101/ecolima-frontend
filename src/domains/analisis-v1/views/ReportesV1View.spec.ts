@@ -4,6 +4,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import ReportesV1View from './ReportesV1View.vue'
 import { useExploracionV1Store } from '../stores/useExploracionV1Store'
 import { construirLugares } from '../utils/lecturaV1'
+import { mensajeToast } from '@/shared/composables/useToast'
 import type { DistritosGeoJSON, SitioResumen, VersionActiva } from '../entities/AnalisisV1'
 
 vi.mock('../repositories/AnalisisV1Repository', () => ({ AnalisisV1Repository: {} }))
@@ -106,5 +107,16 @@ describe('ReportesV1View — cambiar de distrito con el selector', () => {
     await elegir(w, SI)
     expect(boton(w).text()).toBe('Provincia de Lima (43 distritos)')
     expect(subtitulo(w)).toContain('en la provincia de Lima')
+  })
+})
+
+describe('ReportesV1View — avisos', () => {
+  it('«Copiar resumen» avisa con el toast global', async () => {
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: vi.fn().mockResolvedValue(undefined) } })
+    const { w } = montar()
+    await w.find('[data-prueba="copiar-resumen"]').trigger('click')
+    await w.vm.$nextTick()
+    expect(navigator.clipboard.writeText).toHaveBeenCalledOnce()
+    expect(mensajeToast.value).toMatch(/^Resumen de .+ copiado\.$/)
   })
 })

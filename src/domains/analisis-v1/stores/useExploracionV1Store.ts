@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { DetalleSitio, DistritosGeoJSON, Fuente, ModeloV1, ResumenTamizaje, VersionActiva } from '../entities/AnalisisV1'
 import { AnalisisV1Repository } from '../repositories/AnalisisV1Repository'
+import { respuestaHttp, sinRespuestaServidor } from '@/domains/auth/utils/respuestaHttp'
 import {
   PROVINCIA, construirLugares, enAmbito, filtrosActivos, filtrosIniciales, nombreAmbito, ORDEN_INICIAL,
   paginar, seleccionar, type Ambito, type FiltrosLugares, type Lugar, type OrdenTabla,
@@ -14,10 +15,10 @@ import {
 const CLAVE_MI_DISTRITO = 'ecolima-v1-mi-distrito'
 
 function mensaje(e: unknown, porDefecto: string): string {
-  const x = e as { response?: { status?: number }; message?: string }
-  if (x?.response?.status === 401) return 'Tu sesión expiró. Vuelve a iniciar sesión.'
-  if (x?.response?.status === 403) return 'Tu cuenta no tiene acceso a los resultados V1.'
-  if (x?.message === 'Network Error') return 'No se pudo conectar con el servidor. Revisa que el backend esté encendido.'
+  const status = respuestaHttp(e)?.status
+  if (status === 401) return 'Tu sesión expiró. Vuelve a iniciar sesión.'
+  if (status === 403) return 'Tu cuenta no tiene acceso a los resultados V1.'
+  if (sinRespuestaServidor(e)) return 'No se pudo conectar con el servidor. Revisa tu conexión e intenta de nuevo.'
   return porDefecto
 }
 

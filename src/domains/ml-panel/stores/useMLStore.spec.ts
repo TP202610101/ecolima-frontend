@@ -1,3 +1,4 @@
+import { AxiosError } from 'axios'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useMLStore } from './useMLStore'
@@ -55,7 +56,7 @@ describe('useMLStore — lectura del paquete importado', () => {
   })
 
   it('si fallan todos, muestra un error general', async () => {
-    for (const f of [repo.getVersiones, repo.getVersion, repo.getModelo, repo.getMcda, repo.getTamizaje]) f.mockRejectedValue({ message: 'Network Error' })
+    for (const f of [repo.getVersiones, repo.getVersion, repo.getModelo, repo.getMcda, repo.getTamizaje]) f.mockRejectedValue(Object.assign(new Error('Sin conexión. Verifica tu red.'), { cause: new AxiosError('Network Error', AxiosError.ERR_NETWORK) }))
     const s = useMLStore()
     await s.fetchPanel()
     expect(s.error).toBe('No se pudo conectar con el servidor.')
@@ -75,8 +76,15 @@ describe('useMLStore — lectura del paquete importado', () => {
     expect(s.compareResult).toBeNull()
   })
 
-  it('una versión que no está importada deja el mensaje del backend', async () => {
-    repo.getVersion.mockRejectedValueOnce({ response: { status: 404, data: { detail: 'la versión 9.9.9 no está importada' } } })
+  it('un 403 dice que la cuenta no tiene acceso', async () => {
+    repo.getMcda.mockRejectedValue(Object.assign(new Error('No tienes permisos para esta acción.'), { cause: { response: { status: 403 } } }))
+    const s = useMLStore()
+    await s.fetchPanel()
+    expect(s.errores.mcda).toBe('Tu cuenta no tiene acceso a esta información.')
+  })
+
+  it('una versión que no está importada deja el mensaje del servidor', async () => {
+    repo.getVersion.mockRejectedValueOnce(Object.assign(new Error('Recurso no encontrado.'), { cause: { response: { status: 404, data: { detail: 'la versión 9.9.9 no está importada' } } } }))
     const s = useMLStore()
     await s.fetchCompare('9.9.9', '1.0.0')
     expect(s.compareError).toBe('la versión 9.9.9 no está importada')

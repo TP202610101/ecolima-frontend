@@ -8,6 +8,7 @@
       v-if="auth.isAuthenticated && datasetsStore.isUploaderOpen"
       @close="datasetsStore.closeUploader()"
     />
+    <ToastGlobal />
   </div>
 </template>
 
@@ -15,6 +16,7 @@
 import { useRoute } from 'vue-router'
 import SharedNavbar from '@/shared/components/Navbar.vue'
 import DatasetUploader from '@/domains/datasets/components/DatasetUploader.vue'
+import ToastGlobal from '@/shared/components/ToastGlobal.vue'
 import { useAuthStore } from '@/domains/auth/stores/useAuthStore'
 import { useDatasetsStore } from '@/domains/datasets/stores/useDatasetsStore'
 

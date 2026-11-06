@@ -67,7 +67,7 @@ beforeEach(() => vi.clearAllMocks())
 describe('PanelModelo — bloques con datos simulados', () => {
   it('a. versión activa: paquete, modelo, MCDA, fecha, responsable y licencia', () => {
     const t = bloque(montar().w, 'version').text()
-    for (const x of ['1.0.0', 'propension-1.0.0', 'Regresión logística', '1.0.2', 'WLC con normalización', '3 de octubre de 2026', 'No lo publica la API', 'ODbL-1.0']) expect(t).toContain(x)
+    for (const x of ['1.0.0', 'propension-1.0.0', 'Regresión logística', '1.0.2', 'WLC con normalización', '3 de octubre de 2026', 'No se publica', 'ODbL-1.0']) expect(t).toContain(x)
   })
 
   it('b. métricas: promedio y desviación, tabla de 10 semillas y gráfico', () => {

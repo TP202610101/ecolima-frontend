@@ -9,6 +9,9 @@ import AnalisisV1View from '@/domains/analisis-v1/views/AnalisisV1View.vue'
 import ReportesV1View from '@/domains/analisis-v1/views/ReportesV1View.vue'
 import { useAuthStore } from '@/domains/auth/stores/useAuthStore'
 import { rutaInicio } from '@/domains/auth/utils/rutaInicio'
+import { mostrarToast } from '@/shared/composables/useToast'
+
+const SIN_PERMISO = 'No tienes permiso para abrir esa pantalla.'
 
 function isTokenExpired(token: string): boolean {
   try {
@@ -56,9 +59,15 @@ router.beforeEach((to, from, next) => {
   const inicio = rutaInicio(auth.user?.role)
   if (to.meta.soloSinSesion && auth.isAuthenticated) return next({ name: inicio })
   if ((to.meta as any).requiresAuth && !auth.isAuthenticated) return next({ name: 'login' })
-  if ((to.meta as any).requiresAdmin && auth.user?.role !== 'admin') return next({ name: inicio })
+  if ((to.meta as any).requiresAdmin && auth.user?.role !== 'admin') {
+    mostrarToast(SIN_PERMISO)
+    return next({ name: inicio })
+  }
   const roles = to.meta.roles as string[] | undefined
-  if (roles && !roles.includes(auth.user?.role ?? '')) return next({ name: inicio })
+  if (roles && !roles.includes(auth.user?.role ?? '')) {
+    mostrarToast(SIN_PERMISO)
+    return next({ name: inicio })
+  }
   next()
 })
 

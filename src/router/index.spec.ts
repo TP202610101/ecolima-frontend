@@ -5,6 +5,8 @@ import type { User } from '@/domains/auth/entities/User'
 
 // Las vistas reales cargan MapLibre y Chart.js; aquí solo importa a qué ruta se llega.
 const vista = { template: '<div />' }
+const { mostrarToast } = vi.hoisted(() => ({ mostrarToast: vi.fn() }))
+vi.mock('@/shared/composables/useToast', () => ({ mostrarToast }))
 vi.mock('@/domains/auth/views/LoginView.vue', () => ({ default: vista }))
 vi.mock('@/domains/auth/views/RecuperarContrasenaView.vue', () => ({ default: vista }))
 vi.mock('@/domains/auth/views/RestablecerContrasenaView.vue', () => ({ default: vista }))
@@ -117,5 +119,60 @@ describe('router — recuperar contraseña', () => {
     expect(router.currentRoute.value.name).toBe('restablecer')
     expect(router.currentRoute.value.query.token).toBe('abc')
     expect(useAuthStore().isAuthenticated).toBe(false)
+  })
+})
+
+describe('router — aviso por falta de permiso', () => {
+  const AVISO = 'No tienes permiso para abrir esa pantalla.'
+  beforeEach(() => { mostrarToast.mockClear() })
+
+  it.each([
+    ['/panel-ml', 'analista', 'analisis'],
+    ['/admin/usuarios', 'analista', 'analisis'],
+    ['/panel-ml', 'ciudadano', 'puntos'],
+    ['/analisis', 'ciudadano', 'puntos'],
+    ['/reportes', 'ciudadano', 'puntos'],
+    ['/analisis-v1', 'ciudadano', 'puntos'],
+  ] as const)('%s con rol %s: va a %s y avisa una sola vez', async (ruta, role, destino) => {
+    const r = await navegar(ruta, role)
+    expect(r.name).toBe(destino)
+    expect(mostrarToast).toHaveBeenCalledExactlyOnceWith(AVISO)
+  })
+
+  it.each([
+    ['/panel-ml', 'admin'],
+    ['/admin/usuarios', 'admin'],
+    ['/analisis', 'analista'],
+    ['/reportes', 'analista'],
+    ['/puntos', 'ciudadano'],
+  ] as const)('%s con rol %s: entra sin aviso', async (ruta, role) => {
+    const r = await navegar(ruta, role)
+    expect(r.path).toBe(ruta)
+    expect(mostrarToast).not.toHaveBeenCalled()
+  })
+
+  it('sin sesión va al login sin este aviso', async () => {
+    const r = await navegar('/panel-ml')
+    expect(r.name).toBe('login')
+    expect(r.query.expired).toBeUndefined()
+    expect(mostrarToast).not.toHaveBeenCalled()
+  })
+
+  it('con el token vencido va al login con su propio mensaje, sin este aviso', async () => {
+    vi.resetModules()
+    setActivePinia(createPinia())
+    const vencido = `x.${btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) - 60 }))}.y`
+    useAuthStore().setSession(usuario('analista'), vencido)
+    const { default: router } = await import('./index')
+    await router.push('/panel-ml')
+    expect(router.currentRoute.value.name).toBe('login')
+    expect(router.currentRoute.value.query.expired).toBe('true')
+    expect(mostrarToast).not.toHaveBeenCalled()
+  })
+
+  it('con sesión, abrir el login redirige al inicio sin aviso: no es falta de permiso', async () => {
+    const r = await navegar('/', 'analista')
+    expect(r.name).toBe('analisis')
+    expect(mostrarToast).not.toHaveBeenCalled()
   })
 })

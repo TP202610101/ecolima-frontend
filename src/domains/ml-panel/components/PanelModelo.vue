@@ -147,7 +147,7 @@ const FILAS_COMPARACION: Array<{ nombre: string; valor: (v: VersionComparada) =>
           Responsable
         </dt>
         <dd class="text-muted-foreground">
-          No lo publica la API: el backend omite el nombre del responsable de la ficha del modelo.
+          No se publica: el sistema omite el nombre del responsable de la ficha del modelo.
         </dd>
         <dt class="text-muted-foreground">
           Licencia de los datos
@@ -661,7 +661,7 @@ const FILAS_COMPARACION: Array<{ nombre: string; valor: (v: VersionComparada) =>
         </h3>
       </div>
       <p>
-        Las versiones no se crean ni se activan desde esta pantalla. En el backend se importa el paquete con
+        Las versiones no se crean ni se activan desde esta pantalla. El paquete se importa en el sistema con
         <code class="px-1 rounded bg-white border border-border text-xs">scripts/importar_paquete_analisis.py RUTA_PAQUETE</code>,
         que verifica los hashes del manifiesto y las reglas de coherencia antes de registrarla y dejarla activa.
         Con <code class="px-1 rounded bg-white border border-border text-xs">--no-activar</code> se registra sin activarla y

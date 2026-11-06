@@ -12,6 +12,7 @@ import { useExploracionV1Store } from '../stores/useExploracionV1Store'
 import { useCambioAmbito } from '../composables/useCambioAmbito'
 import { useAuthStore } from '@/domains/auth/stores/useAuthStore'
 import { vValorSelect } from '@/shared/directives/valorSelect'
+import { mostrarToast } from '@/shared/composables/useToast'
 import {
   CLASE_LARGA, COLUMNA_TEXTO, ORDEN_INICIAL, PROVINCIA, T, aCsv, fechaLarga, filasCsv, fmtDec, fmtDist,
   fmtEntero, fuenteExistente, nombreAmbito, nombreArchivoCsv, nombreDistrito, nombreExistente, numeroDe, ordenarTabla,
@@ -26,8 +27,6 @@ const auth = useAuthStore()
 const router = useRouter()
 const ayuda = ref<'orden' | 'fuentes' | 'modelo' | null>(null)
 const imprimiendo = ref(false)
-const aviso = ref<string | null>(null)
-let temporizador: ReturnType<typeof setTimeout> | null = null
 
 function cargar() { store.inicializar(String(auth.user?.user_id ?? auth.user?.email ?? 'anonimo')) }
 
@@ -81,11 +80,6 @@ const textoOrden = computed(() => {
 const { elegir: elegirAmbito, actualizando } = useCambioAmbito()
 function irAlLugar(id: string) { store.elegir(id); router.push({ name: 'analisis' }) }
 function moverDistritos(delta: number) { store.distPag = pgDistritos.value.p + delta }
-function avisar(t: string) {
-  aviso.value = t
-  if (temporizador) clearTimeout(temporizador)
-  temporizador = setTimeout(() => { aviso.value = null }, 3500)
-}
 
 // ── Exportaciones (solo el ámbito elegido) ─────────────────────────────────────────────────────────
 function descargarCsv() {
@@ -97,14 +91,14 @@ function descargarCsv() {
   a.click()
   a.remove()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
-  avisar(`Descargado: ${nombre} (${plural(filas.length - 1, 'fila', 'filas')})`)
+  mostrarToast(`Descargado: ${nombre} (${plural(filas.length - 1, 'fila', 'filas')})`)
 }
 async function copiarResumen() {
   const texto = textoResumen(store.seleccion, store.existentesAmbito, cifras.value, meta.value)
   if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__resumenV1 = texto
   try {
     await navigator.clipboard.writeText(texto)
-    avisar(`Resumen de ${amb.value} copiado.`)
+    mostrarToast(`Resumen de ${amb.value} copiado.`)
   } catch {
     const t = document.createElement('textarea')
     t.value = texto
@@ -112,7 +106,7 @@ async function copiarResumen() {
     t.select()
     const ok = document.execCommand('copy')
     t.remove()
-    avisar(ok ? `Resumen de ${amb.value} copiado.` : 'No se pudo copiar. Selecciona el texto manualmente.')
+    mostrarToast(ok ? `Resumen de ${amb.value} copiado.` : 'No se pudo copiar. Selecciona el texto manualmente.')
   }
 }
 // Impresión: resumen, tabla por distrito y los primeros de Lima (provincia) o el orden del distrito elegido,
@@ -133,7 +127,6 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('beforeprint', antes)
   window.removeEventListener('afterprint', despues)
-  if (temporizador) clearTimeout(temporizador)
 })
 </script>
 
@@ -803,14 +796,6 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <div
-      v-if="aviso"
-      class="fixed left-1/2 bottom-6 -translate-x-1/2 bg-gray-800 text-white text-sm px-4 py-2.5 rounded-lg shadow-lg z-[2100] print:hidden"
-      role="status"
-      data-prueba="toast"
-    >
-      {{ aviso }}
-    </div>
     <AyudaFuentesV1
       v-if="ayuda"
       :seccion="ayuda"

@@ -5,6 +5,7 @@ import { FetchDatasetsUseCase } from '../use-cases/FetchDatasetsUseCase'
 import { UploadDatasetUseCase } from '../use-cases/UploadDatasetUseCase'
 import { DatasetsRepository } from '../repositories/DatasetsRepository'
 import type { DatasetHistoryResponse } from '../repositories/DatasetsRepository'
+import { mostrarToast } from '@/shared/composables/useToast'
 
 export const useDatasetsStore = defineStore('datasets', () => {
   const datasets = ref<Dataset[]>([])
@@ -160,6 +161,7 @@ export const useDatasetsStore = defineStore('datasets', () => {
     try {
       await DatasetsRepository.deleteDataset(id)
       datasets.value = datasets.value.filter(d => d.dataset_id !== id)
+      mostrarToast('Dataset eliminado.')
     } catch (e) {
       deleteDatasetError.value = e instanceof Error ? e.message : 'Error al eliminar el dataset'
       await fetchDatasets()

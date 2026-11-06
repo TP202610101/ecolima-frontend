@@ -3,16 +3,18 @@ import { ref, computed } from 'vue'
 import type { ModeloV1, ResumenMcda, ResumenTamizaje, VersionActiva } from '@/domains/analisis-v1/entities/AnalisisV1'
 import type { ListaVersiones, VersionComparada } from '../entities/ModelVersion'
 import { MLRepository } from '../repositories/MLRepository'
+import { respuestaHttp, sinRespuestaServidor } from '@/domains/auth/utils/respuestaHttp'
 
 // Panel ML (solo admin): estado de solo lectura del paquete de resultados importado.
 // Registrar o activar una versión se hace en el backend con el script de importación, no desde aquí.
 
 function mensaje(e: unknown, porDefecto: string): string {
-  const x = e as { response?: { status?: number; data?: { detail?: unknown } }; message?: string }
-  if (x?.response?.status === 404 && typeof x.response.data?.detail === 'string') return x.response.data.detail
-  if (x?.response?.status === 401) return 'Tu sesión expiró. Vuelve a iniciar sesión.'
-  if (x?.response?.status === 403) return 'Tu cuenta no tiene acceso a esta información.'
-  if (x?.message === 'Network Error') return 'No se pudo conectar con el servidor.'
+  const r = respuestaHttp(e)
+  const detalle = (r?.data as { detail?: unknown } | undefined)?.detail
+  if (r?.status === 404 && typeof detalle === 'string') return detalle
+  if (r?.status === 401) return 'Tu sesión expiró. Vuelve a iniciar sesión.'
+  if (r?.status === 403) return 'Tu cuenta no tiene acceso a esta información.'
+  if (sinRespuestaServidor(e)) return 'No se pudo conectar con el servidor.'
   return porDefecto
 }
 

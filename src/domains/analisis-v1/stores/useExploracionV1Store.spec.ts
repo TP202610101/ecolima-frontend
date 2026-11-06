@@ -1,3 +1,4 @@
+import { AxiosError } from 'axios'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useExploracionV1Store } from './useExploracionV1Store'
@@ -105,12 +106,27 @@ describe('useExploracionV1Store', () => {
     expect(s.verificacionCampo(s.seleccion[0])).toBe('pendiente_campo (C02–C09)')
   })
 
+  // Los errores llegan como los deja el interceptor de axios: mensaje reemplazado y el original en cause.
   it('error de red: mensaje comprensible y sin datos a medias', async () => {
-    repo.getTodosLosSitios.mockRejectedValueOnce({ message: 'Network Error' })
+    repo.getTodosLosSitios.mockRejectedValueOnce(Object.assign(new Error('Sin conexión. Verifica tu red.'), { cause: new AxiosError('Network Error', AxiosError.ERR_NETWORK) }))
     const s = useExploracionV1Store()
     await s.inicializar('7')
-    expect(s.error).toMatch(/No se pudo conectar/)
+    expect(s.error).toBe('No se pudo conectar con el servidor. Revisa tu conexión e intenta de nuevo.')
     expect(s.cargado).toBe(false)
+  })
+
+  it('un 403 dice que la cuenta no tiene acceso', async () => {
+    repo.getTodosLosSitios.mockRejectedValueOnce(Object.assign(new Error('No tienes permisos para esta acción.'), { cause: { response: { status: 403 } } }))
+    const s = useExploracionV1Store()
+    await s.inicializar('7')
+    expect(s.error).toBe('Tu cuenta no tiene acceso a los resultados V1.')
+  })
+
+  it('otro error del servidor usa el mensaje por defecto', async () => {
+    repo.getTodosLosSitios.mockRejectedValueOnce(Object.assign(new Error('Error del servidor, intenta más tarde.'), { cause: { response: { status: 500 } } }))
+    const s = useExploracionV1Store()
+    await s.inicializar('7')
+    expect(s.error).toBe('No se pudieron cargar los resultados V1. Intenta de nuevo.')
   })
 
   it('un distrito sin lugares evaluados se puede elegir, queda vacío y no se fija como mi distrito', async () => {
