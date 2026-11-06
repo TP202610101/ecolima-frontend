@@ -22,7 +22,7 @@ Rutas y permisos definidos en `src/router/index.ts`. Tras iniciar sesión, el an
 
 **Lectura obligatoria de la ayuda del Análisis, por sección.** La ayuda con las pestañas «Cómo se ordenan», «Fuentes y limitaciones» y «Acerca del modelo» se abre desde varios lugares de Análisis y Reportes, cada uno en una pestaña. Si la sección con la que se abre (la de entrada) todavía no fue leída por esa cuenta, la ayuda no se puede cerrar (ni con la X, ni con Escape, ni tocando fuera) hasta desplazar ese texto hasta el final. Las otras pestañas no son obligatorias; si se leen completas, también se registran. Las lecturas se guardan en el servidor al cerrar la ayuda, cada sección por separado (claves `como-se-ordenan`, `fuentes-limitaciones` y `acerca-del-modelo`, en `src/domains/analisis-v1/components/avisoAyuda.ts`). Una sección ya leída no se vuelve a exigir hasta que cambie su versión. Si el servicio falla, no se exige nada.
 
-Si un usuario entra a una ruta sin permiso, el sistema lo devuelve a su pantalla de inicio sin mostrar un error: un analista que escribe `/panel-ml` vuelve a `/analisis`, y alguien sin sesión que escribe `/analisis` va al inicio de sesión.
+Si un usuario con sesión entra a una ruta sin permiso, el sistema lo devuelve a su pantalla de inicio con el aviso temporal «No tienes permiso para abrir esa pantalla.»: un analista que escribe `/panel-ml` vuelve a `/analisis`. Alguien sin sesión que escribe `/analisis` va al inicio de sesión.
 
 ## 2. Flujos por rol
 
@@ -154,7 +154,7 @@ El administrador hace todo lo anterior; las vistas de «Análisis» y «Reportes
 | Nueva contraseña | «No se pudo cambiar la contraseña. Intenta de nuevo en unos minutos.» / «No se pudo conectar con el servidor…» | Otro error del servidor, o el servidor no responde | Sí |
 | Análisis y Reportes | «Cargando los resultados…» | Mientras se descargan los 2 242 sitios | Sí |
 | Análisis y Reportes | «Todavía no hay resultados V1 cargados en el servidor.» | El backend no tiene un paquete activo | Sí |
-| Análisis y Reportes | «No se pudo conectar con el servidor. Revisa que el backend esté encendido.» con «Reintentar» | Backend apagado o CORS rechazado | Sí |
+| Análisis y Reportes | «No se pudo conectar con el servidor. Revisa tu conexión e intenta de nuevo.» con «Reintentar» | Sin respuesta del servidor (apagado, red, CORS o tiempo agotado) | Sí |
 | Análisis y Reportes | «Tu cuenta no tiene acceso a los resultados V1.» | El backend responde 403 | Sí |
 | Análisis y Reportes | «No se pudieron cargar los resultados V1. Intenta de nuevo.» | Otro error de carga | Sí |
 | Análisis | «Ningún lugar coincide con estos filtros.» con «Restablecer filtros» | Los filtros no dejan ningún lugar | Sí |
@@ -167,6 +167,9 @@ El administrador hace todo lo anterior; las vistas de «Análisis» y «Reportes
 | Reportes | «Ningún lugar coincide con los filtros actuales.» con «Quitar filtros» | Los filtros de Análisis no dejan ningún lugar | Sí |
 | Reportes | «Descargado: {archivo} (N filas)» / «Resumen de {ámbito} copiado.» | Exportación correcta (aviso temporal) | Sí |
 | Reportes | «No se pudo copiar. Selecciona el texto manualmente.» | El navegador bloquea el portapapeles | Sí |
+| Cualquier pantalla interna | «No tienes permiso para abrir esa pantalla.» | Una cuenta con sesión abre una ruta de otro rol (aviso temporal en su pantalla de inicio) | Sí |
+| Usuarios | «Usuario creado.» / «Rol actualizado.» / «Cuenta activada.» / «Cuenta desactivada.» | La acción terminó bien (aviso temporal) | Sí |
+| Panel ML › Datos | «Dataset eliminado.» | La eliminación terminó bien (aviso temporal) | Sí |
 | Panel ML | «No se pudo cargar el Panel ML.» / «No se pudo cargar esta sección.» | Falla la carga de todo el panel o de un bloque | Sí |
 | Panel ML | «Solo hay una versión registrada» | Hay un solo paquete importado | Sí (estado normal hoy) |
 | Panel ML | «No se pudieron comparar las versiones.» | Falla la comparación (solo con dos o más versiones) | Sí |
