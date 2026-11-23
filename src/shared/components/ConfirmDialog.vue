@@ -47,9 +47,9 @@ onUnmounted(() => document.removeEventListener('keydown', onKeyDown))
       <p class="text-sm text-muted-foreground leading-relaxed">
         {{ message }}
       </p>
-      <div class="flex justify-end gap-3 pt-1">
+      <div class="flex flex-wrap justify-end gap-3 pt-1">
         <button
-          class="px-4 py-2 text-sm font-medium border border-border rounded-md hover:bg-secondary transition-colors"
+          class="min-h-10 px-4 py-2 text-sm font-medium border border-border rounded-md hover:bg-secondary transition-colors"
           @click="emit('cancel')"
         >
           {{ cancelLabel }}
@@ -57,7 +57,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKeyDown))
         <button
           autofocus
           :class="[
-            'px-4 py-2 text-sm font-medium rounded-md transition-colors',
+            'min-h-10 px-4 py-2 text-sm font-medium rounded-md transition-colors',
             variant === 'danger'
               ? 'bg-red-600 text-white hover:bg-red-700'
               : 'bg-primary text-white hover:bg-primary-hover',

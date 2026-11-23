@@ -1,25 +1,27 @@
-export interface ModelVersion {
-  version_name: string
-  training_date: string
-  is_active: boolean
-  is_demo?: boolean
-  artifact_url?: string
-  created_at?: string
-  metrics: {
-    accuracy?: number
-    f1?: number
-    auc_roc?: number
-    auc_pr?: number
-    precision?: number
-    recall?: number
-  }
+// Versiones del paquete de resultados importado (GET /api/v1/analisis/versiones).
+// El Panel ML ya no gestiona modelos entrenados en la plataforma: lee los paquetes versionados.
+import type { ModeloV1, VersionActiva } from '@/domains/analisis-v1/entities/AnalisisV1'
+
+export interface VersionResumen {
+  paquete_version: string
+  dataset_version: string
+  modelo_version: string
+  mcda_version: string
+  fecha_paquete: string
+  descripcion: string
+  licencia_datos: string
+  activa: boolean
+  importado_en: string
+  manifest_sha256: string
 }
 
-export interface ModelVersionMetrics extends ModelVersion {
-  features_used: string[]
-  comparison_with_previous: {
-    version_name: string
-    metrics: Record<string, number>
-    delta: Record<string, number>
-  } | null
+export interface ListaVersiones {
+  activa: string | null
+  versiones: VersionResumen[]
+}
+
+/** Una versión con su ficha de modelo, para compararla con otra. */
+export interface VersionComparada {
+  version: VersionActiva
+  modelo: ModeloV1 | null
 }

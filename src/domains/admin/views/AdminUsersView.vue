@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
-import { UserPlus, Users } from '@lucide/vue'
+import { ref, reactive, computed, nextTick, onMounted, onUnmounted } from 'vue'
+import { FileUp, UserPlus, Users } from '@lucide/vue'
 import { useAdminUsersStore } from '../stores/useAdminUsersStore'
 import { useAuthStore } from '@/domains/auth/stores/useAuthStore'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
+import ConfirmacionesAviso from '../components/ConfirmacionesAviso.vue'
+import CrearUsuariosBloqueDialog from '../components/CrearUsuariosBloqueDialog.vue'
+import { cumplePolitica, revisarContrasena } from '@/shared/utils/politicaContrasena'
 
 const store = useAdminUsersStore()
 const auth = useAuthStore()
@@ -13,12 +16,7 @@ const showCreate = ref(false)
 const form = reactive({ email: '', fullName: '', password: '', confirmPassword: '', role: 'analista' as 'admin' | 'analista' })
 const formError = ref('')
 
-const pwChecks = computed(() => ({
-  length: form.password.length >= 8,
-  upper:  /[A-Z]/.test(form.password),
-  lower:  /[a-z]/.test(form.password),
-  number: /[0-9]/.test(form.password),
-}))
+const pwChecks = computed(() => revisarContrasena(form.password))
 
 function openCreate() {
   form.email = ''; form.fullName = ''; form.password = ''; form.confirmPassword = ''; form.role = 'analista'
@@ -29,8 +27,7 @@ function openCreate() {
 
 function validateForm(): string | null {
   if (!form.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) return 'Ingresa un email válido.'
-  const { length, upper, lower, number } = pwChecks.value
-  if (!length || !upper || !lower || !number) return 'La contraseña no cumple los requisitos de seguridad.'
+  if (!cumplePolitica(pwChecks.value)) return 'La contraseña no cumple los requisitos de seguridad.'
   if (form.password !== form.confirmPassword) return 'Las contraseñas no coinciden.'
   return null
 }
@@ -47,6 +44,16 @@ async function submitCreate() {
   })
   if (ok) showCreate.value = false
   else formError.value = store.createError ?? 'Error al crear usuario'
+}
+
+// ── Crear usuarios en bloque ─────────────────────────────────────────────────
+const showBloque = ref(false)
+const botonBloque = ref<HTMLButtonElement>()
+async function cerrarBloque(creados: boolean) {
+  showBloque.value = false
+  if (creados) store.fetchUsers()
+  await nextTick()
+  botonBloque.value?.focus()
 }
 
 // ── Confirm dialog ───────────────────────────────────────────────────────────
@@ -131,13 +138,28 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
             Administra los accesos al sistema
           </p>
         </div>
-        <button
-          class="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-primary-hover transition-colors"
-          @click="openCreate"
-        >
-          <UserPlus class="w-4 h-4" />
-          Crear usuario
-        </button>
+        <div class="flex flex-wrap gap-2">
+          <button
+            ref="botonBloque"
+            type="button"
+            class="flex items-center gap-2 min-h-10 px-4 py-2 border border-border bg-white text-sm font-medium rounded-md hover:bg-secondary transition-colors"
+            data-prueba="abrir-bloque"
+            @click="showBloque = true"
+          >
+            <FileUp
+              class="w-4 h-4"
+              aria-hidden="true"
+            />
+            Crear usuarios en bloque
+          </button>
+          <button
+            class="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-primary-hover transition-colors"
+            @click="openCreate"
+          >
+            <UserPlus class="w-4 h-4" />
+            Crear usuario
+          </button>
+        </div>
       </div>
 
       <!-- Action error banner -->
@@ -300,6 +322,9 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
           </table>
         </div>
       </div>
+
+      <!-- Quién leyó la ayuda del Análisis -->
+      <ConfirmacionesAviso />
     </div>
   </div>
 
@@ -326,8 +351,12 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
       <div class="space-y-4">
         <!-- Email -->
         <div>
-          <label class="block text-xs font-medium text-foreground mb-1">Email <span class="text-red-500">*</span></label>
+          <label
+            for="nuevo-usuario-email"
+            class="block text-xs font-medium text-foreground mb-1"
+          >Email <span class="text-red-500">*</span></label>
           <input
+            id="nuevo-usuario-email"
             v-model="form.email"
             type="email"
             placeholder="usuario@ejemplo.com"
@@ -337,8 +366,12 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
         </div>
         <!-- Nombre -->
         <div>
-          <label class="block text-xs font-medium text-foreground mb-1">Nombre completo</label>
+          <label
+            for="nuevo-usuario-nombre"
+            class="block text-xs font-medium text-foreground mb-1"
+          >Nombre completo</label>
           <input
+            id="nuevo-usuario-nombre"
             v-model="form.fullName"
             type="text"
             placeholder="Nombre (opcional)"
@@ -347,8 +380,12 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
         </div>
         <!-- Password -->
         <div>
-          <label class="block text-xs font-medium text-foreground mb-1">Contraseña <span class="text-red-500">*</span></label>
+          <label
+            for="nuevo-usuario-password"
+            class="block text-xs font-medium text-foreground mb-1"
+          >Contraseña <span class="text-red-500">*</span></label>
           <input
+            id="nuevo-usuario-password"
             v-model="form.password"
             type="password"
             placeholder="Mínimo 8 caracteres"
@@ -376,8 +413,12 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
         </div>
         <!-- Confirmar contraseña -->
         <div>
-          <label class="block text-xs font-medium text-foreground mb-1">Confirmar contraseña <span class="text-red-500">*</span></label>
+          <label
+            for="nuevo-usuario-confirmar"
+            class="block text-xs font-medium text-foreground mb-1"
+          >Confirmar contraseña <span class="text-red-500">*</span></label>
           <input
+            id="nuevo-usuario-confirmar"
             v-model="form.confirmPassword"
             type="password"
             placeholder="Repite la contraseña"
@@ -394,8 +435,12 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
         </div>
         <!-- Rol -->
         <div>
-          <label class="block text-xs font-medium text-foreground mb-1">Rol <span class="text-red-500">*</span></label>
+          <label
+            for="nuevo-usuario-rol"
+            class="block text-xs font-medium text-foreground mb-1"
+          >Rol <span class="text-red-500">*</span></label>
           <select
+            id="nuevo-usuario-rol"
             v-model="form.role"
             class="w-full px-3 py-2 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-white"
           >
@@ -439,6 +484,12 @@ onUnmounted(() => document.removeEventListener('keydown', onEscape))
       </div>
     </div>
   </div>
+
+  <!-- ── Crear usuarios en bloque ─────────────────────────────────────────── -->
+  <CrearUsuariosBloqueDialog
+    v-if="showBloque"
+    @cerrar="cerrarBloque"
+  />
 
   <!-- ── Confirm dialog ────────────────────────────────────────────────────── -->
   <ConfirmDialog

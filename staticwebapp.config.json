@@ -1,4 +1,8 @@
 {
+  "routes": [
+    { "route": "/analisis-v1", "redirect": "/analisis", "statusCode": 301 },
+    { "route": "/reportes-v1", "redirect": "/reportes", "statusCode": 301 }
+  ],
   "navigationFallback": {
     "rewrite": "/index.html",
     "exclude": ["/assets/*", "/*.{css,js,ico,png,svg,woff,woff2}"]

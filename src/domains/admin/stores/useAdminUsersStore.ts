@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { AdminUser, CreateUserPayload } from '../entities/AdminUser'
 import { AdminUsersRepository } from '../repositories/AdminUsersRepository'
+import { mostrarToast } from '@/shared/composables/useToast'
 
 export const useAdminUsersStore = defineStore('admin-users', () => {
   const users = ref<AdminUser[]>([])
@@ -28,6 +29,7 @@ export const useAdminUsersStore = defineStore('admin-users', () => {
     try {
       const user = await AdminUsersRepository.createUser(payload)
       users.value = [...users.value, user]
+      mostrarToast('Usuario creado.')
       return true
     } catch (e) {
       createError.value = e instanceof Error ? e.message : 'Error al crear usuario'
@@ -43,6 +45,7 @@ export const useAdminUsersStore = defineStore('admin-users', () => {
     try {
       const updated = await AdminUsersRepository.updateRole(userId, role)
       users.value = users.value.map(u => u.user_id === userId ? updated : u)
+      mostrarToast('Rol actualizado.')
     } catch (e) {
       actionError.value = e instanceof Error ? e.message : 'Error al cambiar rol'
     } finally {
@@ -56,6 +59,7 @@ export const useAdminUsersStore = defineStore('admin-users', () => {
     try {
       const updated = await AdminUsersRepository.updateStatus(userId, is_active)
       users.value = users.value.map(u => u.user_id === userId ? updated : u)
+      mostrarToast(is_active ? 'Cuenta activada.' : 'Cuenta desactivada.')
     } catch (e) {
       actionError.value = e instanceof Error ? e.message : 'Error al cambiar estado'
     } finally {
